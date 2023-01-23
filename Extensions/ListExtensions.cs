@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Zen.DbAccess.Factories;
@@ -46,7 +47,7 @@ public static class ListExtensions
         using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
         await list.SaveAllAsync(dbModelSaveType, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn);
         await conn.CloseAsync();
-    }
+    }    
 
     public static async Task SaveAllAsync<T>(this List<T> list, DbModelSaveType dbModelSaveType, DbConnection conn, string table, bool runAllInTheSameTransaction = true, bool insertPrimaryKeyColumn = false)
     {
@@ -58,7 +59,7 @@ public static class ListExtensions
 
         Type classType = typeof(T);
 
-        MethodInfo? saveAsyncMethod = classType.GetMethod("SaveAsync", new Type[] {
+        MethodInfo? saveAsyncMethod = classType.GetExtensionMethod("SaveAsync", new Type[] {
                 typeof(DbModelSaveType),
                 typeof(DbConnection),
                 typeof(string),
@@ -100,7 +101,7 @@ public static class ListExtensions
             if (firstModel == null)
                 throw new NullReferenceException(nameof(firstModel));
 
-            Task? saveTask = (Task?)saveAsyncMethod?.Invoke(firstModel, new object[] { dbModelSaveType, conn, table, insertPrimaryKeyColumn });
+            Task? saveTask = (Task?)saveAsyncMethod?.Invoke(firstModel, new object[] { firstModel, dbModelSaveType, conn, table, insertPrimaryKeyColumn });
 
             if (saveTask == null)
                 throw new NullReferenceException(nameof(saveTask));
@@ -129,6 +130,9 @@ public static class ListExtensions
             {
                 T model = list[i];
 
+                if (model == null)
+                    continue;
+
                 // setez sql-urile si params (se face refresh cu valorile corespunzatoare la Save)
                 sqlUpdateProp.SetValue(model, sql_update, null);
                 sqlInsertProp.SetValue(model, sql_insert, null);
@@ -137,7 +141,7 @@ public static class ListExtensions
                 pkNameProp.SetValue(model, pkName, null);
                 primaryKeyProp.SetValue(model, primaryKey, null);
 
-                saveTask = (Task?)saveAsyncMethod?.Invoke(model, new object[] { dbModelSaveType, conn, table, insertPrimaryKeyColumn });
+                saveTask = (Task?)saveAsyncMethod?.Invoke(model, new object[] { model, dbModelSaveType, conn, table, insertPrimaryKeyColumn });
 
                 if (saveTask == null)
                     throw new NullReferenceException(nameof(saveTask));
