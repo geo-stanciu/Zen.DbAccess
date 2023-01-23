@@ -440,6 +440,10 @@ namespace Zen.DbAccess.Extensions
                         if (dbModel.dbModel_primaryKey != null)
                             dbModel.dbModel_primaryKey.SetValue(dbModel, id, null);
                     }
+                    else
+                    {
+                        affected = await cmd.ExecuteNonQueryAsync();
+                    }
                 }
                 else
                 {
