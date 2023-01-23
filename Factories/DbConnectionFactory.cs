@@ -1,15 +1,11 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using Npgsql;
 using Oracle.ManagedDataAccess.Client;
 using System;
-using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Data.SqlClient;
 using System.Data.SQLite;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using Zen.DbAccess.Shared.Enums;
 using Zen.DbAccess.Shared.Models;
@@ -123,22 +119,17 @@ public class DbConnectionFactory
         IConfiguration configuration,
         string connectionStringName)
     {
-        string? connStringDetails = configuration?
-            .GetSection("DatabaseConnections")?
-            .GetSection(connectionStringName)?
-            .Value;
-
-        if (connStringDetails == null)
-            throw new NullReferenceException("connection string details");
-
-        ConnectionStringModel? connStringModel = JsonConvert.DeserializeObject<ConnectionStringModel>(connStringDetails);
+        ConnectionStringModel? connStringModel = configuration?
+                .GetSection("DatabaseConnections")?
+                .GetSection(connectionStringName)?
+                .Get<ConnectionStringModel>();
 
         if (connStringModel == null)
             throw new NullReferenceException(nameof(connStringModel));
 
         DbConnectionFactory dbConnectionFactory = new DbConnectionFactory(
-            connStringModel.DbConnectionType,
-            connStringModel.ConnectionString);
+        connStringModel.DbConnectionType,
+        connStringModel.ConnectionString);
 
         return dbConnectionFactory;
     }
