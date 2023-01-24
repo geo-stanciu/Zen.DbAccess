@@ -139,8 +139,8 @@ public static class DBUtils
 
             if (isDataSetReturn)
             {
-                // we expect the p$ to be a function returning a query
-                sbSql.Append($"SELECT * FROM ");
+                // we expect the p$ to be a function returning a refcursor
+                sbSql.Append($"SELECT ");
             }
             else
             {

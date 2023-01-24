@@ -10,6 +10,8 @@ using Zen.DbAccess.Extensions;
 using Zen.DbAccess.Factories;
 using Zen.DbAccess.Shared.Enums;
 using Zen.DbAccess.Shared.Models;
+using System.Reflection.Metadata.Ecma335;
+using System.Reflection;
 
 namespace Zen.DbAccess.Repositories;
 
@@ -24,75 +26,59 @@ public abstract class BaseRepository
 
     protected async Task<ResponseModel> RunQueryAsync(DbModel model, string table, string procedure2Execute)
     {
-        if (_dbConnectionFactory == null)
-            throw new NullReferenceException(nameof(_dbConnectionFactory));
-
-        using DbConnection conn = await _dbConnectionFactory.BuildAndOpenAsync();
-
-        var rez = await RunQueryAsync(conn, model, table, procedure2Execute);
-
-        await conn.CloseAsync();
+        ResponseModel rez = (await RunProcedureAsync<ResponseModel, DbModel>(
+            table: table,
+            tempTableDDL: null,
+            insertPrimaryKeyColumn: false,
+            procedure2Execute: procedure2Execute,
+            models: new List<DbModel> { model })
+        ).Single();
 
         return rez;
     }
 
-    protected async Task<ResponseModel> RunQueryAsync(DbConnection conn, DbModel model, string table, string procedure2Execute)
+    protected Task<List<T>> RunProcedureAsync<T>(string procedure2Execute, params SqlParam[] parameters) where T : ResponseModel
     {
-        await ClearTempTableAsync(conn, table);
+        return RunProcedureAsync<T, DbModel>(table: null, tempTableDDL: null, models: null, insertPrimaryKeyColumn: false, procedure2Execute, parameters);
+    }
 
-        await model.SaveAsync(DbModelSaveType.InsertOnly, conn, table);
+    protected Task<List<T>> RunProcedureAsync<T>(string? table, string? tempTableDDL, string procedure2Execute, params SqlParam[] parameters) where T : ResponseModel
+    {
+        return RunProcedureAsync<T, DbModel>(table, tempTableDDL, models: null, insertPrimaryKeyColumn: false, procedure2Execute: procedure2Execute, parameters);
+    }
 
-        List<SqlParam> result = await procedure2Execute.ExecuteProcedureAsync(conn,
-            new SqlParam("lError") { paramDirection = ParameterDirection.Output },
-            new SqlParam("sError") { size = 32767, paramDirection = ParameterDirection.Output }
-        );
+    protected async Task<List<T>> RunProcedureAsync<T, TDBModel>(string? table, string? tempTableDDL, List<TDBModel>? models, bool? insertPrimaryKeyColumn, string procedure2Execute, params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
+    {
+        if (_dbConnectionFactory == null)
+            throw new NullReferenceException(nameof(_dbConnectionFactory));
 
-        ResponseModel rez = new ResponseModel
+        using DbConnection conn = await _dbConnectionFactory.BuildAndOpenAsync();
+        using DbTransaction tx = await conn.BeginTransactionAsync();
+
+        try
         {
-            is_error = Convert.ToInt32(result.FirstOrDefault(x => x.name == "lError")?.value ?? (object)0) == 1,
-            error_message = result.FirstOrDefault(x => x.name == "sError")?.value?.ToString() ?? ""
-        };
+            if (!string.IsNullOrEmpty(table) && !string.IsNullOrEmpty(tempTableDDL))
+                await CreateTempTableAndGrantAccessToProcedureOwnerAsync(conn, table, tempTableDDL, procedure2Execute);
+            else if (!string.IsNullOrEmpty(table))
+                await ClearTempTableAsync(conn, table);
 
-        return rez;
-    }
+            if (models != null && !string.IsNullOrEmpty(table))
+                await models.SaveAllAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false);
 
-    protected async Task<ResponseModel> RunQueryAsync<T>(string table, string procedure2Execute, List<T> models) where T : DbModel
-    {
-        if (_dbConnectionFactory == null)
-            throw new NullReferenceException(nameof(_dbConnectionFactory));
+            var rez = await RunProcedureAsync<T>(conn, procedure2Execute, parameters);
+            await tx.CommitAsync();
 
-        using DbConnection conn = await _dbConnectionFactory.BuildAndOpenAsync();
-
-        var rez = await RunQueryAsync<T>(conn, table, procedure2Execute, models);
-
-        await conn.CloseAsync();
-
-        return rez;
-    }
-
-    protected async Task<ResponseModel> RunQueryAsync<T>(DbConnection conn, string table, string procedure2Execute, List<T> models) where T : DbModel
-    {
-        await ClearTempTableAsync(conn, table);
-
-        await models.SaveAllAsync(DbModelSaveType.InsertOnly, conn, table);
-
-        List<ResponseModel> rez = await RunProcedureAsync<ResponseModel>(conn, procedure2Execute);
-
-        return rez.First();
-    }
-
-    protected async Task<List<T>> RunProcedureAsync<T>(string procedure2Execute, params SqlParam[] parameters) where T : ResponseModel
-    {
-        if (_dbConnectionFactory == null)
-            throw new NullReferenceException(nameof(_dbConnectionFactory));
-
-        using DbConnection conn = await _dbConnectionFactory.BuildAndOpenAsync();
-
-        var rez = await RunProcedureAsync<T>(conn, procedure2Execute, parameters);
-
-        await conn.CloseAsync();
-
-        return rez;
+            return rez;
+        }
+        catch
+        {
+            await tx.RollbackAsync();
+            throw;
+        }
+        finally
+        {
+            await conn.CloseAsync();
+        }
     }
 
     protected async Task<List<T>> RunProcedureAsync<T>(DbConnection conn, string procedure2Execute, params SqlParam[] parameters) where T : ResponseModel
@@ -107,7 +93,7 @@ public abstract class BaseRepository
         return rez;
     }
 
-    protected async Task CreateTempTableAndGrantAccessToProcedureOwnerAsync(DbConnection conn, string table, string tempTableDDL, string procedure)
+    private async Task CreateTempTableAndGrantAccessToProcedureOwnerAsync(DbConnection conn, string table, string tempTableDDL, string procedure)
     {
         if (conn is OracleConnection)
             return; // the temp table must exist in Oracle as global temp
