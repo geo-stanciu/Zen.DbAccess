@@ -15,6 +15,7 @@ using Zen.DbAccess.Shared.Models;
 using Zen.DbAccess.Shared.Enums;
 using Zen.DbAccess.Factories;
 using Zen.DbAccess.Extensions;
+using System.Reflection.Metadata;
 
 namespace Zen.DbAccess.Utils;
 
@@ -223,8 +224,11 @@ public static class DBUtils
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
         using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync();
+        using DbTransaction tx = await conn.BeginTransactionAsync();
+        var result = await ExecuteProcedure2DataTableAsync(conn, sql, parameters);
+        await tx.CommitAsync();
 
-        return await ExecuteProcedure2DataTableAsync(conn, sql, parameters);
+        return result;
     }
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnection conn, string sql, params SqlParam[] parameters)
@@ -275,20 +279,28 @@ public static class DBUtils
     public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
         using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync();
-        return await ExecuteProcedure2DataSetAsync(conn, sql, parameters);
+        using DbTransaction tx = await conn.BeginTransactionAsync();
+        var result = await ExecuteProcedure2DataSetAsync(conn, sql, parameters);
+        await tx.CommitAsync();
+
+        return result;
     }
 
     public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
-        return await ExecuteProcedure2DataSetAsync(conn, sql, parameters);
+        using DbTransaction tx = await conn.BeginTransactionAsync();
+        var result = await ExecuteProcedure2DataSetAsync(conn, sql, parameters);
+        await tx.CommitAsync();
+
+        return result;
     }
 
     public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnection conn, string sql, params SqlParam[] parameters)
     {
         DataSet? ds = null;
 
-        await Task.Run(() =>
+        await Task.Run(async () =>
         {
             using DbCommand cmd = conn.CreateCommand();
             SetupProcedureCall(cmd, sql, isDataSetReturn: true, parameters);
@@ -300,10 +312,53 @@ public static class DBUtils
 
             ds = new DataSet();
             da.Fill(ds);
+
+            if (conn is NpgsqlConnection && ds.Tables.Count == 1 && ds.Tables[0].Columns.Count == 1)
+            {
+                string procedureName = sql.IndexOf(".") > 0 ? sql.Substring(sql.IndexOf(".") + 1) : sql;
+                
+                if (ds.Tables[0].Columns[0].ToString().ToLower() == procedureName.ToLower())
+                {
+                    string[] openCursors = ds.Tables[0].AsEnumerable()
+                        .Select(x => x[0]!.ToString()!)
+                        .Where(x => x.StartsWith("<unnamed") && x.EndsWith(">") && !x.Contains(";"))
+                        .ToArray();
+
+                    if (openCursors.Any())
+                    {
+                        ds = new DataSet();
+                        int k = 1;
+
+                        foreach (string openCursor in openCursors)
+                        {
+                            DataTable dt = await ExecutePostgresCursorToTableAsync(conn, openCursor);
+                            dt.TableName = $"TABLE{k++}";
+                            ds.Tables.Add(dt);
+                        }
+                    }
+                }
+            }
+
             DisposeLobParameters(da.SelectCommand, parameters);
         });
 
         return ds;
+    }
+
+    private static Task<DataTable> ExecutePostgresCursorToTableAsync(DbConnection conn, string cursorName)
+    {
+        string sql = $"FETCH ALL IN \"{cursorName}\"";
+
+        using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+
+        using DbDataAdapter da = CreateDataAdapter(conn)!;
+        da.SelectCommand = cmd;
+
+        DataTable dt = new DataTable();
+        da.Fill(dt);
+
+        return Task.FromResult(dt);
     }
 
     public static DataSet? ExecuteProcedure2DataSet(DbCommand cmd)

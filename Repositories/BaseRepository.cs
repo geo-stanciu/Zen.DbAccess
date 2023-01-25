@@ -63,7 +63,7 @@ public abstract class BaseRepository
                 await ClearTempTableAsync(conn, table);
 
             if (models != null && !string.IsNullOrEmpty(table))
-                await models.SaveAllAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false);
+                await models.SaveAllAsync(DbModelSaveType.InsertOnly, conn, table, runAllInTheSameTransaction: false, insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false);
 
             var rez = await RunProcedureAsync<T>(conn, procedure2Execute, parameters);
             await tx.CommitAsync();
