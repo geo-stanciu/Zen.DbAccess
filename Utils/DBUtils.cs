@@ -996,7 +996,7 @@ public static class DBUtils
                 param.ParameterName = prm.name;
             }
 
-            if (prm.value != null && prm.value != DBNull.Value && prm.value is bool && cmd.Connection is OracleConnection)
+            if (prm.value != null && prm.value != DBNull.Value && prm.value is bool)
             {
                 param.Value = Convert.ToBoolean(prm.value) ? 1 : 0;
             }
