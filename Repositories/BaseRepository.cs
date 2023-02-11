@@ -101,9 +101,9 @@ public abstract class BaseRepository
         string sql = "p$create_temp_table_and_grant_access_to_procedure";
 
         await sql.ExecuteProcedureAsync(conn,
-            new SqlParam("sTempTable", table),
-            new SqlParam("sTempTableDDL", tempTableDDL),
-            new SqlParam("sProcedure", procedure));
+            new SqlParam("@sTempTable", table),
+            new SqlParam("@sTempTableDDL", tempTableDDL),
+            new SqlParam("@sProcedure", procedure));
     }
 
     protected async Task ClearTempTableAsync(DbConnection conn, string table)

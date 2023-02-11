@@ -957,10 +957,15 @@ public static class DBUtils
 
         foreach (SqlParam prm in parameters)
         {
-            if (cmd.Connection is OracleConnection && prm.isClob && prm.value != null && prm.value != DBNull.Value)
+            if (prm.isClob && cmd.Connection is OracleConnection && prm.value != null && prm.value != DBNull.Value)
             {
                 if (cmd.Parameters[prm.name].Value as OracleClob != null)
                     (cmd.Parameters[prm.name].Value as OracleClob)!.Dispose();
+            }
+            else if (prm.isBlob && cmd.Connection is OracleConnection && prm.value != null && prm.value != DBNull.Value)
+            {
+                if (cmd.Parameters[prm.name].Value as OracleBlob != null)
+                    (cmd.Parameters[prm.name].Value as OracleBlob)!.Dispose();
             }
         }
     }
@@ -1013,6 +1018,21 @@ public static class DBUtils
                     clob.Write(byteContent, 0, byteContent.Length);
 
                     param.Value = clob;
+                }
+            }
+            else if (prm.isBlob && cmd.Connection is OracleConnection && prm.value != null && prm.value != DBNull.Value)
+            {
+                if (prm.value == null)
+                {
+                    param.Value = DBNull.Value;
+                }
+                else
+                {
+                    OracleBlob blob = new OracleBlob(cmd.Connection as OracleConnection);
+                    byte[] byteContent = (prm.value as byte[])!;
+                    blob.Write(byteContent, 0, byteContent.Length);
+
+                    param.Value = blob;
                 }
             }
             else if (cmd.Connection is NpgsqlConnection
