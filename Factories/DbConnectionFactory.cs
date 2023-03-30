@@ -15,8 +15,9 @@ namespace Zen.DbAccess.Factories;
 public class DbConnectionFactory
 {
     private string conn_str;
-    private DbConnectionType dbType;
     private bool commitNoWait;
+
+    public DbConnectionType dbType { get; private set; }
 
     public static DbConnectionType DefaultDbType { get; set; } = DbConnectionType.Oracle;
 
