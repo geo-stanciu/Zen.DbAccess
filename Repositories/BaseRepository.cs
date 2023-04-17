@@ -96,7 +96,10 @@ public abstract class BaseRepository
     private async Task CreateTempTableAndGrantAccessToProcedureOwnerAsync(DbConnection conn, string table, string tempTableDDL, string procedure)
     {
         if (conn is OracleConnection)
-            return; // the temp table must exist in Oracle as global temp
+        {
+            await ClearTempTableAsync(conn, table);
+            return; // the temp table must exist in Oracle as global temp - cleanup and return
+        }
 
         string sql = "p$create_temp_table_and_grant_access_to_procedure";
 
