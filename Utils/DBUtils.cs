@@ -959,13 +959,17 @@ public static class DBUtils
         {
             if (prm.isClob && cmd.Connection is OracleConnection && prm.value != null && prm.value != DBNull.Value)
             {
-                if (cmd.Parameters[prm.name].Value as OracleClob != null)
-                    (cmd.Parameters[prm.name].Value as OracleClob)!.Dispose();
+                string baseParameterName = prm.name.StartsWith("@") ? prm.name.Substring(1) : prm.name;
+
+                if (cmd.Parameters[baseParameterName].Value as OracleClob != null)
+                    (cmd.Parameters[baseParameterName].Value as OracleClob)!.Dispose();
             }
             else if (prm.isBlob && cmd.Connection is OracleConnection && prm.value != null && prm.value != DBNull.Value)
             {
-                if (cmd.Parameters[prm.name].Value as OracleBlob != null)
-                    (cmd.Parameters[prm.name].Value as OracleBlob)!.Dispose();
+                string baseParameterName = prm.name.StartsWith("@") ? prm.name.Substring(1) : prm.name;
+
+                if (cmd.Parameters[baseParameterName].Value as OracleBlob != null)
+                    (cmd.Parameters[baseParameterName].Value as OracleBlob)!.Dispose();
             }
         }
     }
