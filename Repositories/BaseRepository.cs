@@ -111,7 +111,17 @@ public abstract class BaseRepository
 
     protected async Task ClearTempTableAsync(DbConnection conn, string table)
     {
-        if (!table.StartsWith("temp_", StringComparison.OrdinalIgnoreCase)
+        if (conn is OracleConnection)
+        {
+            string simplifiedName = table.IndexOf(".") > 0 ? table.Substring(table.IndexOf(".") + 1) : table;
+
+            if (!simplifiedName.StartsWith("temp_", StringComparison.OrdinalIgnoreCase)
+                && !simplifiedName.StartsWith("tmp_", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException($"{table} must begin with temp_ or tmp_ .");
+            }
+        }
+        else if (!table.StartsWith("temp_", StringComparison.OrdinalIgnoreCase)
             && !table.StartsWith("tmp_", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException($"{table} must begin with temp_ or tmp_ .");
