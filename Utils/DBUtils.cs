@@ -926,8 +926,13 @@ public static class DBUtils
     {
         if (conn == null)
             throw new ArgumentNullException(nameof(conn));
+        
+        DbDataAdapter? da = DbProviderFactories.GetFactory(conn)?.CreateDataAdapter();
 
-        return DbProviderFactories.GetFactory(conn)?.CreateDataAdapter();
+        if (conn is OracleConnection && da != null && da is OracleDataAdapter)
+            (da as OracleDataAdapter)!.SuppressGetDecimalInvalidCastException = true;
+
+        return da;
     }
 
     private static DbCommandBuilder CreateCommandBuilder(DbConnection conn, DbDataAdapter dataAdapter)
