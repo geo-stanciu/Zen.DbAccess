@@ -62,22 +62,18 @@ public class DbConnectionFactory
         else if (dbType == DbConnectionType.Oracle)
         {
             conn = new OracleConnection(conn_str);
+            await conn.OpenAsync();
 
             if (commitNoWait)
-            {
-                await conn.OpenAsync();
                 await OracleSetCommitNoWait(conn);
-            }
         }
         else if (dbType == DbConnectionType.Postgresql)
         {
             conn = new NpgsqlConnection(conn_str);
+            await conn.OpenAsync();
 
             if (commitNoWait)
-            {
-                await conn.OpenAsync();
                 await PostgresqlSetCommitNoWait(conn);
-            }
         }
         else if (dbType == DbConnectionType.Sqlite)
         {
