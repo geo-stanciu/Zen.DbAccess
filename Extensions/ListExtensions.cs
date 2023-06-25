@@ -357,6 +357,8 @@ public static class ListExtensions
         List<SqlParam> insertParams = new List<SqlParam>();
         sbInsert.AppendLine($"INSERT ALL");
 
+        T? firstModel = list.FirstOrDefault();
+
         foreach (T model in list)
         {
             k++;
@@ -382,7 +384,7 @@ public static class ListExtensions
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (model.IsOracleClobDataType(conn, propertyInfo))
+                if (firstModel != null && firstModel.IsOracleClobDataType(conn, propertyInfo))
                     prm.isClob = true;
 
                 insertParams.Add(prm);
@@ -411,6 +413,8 @@ public static class ListExtensions
         StringBuilder sbInsert = new StringBuilder();
         List<SqlParam> insertParams = new List<SqlParam>();
         sbInsert.AppendLine("BEGIN");
+
+        T? firstModel = list.FirstOrDefault();
 
         foreach (T model in list)
         {
@@ -455,7 +459,7 @@ public static class ListExtensions
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (model.IsOracleClobDataType(conn, propertyInfo))
+                if (firstModel != null && firstModel.IsOracleClobDataType(conn, propertyInfo))
                     prm.isClob = true;
 
                 insertParams.Add(prm);
@@ -484,6 +488,8 @@ public static class ListExtensions
         List<SqlParam> insertParams = new List<SqlParam>();
         sbInsert.AppendLine($"insert into {table} ( ");
 
+        T? firstModel = list.FirstOrDefault();
+
         foreach (T model in list)
         {
             k++;
@@ -509,11 +515,19 @@ public static class ListExtensions
                 if (firstRow)
                     sbInsert.Append($" {propertyInfo.Name} ");
 
-                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
+                string appendToParam;
+                if (firstModel != null && firstModel.IsPostgreSQLJsonDataType(conn, propertyInfo))
+                    appendToParam = "::jsonb";
+                else if (firstModel != null && firstModel.IsPostgreSQLDateTimeDataType(conn, propertyInfo))
+                    appendToParam = "::timestamp";
+                else
+                    appendToParam = string.Empty;
+
+                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k}{appendToParam} ");
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (model.IsOracleClobDataType(conn, propertyInfo))
+                if (firstModel != null && firstModel.IsOracleClobDataType(conn, propertyInfo))
                     prm.isClob = true;
 
                 insertParams.Add(prm);
@@ -550,6 +564,8 @@ public static class ListExtensions
         StringBuilder sbInsert = new StringBuilder();
         List<SqlParam> insertParams = new List<SqlParam>();
         sbInsert.AppendLine($"insert into {table} ( ");
+
+        T? firstModel = list.FirstOrDefault();
 
         foreach (T model in list)
         {
@@ -588,11 +604,19 @@ public static class ListExtensions
                 if (firstRow)
                     sbInsert.Append($" {propertyInfo.Name} ");
 
-                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
+                string appendToParam;
+                if (firstModel != null && firstModel.IsPostgreSQLJsonDataType(conn, propertyInfo))
+                    appendToParam = "::jsonb";
+                else if (firstModel != null && firstModel.IsPostgreSQLDateTimeDataType(conn, propertyInfo))
+                    appendToParam = "::timestamp";
+                else
+                    appendToParam = string.Empty;
+
+                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k}{appendToParam} ");
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (model.IsOracleClobDataType(conn, propertyInfo))
+                if (firstModel != null && firstModel.IsOracleClobDataType(conn, propertyInfo))
                     prm.isClob = true;
 
                 insertParams.Add(prm);
