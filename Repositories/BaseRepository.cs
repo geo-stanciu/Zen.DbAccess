@@ -25,8 +25,8 @@ public abstract class BaseRepository
     }
 
     protected async Task<ResponseModel> RunQueryAsync(
-        DbModel model, 
-        string table, 
+        DbModel model,
+        string table,
         string procedure2Execute)
     {
         ResponseModel rez = (await RunProcedureAsync<ResponseModel, DbModel>(
@@ -43,34 +43,54 @@ public abstract class BaseRepository
     }
 
     protected Task<List<T>> RunProcedureAsync<T>(
-        string procedure2Execute, 
+        string procedure2Execute,
         params SqlParam[] parameters) where T : ResponseModel
     {
         return RunProcedureAsync<T, DbModel>(
-            table: null, 
-            tempTableDDL: null, 
-            models: null, 
-            insertPrimaryKeyColumn: false, 
-            null, 
-            null, 
-            procedure2Execute, 
+            table: null,
+            tempTableDDL: null,
+            models: null,
+            insertPrimaryKeyColumn: false,
+            null,
+            null,
+            procedure2Execute,
             parameters);
     }
 
     protected Task<List<T>> RunProcedureAsync<T>(
-        string? table, 
-        string? tempTableDDL, 
-        string procedure2Execute, 
+        string? table,
+        string? tempTableDDL,
+        string procedure2Execute,
         params SqlParam[] parameters) where T : ResponseModel
     {
         return RunProcedureAsync<T, DbModel>(
-            table, tempTableDDL, 
-            models: null, 
-            insertPrimaryKeyColumn: false, 
-            null, 
-            null, 
-            procedure2Execute: procedure2Execute, 
+            table, tempTableDDL,
+            models: null,
+            insertPrimaryKeyColumn: false,
+            null,
+            null,
+            procedure2Execute: procedure2Execute,
             parameters);
+    }
+
+    protected async Task<List<T>> RunProcedureAsync<T, TDBModel>(
+        string? table,
+        string? tempTableDDL,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
+    {
+        return await (RunProcedureAsync<T, TDBModel>(
+            table,
+            tempTableDDL,
+            models,
+            insertPrimaryKeyColumn,
+            false,
+            "",
+            procedure2Execute,
+            parameters));
+
     }
 
     protected async Task<List<T>> RunProcedureAsync<T, TDBModel>(
@@ -100,8 +120,7 @@ public abstract class BaseRepository
             {
                 if (bulkInsert ?? false)
                 {
-                    await models.SaveAllAsync(
-                        DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn, 
+                    await models.BulkInsertAsync(
                         conn, 
                         table, 
                         runAllInTheSameTransaction: false, 
@@ -135,7 +154,10 @@ public abstract class BaseRepository
         }
     }
 
-    protected async Task<List<T>> RunProcedureAsync<T>(DbConnection conn, string procedure2Execute, params SqlParam[] parameters) where T : ResponseModel
+    protected async Task<List<T>> RunProcedureAsync<T>(
+        DbConnection conn, 
+        string procedure2Execute, 
+        params SqlParam[] parameters) where T : ResponseModel
     {
         DataSet? result = await procedure2Execute.ExecuteProcedure2DataSetAsync(conn, parameters);
 

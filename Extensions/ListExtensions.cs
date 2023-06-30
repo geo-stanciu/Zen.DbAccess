@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Zen.DbAccess.Factories;
@@ -85,32 +86,7 @@ public static class ListExtensions
         await conn.CloseAsync();
     }
 
-    public static async Task SaveAllAsync<T>(
-        this List<T> list,
-        DbModelSaveType dbModelSaveType,
-        DbConnection conn,
-        string table,
-        bool runAllInTheSameTransaction = true,
-        bool insertPrimaryKeyColumn = false,
-        string sequence2UseForPrimaryKey = "") where T : DbModel
-    {
-        if (list.Count == 0)
-            return;
-
-        if (conn == null)
-            throw new ArgumentNullException(nameof(conn));
-
-        if (dbModelSaveType == DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
-        {
-            await BulkInsertAsync<T>(list, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
-        }
-        else
-        {
-            await SaveAllOneByOneAsync<T>(list, dbModelSaveType, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
-        }
-    }
-
-    private static async Task BulkInsertAsync<T>(
+    public static async Task BulkInsertAsync<T>(
         this List<T> list, 
         DbConnection conn, 
         string table, 
@@ -188,7 +164,7 @@ public static class ListExtensions
             await tx.CommitAsync();
     }
 
-    private static async Task SaveAllOneByOneAsync<T>(
+    public static async Task SaveAllAsync<T>(
         this List<T> list,
         DbModelSaveType dbModelSaveType,
         DbConnection conn,
@@ -197,6 +173,12 @@ public static class ListExtensions
         bool insertPrimaryKeyColumn = false,
         string sequence2UseForPrimaryKey = "") where T : DbModel
     {
+        if (dbModelSaveType == DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
+        {
+            await BulkInsertAsync<T>(list, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+            return;
+        }
+
         Type classType = typeof(T);
 
         PropertyInfo[] properties = classType.GetProperties();
