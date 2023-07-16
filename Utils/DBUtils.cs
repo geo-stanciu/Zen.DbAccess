@@ -475,18 +475,16 @@ public static class DBUtils
 
     public static async Task<object?> ExecuteScalarAsync(DbConnection conn, string sql, params SqlParam[] parameters)
     {
-        using (DbCommand cmd = conn.CreateCommand())
-        {
-            cmd.CommandText = sql;
+        using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
 
-            AddParameters(cmd, parameters);
+        AddParameters(cmd, parameters);
 
-            var result = await cmd.ExecuteScalarAsync();
+        var result = await cmd.ExecuteScalarAsync();
 
-            DisposeLobParameters(cmd, parameters);
+        DisposeLobParameters(cmd, parameters);
 
-            return result;
-        }
+        return result;
     }
 
 
@@ -530,26 +528,24 @@ public static class DBUtils
     {
         List<SqlParam> outParameters = new List<SqlParam>();
 
-        using (DbCommand cmd = conn.CreateCommand())
+        using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+
+        AddParameters(cmd, parameters);
+
+        await cmd.ExecuteNonQueryAsync();
+
+        foreach (DbParameter param in cmd.Parameters)
         {
-            cmd.CommandText = sql;
+            if (param.Direction != ParameterDirection.InputOutput
+                && param.Direction != ParameterDirection.Output
+                && param.Direction != ParameterDirection.ReturnValue)
+                continue;
 
-            AddParameters(cmd, parameters);
-
-            await cmd.ExecuteNonQueryAsync();
-
-            foreach (DbParameter param in cmd.Parameters)
-            {
-                if (param.Direction != ParameterDirection.InputOutput
-                    && param.Direction != ParameterDirection.Output
-                    && param.Direction != ParameterDirection.ReturnValue)
-                    continue;
-
-                outParameters.Add(new SqlParam(param.ParameterName, param.Value) { paramDirection = param.Direction });
-            }
-
-            DisposeLobParameters(cmd, parameters);
+            outParameters.Add(new SqlParam(param.ParameterName, param.Value) { paramDirection = param.Direction });
         }
+
+        DisposeLobParameters(cmd, parameters);
 
         return outParameters;
     }
@@ -640,16 +636,15 @@ public static class DBUtils
 
     public static async Task<List<T>> QueryAsync<T>(DbConnection conn, string sql, params SqlParam[] parameters)
     {
-        using (DbCommand cmd = conn.CreateCommand())
-        {
-            cmd.CommandText = sql;
-            AddParameters(cmd, parameters);
+        using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
 
-            var result = await cmd.QueryAsync<T>();
+        AddParameters(cmd, parameters);
 
-            DisposeLobParameters(cmd, parameters);
-            return result;
-        }
+        var result = await cmd.QueryAsync<T>();
+
+        DisposeLobParameters(cmd, parameters);
+        return result;
     }
 
 
@@ -771,92 +766,76 @@ public static class DBUtils
     {
         string sql = $"select * from {table} where 1 = 2";
 
-        using (DataTable dt = new DataTable())
+        using DataTable dt = new DataTable();
+        using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+
+        using DbDataAdapter dataAdapter = CreateDataAdapter(conn)!;
+        dataAdapter.SelectCommand = cmd;
+        dataAdapter.UpdateBatchSize = 128;
+
+        using DbCommandBuilder commandBuilder = CreateCommandBuilder(conn, dataAdapter);
+        dataAdapter.InsertCommand = commandBuilder.GetInsertCommand();
+        dataAdapter.UpdateCommand = commandBuilder.GetUpdateCommand();
+
+        dataAdapter.Fill(dt);
+
+        foreach (DataRow row in modelTable.Rows)
         {
-            using (DbCommand cmd = conn.CreateCommand())
+            DataRow newRow = dt.NewRow();
+
+            foreach (DataColumn col in modelTable.Columns)
             {
-                cmd.CommandText = sql;
+                if (!dt.Columns.Contains(col.ColumnName))
+                    continue;
 
-                using (DbDataAdapter dataAdapter = CreateDataAdapter(conn)!)
+                if (row[col.ColumnName] == DBNull.Value)
                 {
-                    dataAdapter.SelectCommand = cmd;
-                    dataAdapter.UpdateBatchSize = 128;
+                    newRow[col.ColumnName] = row[col.ColumnName];
+                }
+                else if (dt.Columns[col.ColumnName]?.DataType == typeof(decimal)
+                    || dt.Columns[col.ColumnName]?.DataType == typeof(decimal?))
+                {
+                    string? val = row[col.ColumnName]?.ToString();
 
-                    using (DbCommandBuilder commandBuilder = CreateCommandBuilder(conn, dataAdapter))
-                    {
-                        dataAdapter.InsertCommand = commandBuilder.GetInsertCommand();
-                        dataAdapter.UpdateCommand = commandBuilder.GetUpdateCommand();
-
-                        dataAdapter.Fill(dt);
-
-                        foreach (DataRow row in modelTable.Rows)
-                        {
-                            DataRow newRow = dt.NewRow();
-
-                            foreach (DataColumn col in modelTable.Columns)
-                            {
-                                if (!dt.Columns.Contains(col.ColumnName))
-                                    continue;
-
-                                if (row[col.ColumnName] == DBNull.Value)
-                                {
-                                    newRow[col.ColumnName] = row[col.ColumnName];
-                                }
-                                else if (dt.Columns[col.ColumnName]?.DataType == typeof(decimal)
-                                    || dt.Columns[col.ColumnName]?.DataType == typeof(decimal?))
-                                {
-                                    string? val = row[col.ColumnName]?.ToString();
-
-                                    if (val != null && (val.Contains("E") || val.Contains("e")))
-                                        newRow[col.ColumnName] = decimal.Parse(val, NumberStyles.Float);
-                                    else
-                                        newRow[col.ColumnName] = Convert.ToDecimal(row[col.ColumnName]);
-                                }
-                                else
-                                {
-                                    newRow[col.ColumnName] = row[col.ColumnName];
-                                }
-                            }
-
-                            dt.Rows.Add(newRow);
-                        }
-
-                        dataAdapter.Update(dt);
-                    }
+                    if (val != null && (val.Contains("E") || val.Contains("e")))
+                        newRow[col.ColumnName] = decimal.Parse(val, NumberStyles.Float);
+                    else
+                        newRow[col.ColumnName] = Convert.ToDecimal(row[col.ColumnName]);
+                }
+                else
+                {
+                    newRow[col.ColumnName] = row[col.ColumnName];
                 }
             }
+
+            dt.Rows.Add(newRow);
         }
+
+        dataAdapter.Update(dt);
     }
 
     private static void UpdateTableFromGenericModel<T>(DbConnection conn, string table, T model)
     {
         string sql = $"select * from {table} where 1 = 2";
 
-        using (DataTable dt = new DataTable())
-        {
-            using (DbCommand cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = sql;
+        using DataTable dt = new DataTable();
+        using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
 
-                using (DbDataAdapter dataAdapter = CreateDataAdapter(conn)!)
-                {
-                    dataAdapter.SelectCommand = cmd;
-                    dataAdapter.UpdateBatchSize = 128;
+        using DbDataAdapter dataAdapter = CreateDataAdapter(conn)!;
+        dataAdapter.SelectCommand = cmd;
+        dataAdapter.UpdateBatchSize = 128;
 
-                    using (DbCommandBuilder commandBuilder = CreateCommandBuilder(conn, dataAdapter))
-                    {
-                        dataAdapter.InsertCommand = commandBuilder.GetInsertCommand();
-                        dataAdapter.UpdateCommand = commandBuilder.GetUpdateCommand();
+        using DbCommandBuilder commandBuilder = CreateCommandBuilder(conn, dataAdapter);
+        dataAdapter.InsertCommand = commandBuilder.GetInsertCommand();
+        dataAdapter.UpdateCommand = commandBuilder.GetUpdateCommand();
 
-                        dataAdapter.Fill(dt);
+        dataAdapter.Fill(dt);
 
-                        dt.CreateRowFromModel(model);
+        dt.CreateRowFromModel(model);
 
-                        dataAdapter.Update(dt);
-                    }
-                }
-            }
-        }
+        dataAdapter.Update(dt);
     }
 
     public static void UpdateTable<T>(DbConnection conn, string table, T model)
@@ -894,32 +873,24 @@ public static class DBUtils
     {
         string sql = $"select * from {table} where 1 = 2";
 
-        using (DataTable dt = new DataTable())
-        {
-            using (DbCommand cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = sql;
+        using DataTable dt = new DataTable();
+        using DbCommand cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
 
-                using (DbDataAdapter dataAdapter = CreateDataAdapter(conn)!)
-                {
-                    dataAdapter.SelectCommand = cmd;
-                    dataAdapter.UpdateBatchSize = 128;
+        using DbDataAdapter dataAdapter = CreateDataAdapter(conn)!;
+        dataAdapter.SelectCommand = cmd;
+        dataAdapter.UpdateBatchSize = 128;
 
-                    using (DbCommandBuilder commandBuilder = CreateCommandBuilder(conn, dataAdapter))
-                    {
-                        dataAdapter.InsertCommand = commandBuilder.GetInsertCommand();
-                        dataAdapter.UpdateCommand = commandBuilder.GetUpdateCommand();
+        using DbCommandBuilder commandBuilder = CreateCommandBuilder(conn, dataAdapter);
+        dataAdapter.InsertCommand = commandBuilder.GetInsertCommand();
+        dataAdapter.UpdateCommand = commandBuilder.GetUpdateCommand();
 
-                        dataAdapter.Fill(dt);
+        dataAdapter.Fill(dt);
 
-                        foreach (T model in models)
-                            dt.CreateRowFromModel(model);
+        foreach (T model in models)
+            dt.CreateRowFromModel(model);
 
-                        dataAdapter.Update(dt);
-                    }
-                }
-            }
-        }
+        dataAdapter.Update(dt);
     }
 
     private static DbDataAdapter? CreateDataAdapter(DbConnection? conn)
