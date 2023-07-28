@@ -36,7 +36,7 @@ public abstract class BaseRepository
             bulkInsert: false,
             sequence2UseForPrimaryKey: "",
             procedure2Execute: procedure2Execute,
-            models: new List<DbModel> { model })
+            models: new List<DbModel> { model }).ConfigureAwait(false)
         ).Single();
 
         return rez;
@@ -89,7 +89,8 @@ public abstract class BaseRepository
             false,
             "",
             procedure2Execute,
-            parameters));
+            parameters)
+        ).ConfigureAwait(false);
 
     }
 
@@ -106,15 +107,15 @@ public abstract class BaseRepository
         if (_dbConnectionFactory == null)
             throw new NullReferenceException(nameof(_dbConnectionFactory));
 
-        using DbConnection conn = await _dbConnectionFactory.BuildAndOpenAsync();
-        using DbTransaction tx = await conn.BeginTransactionAsync();
+        using DbConnection conn = await _dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
+        using DbTransaction tx = await conn.BeginTransactionAsync().ConfigureAwait(false);
 
         try
         {
             if (!string.IsNullOrEmpty(table) && !string.IsNullOrEmpty(tempTableDDL))
-                await CreateTempTableAndGrantAccessToProcedureOwnerAsync(conn, table, tempTableDDL, procedure2Execute);
+                await CreateTempTableAndGrantAccessToProcedureOwnerAsync(conn, table, tempTableDDL, procedure2Execute).ConfigureAwait(false);
             else if (!string.IsNullOrEmpty(table))
-                await ClearTempTableAsync(conn, table);
+                await ClearTempTableAsync(conn, table).ConfigureAwait(false);
 
             if (models != null && !string.IsNullOrEmpty(table))
             {
@@ -125,7 +126,8 @@ public abstract class BaseRepository
                         table, 
                         runAllInTheSameTransaction: false, 
                         insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false, 
-                        sequence2UseForPrimaryKey ?? "");
+                        sequence2UseForPrimaryKey ?? ""
+                    ).ConfigureAwait(false);
                 }
                 else
                 {
@@ -134,23 +136,24 @@ public abstract class BaseRepository
                         conn, 
                         table, 
                         runAllInTheSameTransaction: false, 
-                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false);
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
+                    ).ConfigureAwait(false);
                 }
             }
 
-            var rez = await RunProcedureAsync<T>(conn, procedure2Execute, parameters);
-            await tx.CommitAsync();
+            var rez = await RunProcedureAsync<T>(conn, procedure2Execute, parameters).ConfigureAwait(false);
+            await tx.CommitAsync().ConfigureAwait(false);
 
             return rez;
         }
         catch
         {
-            await tx.RollbackAsync();
+            await tx.RollbackAsync().ConfigureAwait(false);
             throw;
         }
         finally
         {
-            await conn.CloseAsync();
+            await conn.CloseAsync().ConfigureAwait(false);
         }
     }
 
@@ -159,7 +162,7 @@ public abstract class BaseRepository
         string procedure2Execute, 
         params SqlParam[] parameters) where T : ResponseModel
     {
-        DataSet? result = await procedure2Execute.ExecuteProcedure2DataSetAsync(conn, parameters);
+        DataSet? result = await procedure2Execute.ExecuteProcedure2DataSetAsync(conn, parameters).ConfigureAwait(false);
 
         if (result == null || result.Tables.Count == 0)
             throw new Exception("empty query response");
@@ -173,7 +176,7 @@ public abstract class BaseRepository
     {
         if (conn is OracleConnection)
         {
-            await ClearTempTableAsync(conn, table);
+            await ClearTempTableAsync(conn, table).ConfigureAwait(false);
             return; // the temp table must exist in Oracle as global temp - cleanup and return
         }
 
@@ -182,7 +185,8 @@ public abstract class BaseRepository
         await sql.ExecuteProcedureAsync(conn,
             new SqlParam("@sTempTable", table),
             new SqlParam("@sTempTableDDL", tempTableDDL),
-            new SqlParam("@sProcedure", procedure));
+            new SqlParam("@sProcedure", procedure)
+        ).ConfigureAwait(false);
     }
 
     protected async Task ClearTempTableAsync(DbConnection conn, string table)
@@ -204,6 +208,6 @@ public abstract class BaseRepository
         }
 
         string sql = $"delete from {table}";
-        await sql.ExecuteNonQueryAsync(conn);
+        await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
     }
 }

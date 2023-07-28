@@ -29,12 +29,12 @@ namespace Test.Zen.DbAccess
         {
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
-            using var conn = await dbConnectionFactory.BuildAndOpenAsync();
+            using var conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
 
             string sql =
                 "create sequence test1.t1_seq nocache start with 1";
 
-            await sql.ExecuteNonQueryAsync(conn);
+            await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
 
             sql =
                 @"create table test1.t1 (
@@ -44,7 +44,7 @@ namespace Test.Zen.DbAccess
                       constraint t1_pk primary key (c1)
                 )";
 
-            await sql.ExecuteNonQueryAsync(conn);
+            await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
 
             List<T1> models = new List<T1>
             {
@@ -55,15 +55,15 @@ namespace Test.Zen.DbAccess
                 new T1 { c2 = "t5", c3 = DateTime.Now.AddDays(4) },
             };
 
-            await models.SaveAllAsync(DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn, conn, "test1.t1");
+            await models.SaveAllAsync(DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn, conn, "test1.t1").ConfigureAwait(false);
 
             sql = "drop table test1.t1";
 
-            await sql.ExecuteNonQueryAsync(conn);
+            await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
 
             sql = "drop sequence test1.t1_seq";
 
-            await sql.ExecuteNonQueryAsync(conn);
+            await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
         }
 
         [TestMethod]
@@ -71,12 +71,12 @@ namespace Test.Zen.DbAccess
         {
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
-            using var conn = await dbConnectionFactory.BuildAndOpenAsync();
+            using var conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
 
             string sql =
                 "create sequence test1.t1_seq nocache start with 1";
 
-            await sql.ExecuteNonQueryAsync(conn);
+            await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
 
             sql =
                 @"create table test1.t1 (
@@ -86,7 +86,7 @@ namespace Test.Zen.DbAccess
                       constraint t1_pk primary key (c1)
                 )";
 
-            await sql.ExecuteNonQueryAsync(conn);
+            await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
 
             List<T1> models = new List<T1>
             {
@@ -97,15 +97,15 @@ namespace Test.Zen.DbAccess
                 new T1 { c2 = "t5", c3 = DateTime.Now.AddDays(4) },
             };
 
-            await models.SaveAllAsync(DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn, conn, "test1.t1", sequence2UseForPrimaryKey: "test1.t1_seq");
+            await models.SaveAllAsync(DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn, conn, "test1.t1", sequence2UseForPrimaryKey: "test1.t1_seq").ConfigureAwait(false);
 
             sql = "drop table test1.t1";
 
-            await sql.ExecuteNonQueryAsync(conn);
+            await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
 
             sql = "drop sequence test1.t1_seq";
 
-            await sql.ExecuteNonQueryAsync(conn);
+            await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
         }
     }
 }

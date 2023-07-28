@@ -28,7 +28,7 @@ public static class DBUtils
 
     public static async Task<DateTime> GetServerDateTime(DbConnectionType dbtype, string conn_str)
     {
-        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync();
+        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync().ConfigureAwait(false);
         return GetServerDateTime(conn);
     }
 
@@ -68,19 +68,19 @@ public static class DBUtils
 
     public static async Task<List<SqlParam>> ExecuteProcedureAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await ExecuteProcedureAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
+        return await ExecuteProcedureAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<List<SqlParam>> ExecuteProcedureAsync(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
-        return await ExecuteProcedureAsync(conn, sql, parameters);
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
+        return await ExecuteProcedureAsync(conn, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<List<SqlParam>> ExecuteProcedureAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync();
-        return await ExecuteProcedureAsync(conn, sql, parameters);
+        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync().ConfigureAwait(false);
+        return await ExecuteProcedureAsync(conn, sql, parameters).ConfigureAwait(false);
     }
 
     private static void SetupFunctionCall(DbCommand cmd, string sql, params SqlParam[] parameters)
@@ -185,7 +185,7 @@ public static class DBUtils
 
             AddParameters(cmd, parameters);
 
-            await cmd.ExecuteNonQueryAsync();
+            await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 
             foreach (DbParameter param in cmd.Parameters)
             {
@@ -218,22 +218,22 @@ public static class DBUtils
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await ExecuteProcedure2DataTableAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
+        return await ExecuteProcedure2DataTableAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync();
-        using DbTransaction tx = await conn.BeginTransactionAsync();
-        var result = await ExecuteProcedure2DataTableAsync(conn, sql, parameters);
-        await tx.CommitAsync();
+        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync().ConfigureAwait(false);
+        using DbTransaction tx = await conn.BeginTransactionAsync().ConfigureAwait(false);
+        var result = await ExecuteProcedure2DataTableAsync(conn, sql, parameters).ConfigureAwait(false);
+        await tx.CommitAsync().ConfigureAwait(false);
 
         return result;
     }
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnection conn, string sql, params SqlParam[] parameters)
     {
-        DataSet? ds = await ExecuteProcedure2DataSetAsync(conn, sql, parameters);
+        DataSet? ds = await ExecuteProcedure2DataSetAsync(conn, sql, parameters).ConfigureAwait(false);
 
         if (ds == null)
             return null;
@@ -248,7 +248,7 @@ public static class DBUtils
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(DbCommand cmd)
     {
-        DataSet? ds = await ExecuteProcedure2DataSetAsync(cmd);
+        DataSet? ds = await ExecuteProcedure2DataSetAsync(cmd).ConfigureAwait(false);
 
         if (ds == null)
             return null;
@@ -273,25 +273,25 @@ public static class DBUtils
 
     public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await ExecuteProcedure2DataSetAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
+        return await ExecuteProcedure2DataSetAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync();
-        using DbTransaction tx = await conn.BeginTransactionAsync();
-        var result = await ExecuteProcedure2DataSetAsync(conn, sql, parameters);
-        await tx.CommitAsync();
+        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync().ConfigureAwait(false);
+        using DbTransaction tx = await conn.BeginTransactionAsync().ConfigureAwait(false);
+        var result = await ExecuteProcedure2DataSetAsync(conn, sql, parameters).ConfigureAwait(false);
+        await tx.CommitAsync().ConfigureAwait(false);
 
         return result;
     }
 
     public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
-        using DbTransaction tx = await conn.BeginTransactionAsync();
-        var result = await ExecuteProcedure2DataSetAsync(conn, sql, parameters);
-        await tx.CommitAsync();
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
+        using DbTransaction tx = await conn.BeginTransactionAsync().ConfigureAwait(false);
+        var result = await ExecuteProcedure2DataSetAsync(conn, sql, parameters).ConfigureAwait(false);
+        await tx.CommitAsync().ConfigureAwait(false);
 
         return result;
     }
@@ -331,7 +331,7 @@ public static class DBUtils
 
                         foreach (string openCursor in openCursors)
                         {
-                            DataTable dt = await ExecutePostgresCursorToTableAsync(conn, openCursor);
+                            DataTable dt = await ExecutePostgresCursorToTableAsync(conn, openCursor).ConfigureAwait(false);
                             dt.TableName = $"TABLE{k++}";
                             ds.Tables.Add(dt);
                         }
@@ -400,13 +400,13 @@ public static class DBUtils
 
     public static async Task<List<SqlParam>> ExecuteFunctionAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await ExecuteFunctionAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
+        return await ExecuteFunctionAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<List<SqlParam>> ExecuteFunctionAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync();
-        return await ExecuteFunctionAsync(conn, sql, parameters);
+        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync().ConfigureAwait(false);
+        return await ExecuteFunctionAsync(conn, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<List<SqlParam>> ExecuteFunctionAsync(DbConnection conn, string sql, params SqlParam[] parameters)
@@ -418,7 +418,7 @@ public static class DBUtils
 
         AddParameters(cmd, parameters.Where(x => x.paramDirection != ParameterDirection.ReturnValue).ToArray());
 
-        using DataTable dt = await ExecuteProcedure2DataTableAsync(cmd) ?? new DataTable();
+        using DataTable dt = await ExecuteProcedure2DataTableAsync(cmd).ConfigureAwait(false) ?? new DataTable();
 
         foreach (DbParameter param in cmd.Parameters)
         {
@@ -459,18 +459,18 @@ public static class DBUtils
 
     public static async Task<object?> ExecuteScalarAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await ExecuteScalarAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
+        return await ExecuteScalarAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<object?> ExecuteScalarAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await ExecuteScalarAsync(new DbConnectionFactory(dbtype, conn_str), sql, parameters);
+        return await ExecuteScalarAsync(new DbConnectionFactory(dbtype, conn_str), sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<object?> ExecuteScalarAsync(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
-        return await ExecuteScalarAsync(conn, sql, parameters);
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
+        return await ExecuteScalarAsync(conn, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<object?> ExecuteScalarAsync(DbConnection conn, string sql, params SqlParam[] parameters)
@@ -480,7 +480,7 @@ public static class DBUtils
 
         AddParameters(cmd, parameters);
 
-        var result = await cmd.ExecuteScalarAsync();
+        var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
 
         DisposeLobParameters(cmd, parameters);
 
@@ -510,18 +510,18 @@ public static class DBUtils
 
     public static async Task<List<SqlParam>> ExecuteNonQueryAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await ExecuteNonQueryAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
+        return await ExecuteNonQueryAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<List<SqlParam>> ExecuteNonQueryAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await ExecuteNonQueryAsync(new DbConnectionFactory(dbtype, conn_str), sql, parameters);
+        return await ExecuteNonQueryAsync(new DbConnectionFactory(dbtype, conn_str), sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<List<SqlParam>> ExecuteNonQueryAsync(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
-        return await ExecuteNonQueryAsync(conn, sql, parameters);
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
+        return await ExecuteNonQueryAsync(conn, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<List<SqlParam>> ExecuteNonQueryAsync(DbConnection conn, string sql, params SqlParam[] parameters)
@@ -533,7 +533,7 @@ public static class DBUtils
 
         AddParameters(cmd, parameters);
 
-        await cmd.ExecuteNonQueryAsync();
+        await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
 
         foreach (DbParameter param in cmd.Parameters)
         {
@@ -573,23 +573,23 @@ public static class DBUtils
 
     public static async Task<T?> QueryRowAsync<T>(string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await QueryRowAsync<T>(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
+        return await QueryRowAsync<T>(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<T?> QueryRowAsync<T>(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await QueryRowAsync<T>(new DbConnectionFactory(dbtype, conn_str), sql, parameters);
+        return await QueryRowAsync<T>(new DbConnectionFactory(dbtype, conn_str), sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<T?> QueryRowAsync<T>(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
-        return await QueryRowAsync<T>(conn, sql, parameters);
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
+        return await QueryRowAsync<T>(conn, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<T?> QueryRowAsync<T>(DbConnection conn, string sql, params SqlParam[] parameters)
     {
-        List<T> results = await QueryAsync<T>(conn, sql, parameters);
+        List<T> results = await QueryAsync<T>(conn, sql, parameters).ConfigureAwait(false);
 
         if (results.Count == 0)
             throw new Exception("no data found");
@@ -620,18 +620,18 @@ public static class DBUtils
 
     public static async Task<List<T>> QueryAsync<T>(string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await QueryAsync<T>(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
+        return await QueryAsync<T>(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<List<T>> QueryAsync<T>(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await QueryAsync<T>(new DbConnectionFactory(dbtype, conn_str), sql, parameters);
+        return await QueryAsync<T>(new DbConnectionFactory(dbtype, conn_str), sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<List<T>> QueryAsync<T>(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
-        return await QueryAsync<T>(conn, sql, parameters);
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
+        return await QueryAsync<T>(conn, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<List<T>> QueryAsync<T>(DbConnection conn, string sql, params SqlParam[] parameters)
@@ -641,7 +641,7 @@ public static class DBUtils
 
         AddParameters(cmd, parameters);
 
-        var result = await cmd.QueryAsync<T>();
+        var result = await cmd.QueryAsync<T>().ConfigureAwait(false);
 
         DisposeLobParameters(cmd, parameters);
         return result;
@@ -665,13 +665,13 @@ public static class DBUtils
 
     public static async Task<DataTable?> QueryDataTableAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await QueryDataTableAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
+        return await QueryDataTableAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<DataTable?> QueryDataTableAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync();
-        return await QueryDataTableAsync(conn, sql, parameters);
+        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync().ConfigureAwait(false);
+        return await QueryDataTableAsync(conn, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<DataTable?> QueryDataTableAsync(DbConnection conn, string sql, params SqlParam[] parameters)
@@ -713,13 +713,13 @@ public static class DBUtils
 
     public static async Task<DataSet?> QueryDataSetAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
-        return await QueryDataSetAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
+        return await QueryDataSetAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<DataSet?> QueryDataSetAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync();
-        return await QueryDataSetAsync(conn, sql, parameters);
+        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync().ConfigureAwait(false);
+        return await QueryDataSetAsync(conn, sql, parameters).ConfigureAwait(false);
     }
 
     public static async Task<DataSet?> QueryDataSetAsync(DbConnection conn, string sql, params SqlParam[] parameters)

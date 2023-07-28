@@ -62,18 +62,18 @@ public class DbConnectionFactory
         else if (dbType == DbConnectionType.Oracle)
         {
             conn = new OracleConnection(conn_str);
-            await conn.OpenAsync();
+            await conn.OpenAsync().ConfigureAwait(false);
 
             if (commitNoWait)
-                await OracleSetCommitNoWait(conn);
+                await OracleSetCommitNoWait(conn).ConfigureAwait(false);
         }
         else if (dbType == DbConnectionType.Postgresql)
         {
             conn = new NpgsqlConnection(conn_str);
-            await conn.OpenAsync();
+            await conn.OpenAsync().ConfigureAwait(false);
 
             if (commitNoWait)
-                await PostgresqlSetCommitNoWait(conn);
+                await PostgresqlSetCommitNoWait(conn).ConfigureAwait(false);
         }
         else if (dbType == DbConnectionType.Sqlite)
         {
@@ -85,7 +85,7 @@ public class DbConnectionFactory
         }
 
         if (conn.State != ConnectionState.Open)
-            await conn.OpenAsync();
+            await conn.OpenAsync().ConfigureAwait(false);
 
         return conn;
     }
@@ -97,7 +97,7 @@ public class DbConnectionFactory
         using (DbCommand cmd = conn.CreateCommand())
         {
             cmd.CommandText = sql;
-            await cmd.ExecuteNonQueryAsync();
+            await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
         }
     }
 
@@ -108,7 +108,7 @@ public class DbConnectionFactory
         using (DbCommand cmd = conn.CreateCommand())
         {
             cmd.CommandText = sql;
-            await cmd.ExecuteNonQueryAsync();
+            await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
         }
     }
 
