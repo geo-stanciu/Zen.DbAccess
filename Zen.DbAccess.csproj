@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <VersionPrefix>1.0.30-beta</VersionPrefix>
+    <VersionPrefix>1.0.30.1-beta</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>
