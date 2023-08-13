@@ -90,9 +90,9 @@ public static class ListExtensions
         this List<T> list, 
         DbConnection conn, 
         string table, 
-        bool runAllInTheSameTransaction, 
-        bool insertPrimaryKeyColumn,
-        string sequence2UseForPrimaryKey) where T : DbModel
+        bool runAllInTheSameTransaction = true,
+        bool insertPrimaryKeyColumn = false,
+        string sequence2UseForPrimaryKey = "") where T : DbModel
     {
         DbTransaction? tx = null;
 
@@ -500,8 +500,6 @@ public static class ListExtensions
                 string appendToParam;
                 if (firstModel != null && firstModel.IsPostgreSQLJsonDataType(conn, propertyInfo))
                     appendToParam = "::jsonb";
-                else if (firstModel != null && firstModel.IsPostgreSQLDateTimeDataType(conn, propertyInfo))
-                    appendToParam = "::timestamp";
                 else
                     appendToParam = string.Empty;
 
@@ -589,8 +587,6 @@ public static class ListExtensions
                 string appendToParam;
                 if (firstModel != null && firstModel.IsPostgreSQLJsonDataType(conn, propertyInfo))
                     appendToParam = "::jsonb";
-                else if (firstModel != null && firstModel.IsPostgreSQLDateTimeDataType(conn, propertyInfo))
-                    appendToParam = "::timestamp";
                 else
                     appendToParam = string.Empty;
 

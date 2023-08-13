@@ -7,6 +7,7 @@ using System.Data.Common;
 using System.Data.SqlClient;
 using System.Data.SQLite;
 using System.Threading.Tasks;
+using Zen.DbAccess.Extensions;
 using Zen.DbAccess.Shared.Enums;
 using Zen.DbAccess.Shared.Models;
 
@@ -14,10 +15,11 @@ namespace Zen.DbAccess.Factories;
 
 public class DbConnectionFactory
 {
-    private string conn_str;
-    private bool commitNoWait;
+    private string _connStr;
+    private bool _commitNoWait;
 
-    public DbConnectionType dbType { get; private set; }
+    public DbConnectionType DbType { get; private set; }
+    public string TimeZone { get; private set; }
 
     public static DbConnectionType DefaultDbType { get; set; } = DbConnectionType.Oracle;
 
@@ -26,11 +28,13 @@ public class DbConnectionFactory
     /// </summary>
     /// <param name="conn_str"></param>
     /// <param name="commitNoWait">Signals if Oracle and PostgreSql are set to not wait on synchronus commit</param>
-    public DbConnectionFactory(string conn_str, bool commitNoWait = true)
+    /// <param name="timeZone">The time zone</param>
+    public DbConnectionFactory(string conn_str, bool commitNoWait = true, string timeZone = "")
     {
-        dbType = DefaultDbType;
-        this.conn_str = conn_str;
-        this.commitNoWait = commitNoWait;
+        DbType = DefaultDbType;
+        _connStr = conn_str;
+        _commitNoWait = commitNoWait;
+        TimeZone = timeZone;
     }
 
     /// <summary>
@@ -39,11 +43,12 @@ public class DbConnectionFactory
     /// <param name="dbType"></param>
     /// <param name="conn_str"></param>
     /// <param name="commitNoWait">Signals if Oracle and PostgreSql are set to not wait on synchronus commit</param>
-    public DbConnectionFactory(DbConnectionType dbType, string conn_str, bool commitNoWait = true)
+    public DbConnectionFactory(DbConnectionType dbType, string conn_str, bool commitNoWait = true, string timeZone = "")
     {
-        this.dbType = dbType;
-        this.conn_str = conn_str;
-        this.commitNoWait = commitNoWait;
+        DbType = dbType;
+        _connStr = conn_str;
+        _commitNoWait = commitNoWait;
+        TimeZone = timeZone;
     }
 
     /// <summary>
@@ -55,61 +60,56 @@ public class DbConnectionFactory
     {
         DbConnection conn;
 
-        if (dbType == DbConnectionType.SqlServer)
+        if (DbType == DbConnectionType.SqlServer)
         {
-            conn = new SqlConnection(conn_str);
+            conn = new SqlConnection(_connStr);
         }
-        else if (dbType == DbConnectionType.Oracle)
+        else if (DbType == DbConnectionType.Oracle)
         {
-            conn = new OracleConnection(conn_str);
+            conn = new OracleConnection(_connStr);
             await conn.OpenAsync().ConfigureAwait(false);
 
-            if (commitNoWait)
-                await OracleSetCommitNoWait(conn).ConfigureAwait(false);
+            if (_commitNoWait)
+            {
+                string sql = "alter session set commit_logging=batch commit_wait=nowait";
+                await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
+            }
+
+            if (!string.IsNullOrEmpty(TimeZone))
+            {
+                string sql = $"alter session set time_zone = '{TimeZone.Replace("'", "''").Replace("&", "")}' ";
+                await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
+            }
         }
-        else if (dbType == DbConnectionType.Postgresql)
+        else if (DbType == DbConnectionType.Postgresql)
         {
-            conn = new NpgsqlConnection(conn_str);
+            if (!string.IsNullOrEmpty(TimeZone) && !_connStr.Contains(";Timezone=", StringComparison.OrdinalIgnoreCase))
+            {
+                _connStr += $"Timezone={TimeZone};";
+            }
+
+            conn = new NpgsqlConnection(_connStr);
             await conn.OpenAsync().ConfigureAwait(false);
 
-            if (commitNoWait)
-                await PostgresqlSetCommitNoWait(conn).ConfigureAwait(false);
+            if (_commitNoWait)
+            {
+                string sql = "SET synchronous_commit = 'off'";
+                await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
+            }
         }
-        else if (dbType == DbConnectionType.Sqlite)
+        else if (DbType == DbConnectionType.Sqlite)
         {
-            conn = new SQLiteConnection(conn_str);
+            conn = new SQLiteConnection(_connStr);
         }
         else
         {
-            throw new NotImplementedException($"Unknown database type {dbType}");
+            throw new NotImplementedException($"Unknown database type {DbType}");
         }
 
         if (conn.State != ConnectionState.Open)
             await conn.OpenAsync().ConfigureAwait(false);
 
         return conn;
-    }
-
-    private async Task OracleSetCommitNoWait(DbConnection conn)
-    {
-        string sql = "alter session set commit_logging=batch commit_wait=nowait";
-
-        using (DbCommand cmd = conn.CreateCommand())
-        {
-            cmd.CommandText = sql;
-            await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
-        }
-    }
-
-    private async Task PostgresqlSetCommitNoWait(DbConnection conn)
-    {
-        string sql = "SET synchronous_commit = 'off'";
-
-        using (DbCommand cmd = conn.CreateCommand())
-        {
-            cmd.CommandText = sql;
-            await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
-        }
     }
 
     public static DbConnectionFactory FromConfiguration(
@@ -125,8 +125,11 @@ public class DbConnectionFactory
             throw new NullReferenceException(nameof(connStringModel));
 
         DbConnectionFactory dbConnectionFactory = new DbConnectionFactory(
-        connStringModel.DbConnectionType,
-        connStringModel.ConnectionString);
+            connStringModel.DbConnectionType,
+            connStringModel.ConnectionString,
+            commitNoWait: true,
+            connStringModel.TimeZone
+        );
 
         return dbConnectionFactory;
     }

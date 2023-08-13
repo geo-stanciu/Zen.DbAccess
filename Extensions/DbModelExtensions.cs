@@ -130,17 +130,6 @@ public static class DbModelExtensions
         return false;
     }
 
-    public static bool IsPostgreSQLDateTimeDataType(this DbModel dbModel, DbConnection conn, PropertyInfo propertyInfo)
-    {
-        if (conn is NpgsqlConnection
-            && (propertyInfo.PropertyType == typeof(DateTime) || propertyInfo.PropertyType == typeof(DateTime?)))
-        {
-            return true;
-        }
-
-        return false;
-    }
-
     public static bool IsOracleClobDataType(this DbModel dbModel, DbConnection conn, PropertyInfo propertyInfo)
     {
         if (conn is OracleConnection)
@@ -212,8 +201,6 @@ public static class DbModelExtensions
             string appendToParam;
             if (IsPostgreSQLJsonDataType(dbModel, conn, propertyInfo))
                 appendToParam = "::jsonb";
-            else if (IsPostgreSQLDateTimeDataType(dbModel, conn, propertyInfo))
-                appendToParam = "::timestamp";
             else
                 appendToParam = string.Empty;
 
@@ -359,8 +346,6 @@ public static class DbModelExtensions
             string appendToParam;
             if (IsPostgreSQLJsonDataType(dbModel, conn, propertyInfo))
                 appendToParam = "::jsonb";
-            else if (IsPostgreSQLDateTimeDataType(dbModel, conn, propertyInfo))
-                appendToParam = "::timestamp";
             else
                 appendToParam = string.Empty;
 

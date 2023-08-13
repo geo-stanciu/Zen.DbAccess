@@ -1015,15 +1015,6 @@ public static class DBUtils
                     param.Value = blob;
                 }
             }
-            else if (cmd.Connection is NpgsqlConnection
-                && prm.value != DBNull.Value
-                && prm.value is DateTime
-                && (prm.value as DateTime?)?.Kind == DateTimeKind.Utc)
-            {
-
-                string? utc = (prm.value as DateTime?)?.ToUniversalTime().ToString("yyyy-MM-dd HH:mm:ss.ffffffzzz");
-                param.Value = utc;
-            }
             else if (prm.value is Enum)
             {
                 param.Value = Convert.ToInt32(prm.value);

@@ -17,7 +17,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Zen.DbAccess.Shared" Version="1.0.5-beta" />
+    <PackageReference Include="Zen.DbAccess.Shared" Version="1.0.5.2-beta" />
   </ItemGroup>
 
   <ItemGroup>
