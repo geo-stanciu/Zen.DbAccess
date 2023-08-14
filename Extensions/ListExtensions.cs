@@ -4,6 +4,7 @@ using Oracle.ManagedDataAccess.Client;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Data.SQLite;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -321,6 +322,26 @@ public static class ListExtensions
                 propertiesToInsert,
                 insertPrimaryKeyColumn);
         }
+        else if (conn is SQLiteConnection)
+        {
+            if (string.IsNullOrEmpty(pkName))
+            {
+                return PrepareBulkInsertBatch4Sqlite<T>(
+                    list,
+                    conn,
+                    table,
+                    propertiesToInsert);
+            }
+
+            return PrepareBulkInsertBatch4Sqlite<T>(
+                list,
+                conn,
+                table,
+                dbColumns,
+                pkName,
+                propertiesToInsert,
+                insertPrimaryKeyColumn);
+        }
         else
         {
             throw new NotImplementedException($"PrepareBulkInsertBatch for {conn.GetType()}");
@@ -454,6 +475,153 @@ public static class ListExtensions
         }
 
         sbInsert.AppendLine("END;");
+
+        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
+    }
+
+    private static Tuple<string, SqlParam[]> PrepareBulkInsertBatch4Sqlite<T>(
+        List<T> list,
+        DbConnection conn,
+        string table,
+        PropertyInfo[] propertiesToInsert) where T : DbModel
+    {
+        int k = -1;
+        bool firstRow = true;
+        StringBuilder sbInsert = new StringBuilder();
+        List<SqlParam> insertParams = new List<SqlParam>();
+        sbInsert.AppendLine($"insert into {table} ( ");
+
+        T? firstModel = list.FirstOrDefault();
+
+        foreach (T model in list)
+        {
+            k++;
+            bool firstParam = true;
+            StringBuilder sbInsertValues = new StringBuilder();
+
+            for (int i = 0; i < propertiesToInsert.Length; i++)
+            {
+                PropertyInfo propertyInfo = propertiesToInsert[i];
+
+                if (firstParam)
+                {
+                    firstParam = false;
+                }
+                else
+                {
+                    if (firstRow)
+                        sbInsert.Append(", ");
+
+                    sbInsertValues.Append(", ");
+                }
+
+                if (firstRow)
+                    sbInsert.Append($" {propertyInfo.Name} ");
+
+                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
+
+                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
+
+                if (firstModel != null && firstModel.IsOracleClobDataType(conn, propertyInfo))
+                    prm.isClob = true;
+
+                insertParams.Add(prm);
+            }
+
+            if (firstRow)
+            {
+                firstRow = false;
+                sbInsert
+                    .AppendLine(") values ")
+                    .Append(" (")
+                    .Append(sbInsertValues).AppendLine(")");
+            }
+            else
+            {
+                sbInsert.Append(", (").Append(sbInsertValues).AppendLine(")");
+            }
+        }
+
+        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
+    }
+
+    private static Tuple<string, SqlParam[]> PrepareBulkInsertBatch4Sqlite<T>(
+        List<T> list,
+        DbConnection conn,
+        string table,
+        List<string> dbColumns,
+        string pkName,
+        PropertyInfo[] propertiesToInsert,
+        bool insertPrimaryKeyColumn) where T : DbModel
+    {
+        int k = -1;
+        bool firstRow = true;
+        StringBuilder sbInsert = new StringBuilder();
+        List<SqlParam> insertParams = new List<SqlParam>();
+        sbInsert.AppendLine($"insert into {table} ( ");
+
+        T? firstModel = list.FirstOrDefault();
+
+        foreach (T model in list)
+        {
+            k++;
+            bool firstParam = true;
+            StringBuilder sbInsertValues = new StringBuilder();
+
+            for (int i = 0; i < propertiesToInsert.Length; i++)
+            {
+                PropertyInfo propertyInfo = propertiesToInsert[i];
+
+                if (firstParam)
+                {
+                    firstParam = false;
+                }
+                else
+                {
+                    if (firstRow)
+                        sbInsert.Append(", ");
+
+                    sbInsertValues.Append(", ");
+                }
+
+                if (!insertPrimaryKeyColumn
+                    && propertyInfo.Name == pkName
+                    && dbColumns.Contains(propertyInfo.Name))
+                {
+                    if (firstRow)
+                        sbInsert.Append($" {propertyInfo.Name} ");
+
+                    sbInsertValues.Append($" null ");
+
+                    continue;
+                }
+
+                if (firstRow)
+                    sbInsert.Append($" {propertyInfo.Name} ");
+
+                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
+
+                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
+
+                if (firstModel != null && firstModel.IsOracleClobDataType(conn, propertyInfo))
+                    prm.isClob = true;
+
+                insertParams.Add(prm);
+            }
+
+            if (firstRow)
+            {
+                firstRow = false;
+                sbInsert
+                    .AppendLine(") values ")
+                    .Append(" (")
+                    .Append(sbInsertValues).AppendLine(")");
+            }
+            else
+            {
+                sbInsert.Append(", (").Append(sbInsertValues).AppendLine(")");
+            }
+        }
 
         return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
     }
