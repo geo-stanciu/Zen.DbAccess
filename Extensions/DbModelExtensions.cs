@@ -154,7 +154,7 @@ public static class DbModelExtensions
 
         string sql = $"select * from {table} where 1 = -1";
 
-        DataTable? dt = await sql.QueryDataTableAsync(conn).ConfigureAwait(false);
+        DataTable? dt = await sql.QueryDataTableAsync(conn);
 
         if (dt == null)
             throw new NullReferenceException(nameof(dt));
@@ -165,7 +165,7 @@ public static class DbModelExtensions
 
     private static async Task ConstructUpdateQueryAsync(this DbModel dbModel, DbConnection conn, string table)
     {
-        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, table).ConfigureAwait(false);
+        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, table);
 
         StringBuilder sbUpdate = new StringBuilder();
         sbUpdate.Append($"update {table} set ");
@@ -280,7 +280,7 @@ public static class DbModelExtensions
 
     public static async Task RefreshDbColumnsAndModelPropertiesAsync(this DbModel dbModel, DbConnection conn, string table)
     {
-        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, table).ConfigureAwait(false);
+        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, table);
         RefreshPropertiesIfEmpty(dbModel);
         DeterminePrimaryKey(dbModel);
     }
@@ -293,7 +293,7 @@ public static class DbModelExtensions
         bool insertPrimaryKeyColumn,
         string sequence2UseForPrimaryKey = "")
     {
-        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, table).ConfigureAwait(false);
+        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, table);
         RefreshPropertiesIfEmpty(dbModel);
 
         StringBuilder sbInsertValues = new StringBuilder();
@@ -448,13 +448,13 @@ public static class DbModelExtensions
 
         if (!isInsert)
         {
-            affected = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+            affected = await cmd.ExecuteNonQueryAsync();
             return affected;
         }
 
         if (conn is OracleConnection)
         {
-            affected = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+            affected = await cmd.ExecuteNonQueryAsync();
 
             if (!insertPrimaryKeyColumn && saveType != DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
             {
@@ -486,14 +486,14 @@ public static class DbModelExtensions
 
         if (!insertPrimaryKeyColumn && saveType != DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
         {
-            long id = Convert.ToInt64((await cmd.ExecuteScalarAsync().ConfigureAwait(false))!.ToString());
+            long id = Convert.ToInt64((await cmd.ExecuteScalarAsync())!.ToString());
 
             if (dbModel.dbModel_primaryKey != null)
                 dbModel.dbModel_primaryKey.SetValue(dbModel, id, null);
         }
         else
         {
-            affected = await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+            affected = await cmd.ExecuteNonQueryAsync();
         }
 
         return affected;
@@ -552,36 +552,36 @@ public static class DbModelExtensions
 
     public static async Task SaveAsync(this DbModel dbModel, string conn_str, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
-        await SaveAsync(dbModel, DbModelSaveType.InsertUpdate, DbConnectionFactory.DefaultDbType, conn_str, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).ConfigureAwait(false);
+        await SaveAsync(dbModel, DbModelSaveType.InsertUpdate, DbConnectionFactory.DefaultDbType, conn_str, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
     }
 
     public static async Task SaveAsync(this DbModel dbModel, DbModelSaveType saveType, string conn_str, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
-        await SaveAsync(dbModel, saveType, DbConnectionFactory.DefaultDbType, conn_str, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).ConfigureAwait(false);
+        await SaveAsync(dbModel, saveType, DbConnectionFactory.DefaultDbType, conn_str, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
     }
 
     public static async Task SaveAsync(this DbModel dbModel, DbConnectionType dbtype, string conn_str, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
-        await SaveAsync(dbModel, DbModelSaveType.InsertUpdate, new DbConnectionFactory(dbtype, conn_str), table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).ConfigureAwait(false);
+        await SaveAsync(dbModel, DbModelSaveType.InsertUpdate, new DbConnectionFactory(dbtype, conn_str), table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
     }
 
     public static async Task SaveAsync(this DbModel dbModel, DbModelSaveType saveType, DbConnectionType dbtype, string conn_str, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
-        await SaveAsync(dbModel, saveType, new DbConnectionFactory(dbtype, conn_str), table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).ConfigureAwait(false);
+        await SaveAsync(dbModel, saveType, new DbConnectionFactory(dbtype, conn_str), table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
     }
 
     public static async Task SaveAsync(this DbModel dbModel, DbConnectionFactory dbConnectionFactory, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
-        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
-        await SaveAsync(dbModel, DbModelSaveType.InsertUpdate, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).ConfigureAwait(false);
-        await conn.CloseAsync().ConfigureAwait(false);
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
+        await SaveAsync(dbModel, DbModelSaveType.InsertUpdate, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+        await conn.CloseAsync();
     }
 
     public static async Task SaveAsync(this DbModel dbModel, DbModelSaveType saveType, DbConnectionFactory dbConnectionFactory, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
-        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
-        await SaveAsync(dbModel, saveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).ConfigureAwait(false);
-        await conn.CloseAsync().ConfigureAwait(false);
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
+        await SaveAsync(dbModel, saveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+        await conn.CloseAsync();
     }
 
     /// <summary>
@@ -604,7 +604,7 @@ public static class DbModelExtensions
             table, 
             insertPrimaryKeyColumn,
             sequence2UseForPrimaryKey
-        ).ConfigureAwait(false);
+        );
     }
 
     /// <summary>
@@ -625,7 +625,7 @@ public static class DbModelExtensions
         {
             // we need to try tp update first since we have a value for the primary key field
             if (string.IsNullOrEmpty(dbModel.dbModel_sql_update.sql_query))
-                await ConstructUpdateQueryAsync(dbModel, conn, table).ConfigureAwait(false);
+                await ConstructUpdateQueryAsync(dbModel, conn, table);
             else
                 RefreshParameterValuesForUpdate(dbModel);
 
@@ -638,14 +638,14 @@ public static class DbModelExtensions
                 dbModel.dbModel_sql_update.sql_parameters, 
                 insertPrimaryKeyColumn,
                 false
-            ).ConfigureAwait(false);
+            );
 
             if (affected > 0)
                 return;
         }
 
         if (string.IsNullOrEmpty(dbModel.dbModel_sql_insert.sql_query))
-            await ConstructInsertQueryAsync(dbModel, saveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).ConfigureAwait(false);
+            await ConstructInsertQueryAsync(dbModel, saveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
         else
             RefreshParameterValuesForInsert(dbModel, insertPrimaryKeyColumn);
 
@@ -658,7 +658,7 @@ public static class DbModelExtensions
             dbModel.dbModel_sql_insert.sql_parameters, 
             insertPrimaryKeyColumn,
             true
-        ).ConfigureAwait(false);
+        );
     }
 
     private static bool PrimaryKeyFieldHasValue(this DbModel dbModel)

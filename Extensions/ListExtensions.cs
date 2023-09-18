@@ -26,7 +26,7 @@ public static class ListExtensions
         bool runAllInTheSameTransaction = true,
         bool insertPrimaryKeyColumn = false) where T : DbModel
     {
-        await list.SaveAllAsync(DbModelSaveType.InsertUpdate, DbConnectionFactory.DefaultDbType, conn_str, table, runAllInTheSameTransaction, insertPrimaryKeyColumn).ConfigureAwait(false);
+        await list.SaveAllAsync(DbModelSaveType.InsertUpdate, DbConnectionFactory.DefaultDbType, conn_str, table, runAllInTheSameTransaction, insertPrimaryKeyColumn);
     }
 
     public static async Task SaveAllAsync<T>(
@@ -37,7 +37,7 @@ public static class ListExtensions
         bool runAllInTheSameTransaction = true,
         bool insertPrimaryKeyColumn = false) where T : DbModel
     {
-        await list.SaveAllAsync(dbModelSaveType, DbConnectionFactory.DefaultDbType, conn_str, table, runAllInTheSameTransaction, insertPrimaryKeyColumn).ConfigureAwait(false);
+        await list.SaveAllAsync(dbModelSaveType, DbConnectionFactory.DefaultDbType, conn_str, table, runAllInTheSameTransaction, insertPrimaryKeyColumn);
     }
 
     public static async Task SaveAllAsync<T>(
@@ -48,7 +48,7 @@ public static class ListExtensions
         bool runAllInTheSameTransaction = true,
         bool insertPrimaryKeyColumn = false) where T : DbModel
     {
-        await list.SaveAllAsync(DbModelSaveType.InsertUpdate, new DbConnectionFactory(dbtype, conn_str), table, runAllInTheSameTransaction, insertPrimaryKeyColumn).ConfigureAwait(false);
+        await list.SaveAllAsync(DbModelSaveType.InsertUpdate, new DbConnectionFactory(dbtype, conn_str), table, runAllInTheSameTransaction, insertPrimaryKeyColumn);
     }
 
     public static async Task SaveAllAsync<T>(
@@ -60,7 +60,7 @@ public static class ListExtensions
         bool runAllInTheSameTransaction = true,
         bool insertPrimaryKeyColumn = false) where T : DbModel
     {
-        await list.SaveAllAsync(dbModelSaveType, new DbConnectionFactory(dbtype, conn_str), table, runAllInTheSameTransaction, insertPrimaryKeyColumn).ConfigureAwait(false);
+        await list.SaveAllAsync(dbModelSaveType, new DbConnectionFactory(dbtype, conn_str), table, runAllInTheSameTransaction, insertPrimaryKeyColumn);
     }
 
     public static async Task SaveAllAsync<T>(
@@ -70,9 +70,9 @@ public static class ListExtensions
         bool runAllInTheSameTransaction = true,
         bool insertPrimaryKeyColumn = false) where T : DbModel
     {
-        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
-        await list.SaveAllAsync(DbModelSaveType.InsertUpdate, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn).ConfigureAwait(false);
-        await conn.CloseAsync().ConfigureAwait(false);
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
+        await list.SaveAllAsync(DbModelSaveType.InsertUpdate, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn);
+        await conn.CloseAsync();
     }
     public static async Task SaveAllAsync<T>(
         this List<T> list,
@@ -82,9 +82,9 @@ public static class ListExtensions
         bool runAllInTheSameTransaction = true,
         bool insertPrimaryKeyColumn = false) where T : DbModel
     {
-        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
-        await list.SaveAllAsync(dbModelSaveType, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn).ConfigureAwait(false);
-        await conn.CloseAsync().ConfigureAwait(false);
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
+        await list.SaveAllAsync(dbModelSaveType, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn);
+        await conn.CloseAsync();
     }
 
     public static async Task BulkInsertAsync<T>(
@@ -98,7 +98,7 @@ public static class ListExtensions
         DbTransaction? tx = null;
 
         if (runAllInTheSameTransaction)
-            tx = await conn.BeginTransactionAsync().ConfigureAwait(false);
+            tx = await conn.BeginTransactionAsync();
 
         try
         {
@@ -107,7 +107,7 @@ public static class ListExtensions
             if (firstModel == null)
                 throw new NullReferenceException(nameof(firstModel));
 
-            await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, table).ConfigureAwait(false);
+            await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, table);
 
             PropertyInfo[] modelProps = firstModel.dbModel_properties
                 ?? throw new NullReferenceException(nameof(modelProps));
@@ -142,7 +142,7 @@ public static class ListExtensions
                 string sql = preparedQuery.Item1;
                 SqlParam[] sqlParams = preparedQuery.Item2;
 
-                await sql.ExecuteScalarAsync(conn, sqlParams).ConfigureAwait(false);
+                await sql.ExecuteScalarAsync(conn, sqlParams);
 
                 offset += batch.Count;
             }
@@ -153,7 +153,7 @@ public static class ListExtensions
             {
                 try
                 {
-                    await tx.RollbackAsync().ConfigureAwait(false);
+                    await tx.RollbackAsync();
                 }
                 catch { }
             }
@@ -162,7 +162,7 @@ public static class ListExtensions
         }
 
         if (tx != null)
-            await tx.CommitAsync().ConfigureAwait(false);
+            await tx.CommitAsync();
     }
 
     public static async Task SaveAllAsync<T>(
@@ -176,7 +176,7 @@ public static class ListExtensions
     {
         if (dbModelSaveType == DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
         {
-            await BulkInsertAsync<T>(list, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).ConfigureAwait(false);
+            await BulkInsertAsync<T>(list, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
             return;
         }
 
@@ -205,7 +205,7 @@ public static class ListExtensions
         DbTransaction? tx = null;
 
         if (runAllInTheSameTransaction)
-            tx = await conn.BeginTransactionAsync().ConfigureAwait(false);
+            tx = await conn.BeginTransactionAsync();
 
         try
         {
@@ -214,7 +214,7 @@ public static class ListExtensions
             if (firstModel == null)
                 throw new NullReferenceException(nameof(firstModel));
 
-            await firstModel.SaveAsync(dbModelSaveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).ConfigureAwait(false);
+            await firstModel.SaveAsync(dbModelSaveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
 
             DbSqlUpdateModel sql_update = sqlUpdateProp.GetValue(firstModel) as DbSqlUpdateModel
                 ?? throw new NullReferenceException(nameof(sql_update));
@@ -249,7 +249,7 @@ public static class ListExtensions
                 pkNameProp.SetValue(model, pkName, null);
                 primaryKeyProp.SetValue(model, primaryKey, null);
 
-                await model.SaveAsync(dbModelSaveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).ConfigureAwait(false);
+                await model.SaveAsync(dbModelSaveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
             }
         }
         catch
@@ -258,7 +258,7 @@ public static class ListExtensions
             {
                 try
                 {
-                    await tx.RollbackAsync().ConfigureAwait(false);
+                    await tx.RollbackAsync();
                 }
                 catch { }
             }
@@ -267,7 +267,7 @@ public static class ListExtensions
         }
 
         if (tx != null)
-            await tx.CommitAsync().ConfigureAwait(false);
+            await tx.CommitAsync();
     }
 
     private static Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(

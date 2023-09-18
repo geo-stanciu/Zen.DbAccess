@@ -67,18 +67,18 @@ public class DbConnectionFactory
         else if (DbType == DbConnectionType.Oracle)
         {
             conn = new OracleConnection(_connStr);
-            await conn.OpenAsync().ConfigureAwait(false);
+            await conn.OpenAsync();
 
             if (_commitNoWait)
             {
                 string sql = "alter session set commit_logging=batch commit_wait=nowait";
-                await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
+                await sql.ExecuteNonQueryAsync(conn);
             }
 
             if (!string.IsNullOrEmpty(TimeZone))
             {
                 string sql = $"alter session set time_zone = '{TimeZone.Replace("'", "''").Replace("&", "")}' ";
-                await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
+                await sql.ExecuteNonQueryAsync(conn);
             }
         }
         else if (DbType == DbConnectionType.Postgresql)
@@ -89,12 +89,12 @@ public class DbConnectionFactory
             }
 
             conn = new NpgsqlConnection(_connStr);
-            await conn.OpenAsync().ConfigureAwait(false);
+            await conn.OpenAsync();
 
             if (_commitNoWait)
             {
                 string sql = "SET synchronous_commit = 'off'";
-                await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
+                await sql.ExecuteNonQueryAsync(conn);
             }
         }
         else if (DbType == DbConnectionType.Sqlite)
@@ -107,7 +107,7 @@ public class DbConnectionFactory
         }
 
         if (conn.State != ConnectionState.Open)
-            await conn.OpenAsync().ConfigureAwait(false);
+            await conn.OpenAsync();
 
         return conn;
     }

@@ -33,7 +33,7 @@ namespace Test.Zen.DbAccess
         {
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
-            using var conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
+            using var conn = await dbConnectionFactory.BuildAndOpenAsync();
 
             string sql =
                 @"create temporary table if not exists test1_t1 (
@@ -45,7 +45,7 @@ namespace Test.Zen.DbAccess
                       c6 decimal(18, 4)
                 )";
 
-            await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
+            await sql.ExecuteNonQueryAsync(conn);
 
             List<T1> models = new List<T1>
             {
@@ -56,16 +56,16 @@ namespace Test.Zen.DbAccess
                 new T1 { c2 = "t5", c3 = DateTime.UtcNow.AddDays(4), c4 = DateTime.UtcNow.AddDays(4), c5 = DateTime.UtcNow.AddDays(4), c6 = 1234.5678M * 4 },
             };
 
-            await models.BulkInsertAsync(conn, "test1_t1").ConfigureAwait(false);
+            await models.BulkInsertAsync(conn, "test1_t1");
 
             sql = "select * from test1_t1";
 
-            DataTable? dt = await sql.QueryDataTableAsync(conn).ConfigureAwait(false);
+            DataTable? dt = await sql.QueryDataTableAsync(conn);
 
             Assert.IsNotNull(dt);
             Assert.IsTrue(dt.Rows.Count == 5);
 
-            var resultModels = await sql.QueryAsync<T1>(conn).ConfigureAwait(false);
+            var resultModels = await sql.QueryAsync<T1>(conn);
 
             Assert.IsNotNull(resultModels);
             Assert.IsTrue(resultModels.Count == 5);
@@ -76,7 +76,7 @@ namespace Test.Zen.DbAccess
         {
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
-            using var conn = await dbConnectionFactory.BuildAndOpenAsync().ConfigureAwait(false);
+            using var conn = await dbConnectionFactory.BuildAndOpenAsync();
 
             string sql =
                 @"create temporary table if not exists test1_t1 (
@@ -88,7 +88,7 @@ namespace Test.Zen.DbAccess
                       c6 decimal(18, 4)
                 )";
 
-            await sql.ExecuteNonQueryAsync(conn).ConfigureAwait(false);
+            await sql.ExecuteNonQueryAsync(conn);
 
             List<T1> models = new List<T1>
             {
@@ -99,16 +99,16 @@ namespace Test.Zen.DbAccess
                 new T1 { c2 = "t5", c3 = DateTime.UtcNow.AddDays(4), c4 = DateTime.UtcNow.AddDays(4), c5 = DateTime.UtcNow.AddDays(4), c6 = 1234.5678M * 4 },
             };
 
-            await models.BulkInsertAsync(conn, "test1_t1", sequence2UseForPrimaryKey: "default").ConfigureAwait(false);
+            await models.BulkInsertAsync(conn, "test1_t1", sequence2UseForPrimaryKey: "default");
 
             sql = "select * from test1_t1";
 
-            DataTable? dt = await sql.QueryDataTableAsync(conn).ConfigureAwait(false);
+            DataTable? dt = await sql.QueryDataTableAsync(conn);
 
             Assert.IsNotNull(dt);
             Assert.IsTrue(dt.Rows.Count == 5);
 
-            var resultModels = await sql.QueryAsync<T1>(conn).ConfigureAwait(false);
+            var resultModels = await sql.QueryAsync<T1>(conn);
 
             Assert.IsNotNull(resultModels);
             Assert.IsTrue(resultModels.Count == 5);
