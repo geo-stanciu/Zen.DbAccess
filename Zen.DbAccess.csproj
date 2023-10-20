@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <VersionPrefix>1.0.30.4-beta</VersionPrefix>
+    <VersionPrefix>1.0.30.5-beta</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,11 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0-rc.1.23419.4" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0-rc.1.23419.4" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0-rc.2.23479.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="8.0.0-rc.2.23479.6" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Npgsql" Version="8.0.0-preview.4" />
-    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.2.0-dev" />
+    <PackageReference Include="Npgsql" Version="8.0.0-rc.2" />
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.3.0-dev" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
     <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
     <PackageReference Include="Zen.DbAccess.Shared" Version="1.0.5.2-beta" />
