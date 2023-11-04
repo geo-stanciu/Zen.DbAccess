@@ -11,7 +11,7 @@ using Zen.DbAccess.Shared.Models;
 namespace Test.Zen.DbAccess
 {
     [TestClass]
-    public class SqlServerTests : CommonSetupTests
+    public class SqlServerTests : CommonTestSetup
     {
         private readonly string _connStr = "your connection string here";
 

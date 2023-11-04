@@ -9,7 +9,7 @@ using Zen.DbAccess.Shared.Models;
 namespace Test.Zen.DbAccess
 {
     [TestClass]
-    public class PostgreSqlTests : CommonSetupTests
+    public class PostgreSqlTests : CommonTestSetup
     {
         private readonly string _connStr = "your connection string here";
 

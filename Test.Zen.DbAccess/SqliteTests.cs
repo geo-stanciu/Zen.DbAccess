@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using System.Data;
 using Zen.DbAccess.Extensions;
 using Zen.DbAccess.Factories;
@@ -8,13 +9,20 @@ using Zen.DbAccess.Shared.Models;
 namespace Test.Zen.DbAccess
 {
     [TestClass]
-    public class SqliteTests
+    public class SqliteTests : CommonTestSetup
     {
+        private readonly string _connStr = "your connection string here";
+
+        public SqliteTests()
+            : base()
+        {
+            _connStr = _config?.GetConnectionString("Sqlite")
+                ?? throw new Exception("Invalid or missing configuration file");
+        }
+
         private DbConnectionFactory GetDbConnectionFactory()
         {
-            string connStr = "Data Source=:memory:;Version=3;New=True;";
-
-            return new DbConnectionFactory(DbConnectionType.Sqlite, connStr, true, "UTC");
+            return new DbConnectionFactory(DbConnectionType.Sqlite, _connStr, true, "UTC");
         }
 
         class T1 : DbModel

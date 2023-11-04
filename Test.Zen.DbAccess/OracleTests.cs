@@ -9,7 +9,7 @@ using Zen.DbAccess.Shared.Models;
 namespace Test.Zen.DbAccess
 {
     [TestClass]
-    public class OracleTests : CommonSetupTests
+    public class OracleTests : CommonTestSetup
     {
         private readonly string _connStr = "your connection string here";
 

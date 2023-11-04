@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 
 namespace Test.Zen.DbAccess
 {
-    public abstract class CommonSetupTests
+    public abstract class CommonTestSetup
     {
         protected IConfiguration? _config;
 
-        public CommonSetupTests()
+        public CommonTestSetup()
         {
             IServiceCollection services = new ServiceCollection();
 
