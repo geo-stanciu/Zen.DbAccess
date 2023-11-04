@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using System.Data;
 using Zen.DbAccess.Extensions;
 using Zen.DbAccess.Factories;
@@ -8,13 +9,20 @@ using Zen.DbAccess.Shared.Models;
 namespace Test.Zen.DbAccess
 {
     [TestClass]
-    public class PostgresqlTests
+    public class PostgreSqlTests : CommonSetupTests
     {
+        private readonly string _connStr = "your connection string here";
+
+        public PostgreSqlTests()
+            : base()
+        {
+            _connStr = _config?.GetConnectionString("Postgres")
+                ?? throw new Exception("Invalid or missing configuration file");
+        }
+
         private DbConnectionFactory GetDbConnectionFactory()
         {
-            string connStr = "Your Postgresql connection string here";
-
-            return new DbConnectionFactory(DbConnectionType.Postgresql, connStr, true, "UTC");
+            return new DbConnectionFactory(DbConnectionType.Postgresql, _connStr, true, "UTC");
         }
 
         class T1 : DbModel

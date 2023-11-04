@@ -34,6 +34,11 @@ public static class DBUtils
 
     public static DateTime GetServerDateTime(DbConnection conn)
     {
+        return GetServerDateTime(conn, tx: null);
+    }
+
+    public static DateTime GetServerDateTime(DbConnection conn, DbTransaction? tx)
+    {
         string sql;
 
         if (conn is SqlConnection)
@@ -47,7 +52,7 @@ public static class DBUtils
         else
             throw new NotImplementedException($"Unknown connection type");
 
-        DateTime dt = (DateTime)ExecuteScalar(conn, sql)!;
+        DateTime dt = (DateTime)ExecuteScalar(conn, tx, sql)!;
         return dt;
     }
 
@@ -64,6 +69,11 @@ public static class DBUtils
     public static List<SqlParam> ExecuteProcedure(DbConnection conn, string sql, params SqlParam[] parameters)
     {
         return ExecuteProcedureAsync(conn, sql, parameters).Result;
+    }
+
+    public static List<SqlParam> ExecuteProcedure(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteProcedureAsync(conn, tx, sql, parameters).Result;
     }
 
     public static async Task<List<SqlParam>> ExecuteProcedureAsync(string conn_str, string sql, params SqlParam[] parameters)
@@ -175,12 +185,20 @@ public static class DBUtils
         }
     }
 
-    public static async Task<List<SqlParam>> ExecuteProcedureAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<List<SqlParam>> ExecuteProcedureAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteProcedureAsync(conn, tx: null, sql, parameters);
+    }
+
+    public static async Task<List<SqlParam>> ExecuteProcedureAsync(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         List<SqlParam> outParameters = new List<SqlParam>();
 
         using (DbCommand cmd = conn.CreateCommand())
         {
+            if (tx != null && cmd.Transaction == null)
+                cmd.Transaction = tx;
+
             SetupProcedureCall(cmd, sql, false, parameters);
 
             AddParameters(cmd, parameters);
@@ -216,6 +234,11 @@ public static class DBUtils
         return ExecuteProcedure2DataTableAsync(conn, sql, parameters).Result;
     }
 
+    public static DataTable? ExecuteProcedure2DataTable(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteProcedure2DataTableAsync(conn, tx, sql, parameters).Result;
+    }
+
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
         return await ExecuteProcedure2DataTableAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
@@ -231,9 +254,14 @@ public static class DBUtils
         return result;
     }
 
-    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnection conn, string sql, params SqlParam[] parameters)
     {
-        DataSet? ds = await ExecuteProcedure2DataSetAsync(conn, sql, parameters);
+        return ExecuteProcedure2DataTableAsync(conn, tx: null, sql, parameters);
+    }
+
+    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        DataSet? ds = await ExecuteProcedure2DataSetAsync(conn, tx, sql, parameters);
 
         if (ds == null)
             return null;
@@ -271,6 +299,11 @@ public static class DBUtils
         return ExecuteProcedure2DataSetAsync(conn, sql, parameters).Result;
     }
 
+    public static DataSet? ExecuteProcedure2DataSet(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteProcedure2DataSetAsync(conn, tx, sql, parameters).Result;
+    }
+
     public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
         return await ExecuteProcedure2DataSetAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
@@ -296,13 +329,22 @@ public static class DBUtils
         return result;
     }
 
-    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteProcedure2DataSetAsync(conn, tx: null, sql, parameters);
+    }
+
+    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         DataSet? ds = null;
 
         await Task.Run(async () =>
         {
             using DbCommand cmd = conn.CreateCommand();
+
+            if (tx != null && cmd.Transaction == null)
+                cmd.Transaction = tx;
+
             SetupProcedureCall(cmd, sql, isDataSetReturn: true, parameters);
 
             AddParameters(cmd, parameters);
@@ -347,9 +389,18 @@ public static class DBUtils
 
     private static Task<DataTable> ExecutePostgresCursorToTableAsync(DbConnection conn, string cursorName)
     {
+        return ExecutePostgresCursorToTableAsync(conn, tx: null, cursorName);
+    }
+
+    private static Task<DataTable> ExecutePostgresCursorToTableAsync(DbConnection conn, DbTransaction? tx, string cursorName)
+    {
         string sql = $"FETCH ALL IN \"{cursorName}\"";
 
         using DbCommand cmd = conn.CreateCommand();
+
+        if (tx != null && cmd.Transaction == null)
+            cmd.Transaction = tx;
+
         cmd.CommandText = sql;
 
         using DbDataAdapter da = CreateDataAdapter(conn)!;
@@ -382,7 +433,6 @@ public static class DBUtils
         return ds;
     }
 
-
     public static List<SqlParam> ExecuteFunction(string conn_str, string sql, params SqlParam[] parameters)
     {
         return ExecuteFunctionAsync(conn_str, sql, parameters).Result;
@@ -398,6 +448,11 @@ public static class DBUtils
         return ExecuteFunctionAsync(conn, sql, parameters).Result;
     }
 
+    public static List<SqlParam> ExecuteFunction(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteFunctionAsync(conn, tx, sql, parameters).Result;
+    }
+
     public static async Task<List<SqlParam>> ExecuteFunctionAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
         return await ExecuteFunctionAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
@@ -409,11 +464,20 @@ public static class DBUtils
         return await ExecuteFunctionAsync(conn, sql, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteFunctionAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<List<SqlParam>> ExecuteFunctionAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteFunctionAsync(conn, tx: null, sql, parameters);
+    }
+
+    public static async Task<List<SqlParam>> ExecuteFunctionAsync(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         List<SqlParam> outParameters = new List<SqlParam>();
 
         using DbCommand cmd = conn.CreateCommand();
+
+        if (tx != null && cmd.Transaction == null)
+            cmd.Transaction = tx;
+
         SetupFunctionCall(cmd, sql, parameters);
 
         AddParameters(cmd, parameters.Where(x => x.paramDirection != ParameterDirection.ReturnValue).ToArray());
@@ -436,7 +500,6 @@ public static class DBUtils
         return outParameters;
     }
 
-
     public static object? ExecuteScalar(string conn_str, string sql, params SqlParam[] parameters)
     {
         return ExecuteScalarAsync(conn_str, sql, parameters).Result;
@@ -457,6 +520,11 @@ public static class DBUtils
         return ExecuteScalarAsync(conn, sql, parameters).Result;
     }
 
+    public static object? ExecuteScalar(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteScalarAsync(conn, tx, sql, parameters).Result;
+    }
+
     public static async Task<object?> ExecuteScalarAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
         return await ExecuteScalarAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
@@ -473,9 +541,18 @@ public static class DBUtils
         return await ExecuteScalarAsync(conn, sql, parameters);
     }
 
-    public static async Task<object?> ExecuteScalarAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<object?> ExecuteScalarAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteScalarAsync(conn, tx: null, sql, parameters);
+    }
+
+    public static async Task<object?> ExecuteScalarAsync(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         using DbCommand cmd = conn.CreateCommand();
+
+        if (tx != null && cmd.Transaction == null)
+            cmd.Transaction = tx;
+
         cmd.CommandText = sql;
 
         AddParameters(cmd, parameters);
@@ -486,7 +563,6 @@ public static class DBUtils
 
         return result;
     }
-
 
     public static List<SqlParam> ExecuteNonQuery(string conn_str, string sql, params SqlParam[] parameters)
     {
@@ -508,6 +584,11 @@ public static class DBUtils
         return ExecuteNonQueryAsync(conn, sql, parameters).Result;
     }
 
+    public static List<SqlParam> ExecuteNonQuery(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteNonQueryAsync(conn, tx, sql, parameters).Result;
+    }
+
     public static async Task<List<SqlParam>> ExecuteNonQueryAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
         return await ExecuteNonQueryAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
@@ -524,11 +605,20 @@ public static class DBUtils
         return await ExecuteNonQueryAsync(conn, sql, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<List<SqlParam>> ExecuteNonQueryAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        return ExecuteNonQueryAsync(conn, tx: null, sql, parameters);
+    }
+
+    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         List<SqlParam> outParameters = new List<SqlParam>();
 
         using DbCommand cmd = conn.CreateCommand();
+
+        if (tx != null && cmd.Transaction == null)
+            cmd.Transaction = tx;
+
         cmd.CommandText = sql;
 
         AddParameters(cmd, parameters);
@@ -550,7 +640,6 @@ public static class DBUtils
         return outParameters;
     }
 
-
     public static T? QueryRow<T>(string conn_str, string sql, params SqlParam[] parameters)
     {
         return QueryRowAsync<T>(conn_str, sql, parameters).Result;
@@ -571,6 +660,11 @@ public static class DBUtils
         return QueryRowAsync<T>(conn, sql, parameters).Result;
     }
 
+    public static T? QueryRow<T>(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        return QueryRowAsync<T>(conn, tx, sql, parameters).Result;
+    }
+
     public static async Task<T?> QueryRowAsync<T>(string conn_str, string sql, params SqlParam[] parameters)
     {
         return await QueryRowAsync<T>(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
@@ -587,16 +681,20 @@ public static class DBUtils
         return await QueryRowAsync<T>(conn, sql, parameters);
     }
 
-    public static async Task<T?> QueryRowAsync<T>(DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<T?> QueryRowAsync<T>(DbConnection conn, string sql, params SqlParam[] parameters)
     {
-        List<T> results = await QueryAsync<T>(conn, sql, parameters);
+        return QueryRowAsync<T>(conn, tx: null, sql, parameters);
+    }
+
+    public static async Task<T?> QueryRowAsync<T>(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        List<T> results = await QueryAsync<T>(conn, tx, sql, parameters);
 
         if (results.Count == 0)
             throw new Exception("no data found");
 
         return results.FirstOrDefault();
     }
-
 
     public static List<T> Query<T>(string conn_str, string sql, params SqlParam[] parameters)
     {
@@ -618,6 +716,11 @@ public static class DBUtils
         return QueryAsync<T>(conn, sql, parameters).Result;
     }
 
+    public static List<T> Query<T>(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        return QueryAsync<T>(conn, tx, sql, parameters).Result;
+    }
+
     public static async Task<List<T>> QueryAsync<T>(string conn_str, string sql, params SqlParam[] parameters)
     {
         return await QueryAsync<T>(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
@@ -634,9 +737,18 @@ public static class DBUtils
         return await QueryAsync<T>(conn, sql, parameters);
     }
 
-    public static async Task<List<T>> QueryAsync<T>(DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<List<T>> QueryAsync<T>(DbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        return QueryAsync<T>(conn, tx: null, sql, parameters);
+    }
+
+    public static async Task<List<T>> QueryAsync<T>(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         using DbCommand cmd = conn.CreateCommand();
+
+        if (tx != null && cmd.Transaction == null)
+            cmd.Transaction = tx;
+
         cmd.CommandText = sql;
 
         AddParameters(cmd, parameters);
@@ -646,7 +758,6 @@ public static class DBUtils
         DisposeLobParameters(cmd, parameters);
         return result;
     }
-
 
     public static DataTable? QueryDataTable(string conn_str, string sql, params SqlParam[] parameters)
     {
@@ -663,6 +774,11 @@ public static class DBUtils
         return QueryDataTableAsync(conn, sql, parameters).Result;
     }
 
+    public static DataTable? QueryDataTable(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        return QueryDataTableAsync(conn, tx, sql, parameters).Result;
+    }
+
     public static async Task<DataTable?> QueryDataTableAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
         return await QueryDataTableAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
@@ -674,13 +790,22 @@ public static class DBUtils
         return await QueryDataTableAsync(conn, sql, parameters);
     }
 
-    public static async Task<DataTable?> QueryDataTableAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<DataTable?> QueryDataTableAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        return QueryDataTableAsync(conn, tx: null, sql, parameters);
+    }
+
+    public static async Task<DataTable?> QueryDataTableAsync(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         DataTable? dt = null;
 
         await Task.Run(() =>
         {
             using DbCommand cmd = conn.CreateCommand();
+
+            if (tx != null && cmd.Transaction == null)
+                cmd.Transaction = tx;
+
             cmd.CommandText = sql;
 
             AddParameters(cmd, parameters);
@@ -711,6 +836,11 @@ public static class DBUtils
         return QueryDataSetAsync(conn, sql, parameters).Result;
     }
 
+    public static DataSet? QueryDataSet(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    {
+        return QueryDataSetAsync(conn, tx, sql, parameters).Result;
+    }
+
     public static async Task<DataSet?> QueryDataSetAsync(string conn_str, string sql, params SqlParam[] parameters)
     {
         return await QueryDataSetAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
@@ -722,13 +852,22 @@ public static class DBUtils
         return await QueryDataSetAsync(conn, sql, parameters);
     }
 
-    public static async Task<DataSet?> QueryDataSetAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<DataSet?> QueryDataSetAsync(DbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        return QueryDataSetAsync(conn, tx: null, sql, parameters);
+    }
+
+    public static async Task<DataSet?> QueryDataSetAsync(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         DataSet? ds = null;
 
         await Task.Run(() =>
         {
             using DbCommand cmd = conn.CreateCommand();
+
+            if (tx != null && cmd.Transaction == null)
+                cmd.Transaction = tx;
+
             cmd.CommandText = sql;
 
             AddParameters(cmd, parameters);
@@ -764,10 +903,19 @@ public static class DBUtils
 
     private static void UpdateTableFromDataTable(DbConnection conn, string table, DataTable modelTable)
     {
+        UpdateTableFromDataTable(conn, tx: null, table, modelTable);
+    }
+
+    private static void UpdateTableFromDataTable(DbConnection conn, DbTransaction? tx, string table, DataTable modelTable)
+    {
         string sql = $"select * from {table} where 1 = 2";
 
         using DataTable dt = new DataTable();
         using DbCommand cmd = conn.CreateCommand();
+
+        if (tx != null && cmd.Transaction == null)
+            cmd.Transaction = tx;
+
         cmd.CommandText = sql;
 
         using DbDataAdapter dataAdapter = CreateDataAdapter(conn)!;
@@ -777,6 +925,12 @@ public static class DBUtils
         using DbCommandBuilder commandBuilder = CreateCommandBuilder(conn, dataAdapter);
         dataAdapter.InsertCommand = commandBuilder.GetInsertCommand();
         dataAdapter.UpdateCommand = commandBuilder.GetUpdateCommand();
+
+        if (tx != null && dataAdapter.InsertCommand.Transaction == null)
+            dataAdapter.InsertCommand.Transaction = tx;
+
+        if (tx != null && dataAdapter.UpdateCommand.Transaction == null)
+            dataAdapter.UpdateCommand.Transaction = tx;
 
         dataAdapter.Fill(dt);
 
@@ -817,10 +971,19 @@ public static class DBUtils
 
     private static void UpdateTableFromGenericModel<T>(DbConnection conn, string table, T model)
     {
+        UpdateTableFromGenericModel<T>(conn, tx: null, table, model);
+    }
+
+    private static void UpdateTableFromGenericModel<T>(DbConnection conn, DbTransaction? tx, string table, T model)
+    {
         string sql = $"select * from {table} where 1 = 2";
 
         using DataTable dt = new DataTable();
         using DbCommand cmd = conn.CreateCommand();
+
+        if (tx != null && cmd.Transaction == null)
+            cmd.Transaction = tx;
+
         cmd.CommandText = sql;
 
         using DbDataAdapter dataAdapter = CreateDataAdapter(conn)!;
@@ -831,6 +994,12 @@ public static class DBUtils
         dataAdapter.InsertCommand = commandBuilder.GetInsertCommand();
         dataAdapter.UpdateCommand = commandBuilder.GetUpdateCommand();
 
+        if (tx != null && dataAdapter.InsertCommand.Transaction == null)
+            dataAdapter.InsertCommand.Transaction = tx;
+
+        if (tx != null && dataAdapter.UpdateCommand.Transaction == null)
+            dataAdapter.UpdateCommand.Transaction = tx;
+
         dataAdapter.Fill(dt);
 
         dt.CreateRowFromModel(model);
@@ -840,15 +1009,20 @@ public static class DBUtils
 
     public static void UpdateTable<T>(DbConnection conn, string table, T model)
     {
+        UpdateTable<T>(conn, tx: null, table, model);
+    }
+
+    public static void UpdateTable<T>(DbConnection conn, DbTransaction? tx, string table, T model)
+    {
         if (model == null)
             throw new ArgumentNullException(nameof(model));
 
         string sql = $"select * from {table} where 1 = 2";
 
         if (typeof(T) == typeof(DataTable))
-            UpdateTableFromDataTable(conn, table, (model as DataTable)!);
+            UpdateTableFromDataTable(conn, tx, table, (model as DataTable)!);
         else
-            UpdateTableFromGenericModel(conn, table, model);
+            UpdateTableFromGenericModel(conn, tx, table, model);
     }
 
     public static void UpdateTable<T>(string conn_str, string table, List<T> models)
@@ -871,10 +1045,19 @@ public static class DBUtils
 
     public static void UpdateTable<T>(DbConnection conn, string table, List<T> models)
     {
+        UpdateTable<T>(conn, tx: null, table, models);
+    }
+
+    public static void UpdateTable<T>(DbConnection conn, DbTransaction? tx, string table, List<T> models)
+    {
         string sql = $"select * from {table} where 1 = 2";
 
         using DataTable dt = new DataTable();
         using DbCommand cmd = conn.CreateCommand();
+
+        if (tx != null && cmd.Transaction == null)
+            cmd.Transaction = tx;
+
         cmd.CommandText = sql;
 
         using DbDataAdapter dataAdapter = CreateDataAdapter(conn)!;
@@ -884,6 +1067,12 @@ public static class DBUtils
         using DbCommandBuilder commandBuilder = CreateCommandBuilder(conn, dataAdapter);
         dataAdapter.InsertCommand = commandBuilder.GetInsertCommand();
         dataAdapter.UpdateCommand = commandBuilder.GetUpdateCommand();
+
+        if (tx != null && dataAdapter.InsertCommand.Transaction == null)
+            dataAdapter.InsertCommand.Transaction = tx;
+
+        if (tx != null && dataAdapter.UpdateCommand.Transaction == null)
+            dataAdapter.UpdateCommand.Transaction = tx;
 
         dataAdapter.Fill(dt);
 
@@ -916,14 +1105,6 @@ public static class DBUtils
         builder.DataAdapter = dataAdapter;
 
         return builder;
-    }
-
-    private static void AddReturnValueParameter(DbCommand cmd)
-    {
-        DbParameter param = cmd.CreateParameter();
-        param.Direction = ParameterDirection.ReturnValue;
-        param.ParameterName = "returnValue";
-        cmd.Parameters.Add(param);
     }
 
     private static void DisposeLobParameters(DbCommand cmd, params SqlParam[] parameters)

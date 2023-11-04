@@ -4,6 +4,7 @@ using Oracle.ManagedDataAccess.Client;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Data.SqlClient;
 using System.Data.SQLite;
 using System.Linq;
 using System.Reflection;
@@ -74,6 +75,7 @@ public static class ListExtensions
         await list.SaveAllAsync(DbModelSaveType.InsertUpdate, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn);
         await conn.CloseAsync();
     }
+
     public static async Task SaveAllAsync<T>(
         this List<T> list,
         DbModelSaveType dbModelSaveType,
@@ -87,17 +89,34 @@ public static class ListExtensions
         await conn.CloseAsync();
     }
 
+    public static Task BulkInsertAsync<T>(
+        this List<T> list,
+        DbConnection conn,
+        string table,
+        bool runAllInTheSameTransaction = true,
+        bool insertPrimaryKeyColumn = false,
+        string sequence2UseForPrimaryKey = "") where T : DbModel
+    {
+        return BulkInsertAsync<T>(
+            list,
+            conn,
+            tx: null,
+            table,
+            runAllInTheSameTransaction,
+            insertPrimaryKeyColumn,
+            sequence2UseForPrimaryKey);
+    }
+
     public static async Task BulkInsertAsync<T>(
         this List<T> list, 
-        DbConnection conn, 
+        DbConnection conn,
+        DbTransaction? tx,
         string table, 
         bool runAllInTheSameTransaction = true,
         bool insertPrimaryKeyColumn = false,
         string sequence2UseForPrimaryKey = "") where T : DbModel
     {
-        DbTransaction? tx = null;
-
-        if (runAllInTheSameTransaction)
+        if (runAllInTheSameTransaction && tx == null)
             tx = await conn.BeginTransactionAsync();
 
         try
@@ -107,7 +126,7 @@ public static class ListExtensions
             if (firstModel == null)
                 throw new NullReferenceException(nameof(firstModel));
 
-            await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, table);
+            await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, tx, table);
 
             PropertyInfo[] modelProps = firstModel.dbModel_properties
                 ?? throw new NullReferenceException(nameof(modelProps));
@@ -131,7 +150,8 @@ public static class ListExtensions
                 List<T> batch = list.Skip(offset).Take(take).ToList();
                 Tuple<string, SqlParam[]> preparedQuery = PrepareBulkInsertBatch(
                     batch, 
-                    conn, 
+                    conn,
+                    tx,
                     table, 
                     dbColumns, 
                     pkName, 
@@ -142,7 +162,7 @@ public static class ListExtensions
                 string sql = preparedQuery.Item1;
                 SqlParam[] sqlParams = preparedQuery.Item2;
 
-                await sql.ExecuteScalarAsync(conn, sqlParams);
+                await sql.ExecuteScalarAsync(conn, tx, sqlParams);
 
                 offset += batch.Count;
             }
@@ -165,7 +185,7 @@ public static class ListExtensions
             await tx.CommitAsync();
     }
 
-    public static async Task SaveAllAsync<T>(
+    public static Task SaveAllAsync<T>(
         this List<T> list,
         DbModelSaveType dbModelSaveType,
         DbConnection conn,
@@ -174,9 +194,30 @@ public static class ListExtensions
         bool insertPrimaryKeyColumn = false,
         string sequence2UseForPrimaryKey = "") where T : DbModel
     {
+        return SaveAllAsync<T>(
+            list,
+            dbModelSaveType,
+            conn,
+            tx: null,
+            table,
+            runAllInTheSameTransaction,
+            insertPrimaryKeyColumn,
+            sequence2UseForPrimaryKey);
+    }
+
+    public static async Task SaveAllAsync<T>(
+        this List<T> list,
+        DbModelSaveType dbModelSaveType,
+        DbConnection conn,
+        DbTransaction? tx,
+        string table,
+        bool runAllInTheSameTransaction = true,
+        bool insertPrimaryKeyColumn = false,
+        string sequence2UseForPrimaryKey = "") where T : DbModel
+    {
         if (dbModelSaveType == DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
         {
-            await BulkInsertAsync<T>(list, conn, table, runAllInTheSameTransaction, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+            await BulkInsertAsync<T>(list, conn, tx, table, runAllInTheSameTransaction, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
             return;
         }
 
@@ -202,9 +243,7 @@ public static class ListExtensions
             ?? throw new NullReferenceException(nameof(primaryKeyProp));
 
 
-        DbTransaction? tx = null;
-
-        if (runAllInTheSameTransaction)
+        if (runAllInTheSameTransaction && tx == null)
             tx = await conn.BeginTransactionAsync();
 
         try
@@ -214,7 +253,7 @@ public static class ListExtensions
             if (firstModel == null)
                 throw new NullReferenceException(nameof(firstModel));
 
-            await firstModel.SaveAsync(dbModelSaveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+            await firstModel.SaveAsync(dbModelSaveType, conn, tx, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
 
             DbSqlUpdateModel sql_update = sqlUpdateProp.GetValue(firstModel) as DbSqlUpdateModel
                 ?? throw new NullReferenceException(nameof(sql_update));
@@ -249,7 +288,7 @@ public static class ListExtensions
                 pkNameProp.SetValue(model, pkName, null);
                 primaryKeyProp.SetValue(model, primaryKey, null);
 
-                await model.SaveAsync(dbModelSaveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+                await model.SaveAsync(dbModelSaveType, conn, tx, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
             }
         }
         catch
@@ -273,6 +312,29 @@ public static class ListExtensions
     private static Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(
         List<T> list,
         DbConnection conn,
+        string table,
+        List<string> dbColumns,
+        string pkName,
+        PropertyInfo[] propertiesToInsert,
+        bool insertPrimaryKeyColumn,
+        string sequence2UseForPrimaryKey) where T : DbModel
+    {
+        return PrepareBulkInsertBatch<T>(
+            list,
+            conn,
+            tx: null,
+            table,
+            dbColumns,
+            pkName,
+            propertiesToInsert,
+            insertPrimaryKeyColumn,
+            sequence2UseForPrimaryKey);
+    }
+
+    private static Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(
+        List<T> list,
+        DbConnection conn,
+        DbTransaction? tx,
         string table,
         List<string> dbColumns,
         string pkName,
@@ -336,6 +398,24 @@ public static class ListExtensions
             return PrepareBulkInsertBatch4Sqlite<T>(
                 list,
                 conn,
+                table,
+                dbColumns,
+                pkName,
+                propertiesToInsert,
+                insertPrimaryKeyColumn);
+        }
+        else if (conn is SqlConnection)
+        {
+            if (string.IsNullOrEmpty(pkName))
+            {
+                return PrepareBulkInsertBatch4SqlServer<T>(
+                    list,
+                    table,
+                    propertiesToInsert);
+            }
+
+            return PrepareBulkInsertBatch4SqlServerWithSequence<T>(
+                list,
                 table,
                 dbColumns,
                 pkName,
@@ -675,9 +755,6 @@ public static class ListExtensions
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (firstModel != null && firstModel.IsOracleClobDataType(conn, propertyInfo))
-                    prm.isClob = true;
-
                 insertParams.Add(prm);
             }
 
@@ -762,8 +839,138 @@ public static class ListExtensions
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (firstModel != null && firstModel.IsOracleClobDataType(conn, propertyInfo))
-                    prm.isClob = true;
+                insertParams.Add(prm);
+            }
+
+            if (firstRow)
+            {
+                firstRow = false;
+                sbInsert
+                    .AppendLine(") values ")
+                    .Append(" (")
+                    .Append(sbInsertValues).AppendLine(")");
+            }
+            else
+            {
+                sbInsert.Append(", (").Append(sbInsertValues).AppendLine(")");
+            }
+        }
+
+        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
+    }
+
+    private static Tuple<string, SqlParam[]> PrepareBulkInsertBatch4SqlServer<T>(
+        List<T> list,
+        string table,
+        PropertyInfo[] propertiesToInsert) where T : DbModel
+    {
+        int k = -1;
+        bool firstRow = true;
+        StringBuilder sbInsert = new StringBuilder();
+        List<SqlParam> insertParams = new List<SqlParam>();
+        sbInsert.AppendLine($"insert into {table} ( ");
+
+        foreach (T model in list)
+        {
+            k++;
+            bool firstParam = true;
+            StringBuilder sbInsertValues = new StringBuilder();
+
+            for (int i = 0; i < propertiesToInsert.Length; i++)
+            {
+                PropertyInfo propertyInfo = propertiesToInsert[i];
+
+                if (firstParam)
+                {
+                    firstParam = false;
+                }
+                else
+                {
+                    if (firstRow)
+                        sbInsert.Append(", ");
+
+                    sbInsertValues.Append(", ");
+                }
+
+                if (firstRow)
+                    sbInsert.Append($" {propertyInfo.Name} ");
+
+                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
+
+                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
+
+                insertParams.Add(prm);
+            }
+
+            if (firstRow)
+            {
+                firstRow = false;
+                sbInsert
+                    .AppendLine(") values ")
+                    .Append(" (")
+                    .Append(sbInsertValues).AppendLine(")");
+            }
+            else
+            {
+                sbInsert.Append(", (").Append(sbInsertValues).AppendLine(")");
+            }
+        }
+
+        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
+    }
+
+    private static Tuple<string, SqlParam[]> PrepareBulkInsertBatch4SqlServerWithSequence<T>(
+        List<T> list,
+        string table,
+        List<string> dbColumns,
+        string pkName,
+        PropertyInfo[] propertiesToInsert,
+        bool insertPrimaryKeyColumn) where T : DbModel
+    {
+        int k = -1;
+        bool firstRow = true;
+        StringBuilder sbInsert = new StringBuilder();
+        List<SqlParam> insertParams = new List<SqlParam>();
+        sbInsert.AppendLine($"insert into {table} ( ");
+
+        foreach (T model in list)
+        {
+            k++;
+            bool firstParam = true;
+            StringBuilder sbInsertValues = new StringBuilder();
+
+            for (int i = 0; i < propertiesToInsert.Length; i++)
+            {
+                PropertyInfo propertyInfo = propertiesToInsert[i];
+
+                if (firstParam)
+                {
+                    firstParam = false;
+                }
+                else
+                {
+                    if (firstRow)
+                        sbInsert.Append(", ");
+
+                    sbInsertValues.Append(", ");
+                }
+
+                if (!insertPrimaryKeyColumn
+                    && propertyInfo.Name == pkName
+                    && dbColumns.Contains(propertyInfo.Name))
+                {
+                    if (i == 0)
+                        firstParam = true; // we don't add the primary key
+
+                    continue;
+                }
+
+                if (firstRow)
+                    sbInsert.Append($" {propertyInfo.Name} ");
+
+                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
+
+                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
                 insertParams.Add(prm);
             }
