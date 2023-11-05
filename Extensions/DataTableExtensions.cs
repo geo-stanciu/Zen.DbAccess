@@ -15,15 +15,21 @@ public static class DataTableExtensions
         if (dt.Rows.Count == 0)
             throw new ArgumentException("DataTable contains 0 rows");
 
-        return dt.Rows[0].ToModel<T>();
+        Dictionary<string, PropertyInfo>? properties = null;
+        bool propertiesAlreadyDetermined = false;
+
+        return dt.Rows[0].ToModel<T>(ref properties, ref propertiesAlreadyDetermined);
     }
 
     public static List<T> ToList<T>(this DataTable dt)
     {
         List<T> data = new List<T>();
+        Dictionary<string, PropertyInfo>? properties = null;
+        bool propertiesAlreadyDetermined = false;
+
         foreach (DataRow row in dt.Rows)
         {
-            T item = row.ToModel<T>();
+            T item = row.ToModel<T>(ref properties, ref propertiesAlreadyDetermined);
             data.Add(item);
         }
         return data;

@@ -766,10 +766,13 @@ public static class DbClientExtensions
 
         using (var dRead = cmd.ExecuteReader())
         {
+            Dictionary<string, PropertyInfo>? properties = null;
+            bool propertiesAlreadyDetermined = false;
+
             while (dRead.Read())
             {
                 found = true;
-                var rez = dRead.Row2Model<T>();
+                var rez = dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined);
                 return rez;
             }
         }
@@ -794,9 +797,12 @@ public static class DbClientExtensions
 
         using (var dRead = cmd.ExecuteReader())
         {
+            Dictionary<string, PropertyInfo>? properties = null;
+            bool propertiesAlreadyDetermined = false;
+
             while (dRead.Read())
             {
-                rez.Add(dRead.Row2Model<T>());
+                rez.Add(dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined));
             }
         }
 
@@ -817,10 +823,13 @@ public static class DbClientExtensions
 
         using (var dRead = await cmd.ExecuteReaderAsync())
         {
+            Dictionary<string, PropertyInfo>? properties = null;
+            bool propertiesAlreadyDetermined = false;
+
             while (await dRead.ReadAsync())
             {
                 found = true;
-                var rez = dRead.Row2Model<T>();
+                var rez = dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined);
                 return rez;
             }
         }
@@ -845,16 +854,19 @@ public static class DbClientExtensions
 
         using (var dRead = await cmd.ExecuteReaderAsync())
         {
+            Dictionary<string, PropertyInfo>? properties = null;
+            bool propertiesAlreadyDetermined = false;
+
             while (await dRead.ReadAsync())
             {
-                rez.Add(dRead.Row2Model<T>());
+                rez.Add(dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined));
             }
         }
 
         return rez;
     }
-
-    private static T Row2Model<T>(this DbDataReader dRead)
+    
+    private static T Row2Model<T>(this DbDataReader dRead, ref Dictionary<string, PropertyInfo>? properties, ref bool propertiesAlreadyDetermined)
     {
         var classType = typeof(T);
         T? rez = (T?)Activator.CreateInstance(classType);
@@ -862,14 +874,28 @@ public static class DbClientExtensions
         if (rez == null)
             throw new NullReferenceException(nameof(rez));
 
+        if (properties == null)
+            properties = new Dictionary<string, PropertyInfo>();
+
         for (int i = 0; i < dRead.FieldCount; i++)
         {
-            var lcol = dRead.GetName(i).ToLower();
+            string dbCol = dRead.GetName(i);
+            PropertyInfo? p = null;
 
-            var p = classType.GetProperty(lcol);
+            if (propertiesAlreadyDetermined)
+            {
+                if (!properties.TryGetValue(dbCol, out p))
+                    continue;
+            }
+            else
+            {
+                p = ColumnNameMapUtils.GetModelPropertyForDbColumn(classType, dbCol);
 
-            if (p == null)
-                continue;
+                if (p == null)
+                    continue;
+
+                properties[dbCol] = p;
+            }
 
             var val = dRead[i];
 
@@ -893,6 +919,9 @@ public static class DbClientExtensions
             else
                 p.SetValue(rez, val, null);
         }
+
+        if (!propertiesAlreadyDetermined)
+            propertiesAlreadyDetermined = true;
 
         return rez;
     }

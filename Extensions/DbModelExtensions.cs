@@ -75,26 +75,6 @@ public static class DbModelExtensions
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tString = typeof(string);
 
-    private static void RefreshPropertiesIfEmpty(this DbModel dbModel)
-    {
-        if (dbModel.dbModel_properties != null && dbModel.dbModel_properties.Length > 0)
-            return;
-
-        Type classType = dbModel.GetType();
-        dbModel.dbModel_properties = classType.GetProperties()
-            .Where(x => x.PropertyType != typeof(DbSqlUpdateModel)
-                && x.PropertyType != typeof(DbSqlInsertModel)
-                //&& x.PropertyType != typeof(Avro.Schema)
-                && !HasDbModelPropertyIgnoreAttribute(dbModel, x))
-            .ToArray();
-    }
-
-    public static PropertyInfo[]? GetDbModelProperties(this DbModel dbModel)
-    {
-        RefreshPropertiesIfEmpty(dbModel);
-        return dbModel.dbModel_properties;
-    }
-
     public static bool HasAuditIgnoreAttribute(this DbModel dbModel,  PropertyInfo propertyInfo)
     {
         object[] attrs = propertyInfo.GetCustomAttributes(true);
@@ -150,7 +130,9 @@ public static class DbModelExtensions
         if (dbModel.dbModel_dbColumns != null && dbModel.dbModel_dbColumns.Count > 0)
             return;
 
-        dbModel.dbModel_dbColumns = new List<string>();
+        dbModel.dbModel_dbColumns = new HashSet<string>();
+        dbModel.dbModel_dbColumn_map = new Dictionary<string, PropertyInfo>();
+        dbModel.dbModel_prop_map = new Dictionary<string, string>();
 
         string sql = $"select * from {table} where 1 = -1";
 
@@ -160,14 +142,52 @@ public static class DbModelExtensions
             throw new NullReferenceException(nameof(dt));
 
         foreach (DataColumn col in dt.Columns)
-            dbModel.dbModel_dbColumns.Add(col.ColumnName.ToLower());
+        {
+            var p = ColumnNameMapUtils.GetModelPropertyForDbColumn(dbModel.GetType(), col.ColumnName);
+
+            if (p == null)
+                continue;
+
+            dbModel.dbModel_dbColumns.Add(col.ColumnName);
+            dbModel.dbModel_dbColumn_map[col.ColumnName] = p;
+            dbModel.dbModel_prop_map[p.Name] = col.ColumnName;
+        }
     }
 
-    private static Task ConstructUpdateQueryAsync(this DbModel dbModel, DbConnection conn, string table)
+    public static List<PropertyInfo> GetPropertiesToUpdate(this DbModel dbModel)
     {
-        return ConstructUpdateQueryAsync(dbModel, conn, tx: null, table);
+        if (dbModel.dbModel_dbColumns == null)
+            throw new NullReferenceException("dbModel_dbColumns");
+
+        if (dbModel.dbModel_dbColumn_map == null)
+            throw new NullReferenceException("dbModel_dbColumn_map");
+
+        if (dbModel.dbModel_primaryKey_dbColumns == null)
+            throw new NullReferenceException("dbModel_primaryKey_dbColumns");
+
+        return dbModel.dbModel_dbColumns
+            .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x) && !dbModel.dbModel_primaryKey_dbColumns.Contains(x))
+            .Select(x => dbModel.dbModel_dbColumn_map[x])
+            .ToList();
     }
 
+    public static List<PropertyInfo> GetPropertiesToInsert(this DbModel dbModel, bool insertPrimaryKeyColumn)
+    {
+        if (dbModel.dbModel_dbColumns == null)
+            throw new NullReferenceException("dbModel_dbColumns");
+
+        if (dbModel.dbModel_dbColumn_map == null)
+            throw new NullReferenceException("dbModel_dbColumn_map");
+
+        if (dbModel.dbModel_primaryKey_dbColumns == null)
+            throw new NullReferenceException("dbModel_primaryKey_dbColumns");
+
+        return dbModel.dbModel_dbColumns
+            .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x) && (insertPrimaryKeyColumn || (!insertPrimaryKeyColumn && !dbModel.dbModel_primaryKey_dbColumns.Contains(x))))
+            .Select(x => dbModel.dbModel_dbColumn_map[x])
+            .ToList();
+    }
+    
     private static async Task ConstructUpdateQueryAsync(this DbModel dbModel, DbConnection conn, DbTransaction? tx, string table)
     {
         await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
@@ -177,24 +197,14 @@ public static class DbModelExtensions
 
         bool firstParam = true;
 
-        RefreshPropertiesIfEmpty(dbModel);
-
         DeterminePrimaryKey(dbModel);
 
-        if (dbModel.dbModel_properties == null)
-            throw new NullReferenceException("dbModel_properties");
+        if (dbModel.dbModel_prop_map == null)
+            throw new NullReferenceException("dbModel_prop_map");
 
-        if (dbModel.dbModel_dbColumns == null)
-            throw new NullReferenceException("dbModel_dbColumns");
+        List<PropertyInfo> propertiesToUpdate = GetPropertiesToUpdate(dbModel);
 
-        if (dbModel.dbModel_primaryKey == null)
-            throw new NullReferenceException("dbModel_primaryKey");
-
-        SqlParam pkPrm = new SqlParam($"@p_{dbModel.dbModel_pkName}", dbModel.dbModel_primaryKey.GetValue(dbModel));
-
-        PropertyInfo[] propertiesToUpdate = dbModel.dbModel_properties.Where(x => x.Name != dbModel.dbModel_pkName && dbModel.dbModel_dbColumns.Contains(x.Name)).ToArray();
-
-        for (int i = 0; i < propertiesToUpdate.Length; i++)
+        for (int i = 0; i < propertiesToUpdate.Count; i++)
         {
             PropertyInfo propertyInfo = propertiesToUpdate[i];
 
@@ -209,7 +219,7 @@ public static class DbModelExtensions
             else
                 appendToParam = string.Empty;
 
-            sbUpdate.Append($" {propertyInfo.Name} = @p_{propertyInfo.Name}{appendToParam} ");
+            sbUpdate.Append($" {dbModel.dbModel_prop_map[propertyInfo.Name]} = @p_{propertyInfo.Name}{appendToParam} ");
 
             SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", propertyInfo.GetValue(dbModel));
 
@@ -219,29 +229,59 @@ public static class DbModelExtensions
             dbModel.dbModel_sql_update.sql_parameters.Add(prm);
         }
 
-        dbModel.dbModel_sql_update.sql_parameters.Add(pkPrm);
+        bool isFirstPkCol = true;
 
-        sbUpdate.Append($" where {dbModel.dbModel_pkName} = @p_{dbModel.dbModel_pkName}");
+        foreach (var pkDbCol in dbModel.dbModel_primaryKey_dbColumns!)
+        {
+            if (isFirstPkCol)
+            {
+                sbUpdate.Append(" where ");
+                isFirstPkCol = false;
+            }
+            else
+            {
+                sbUpdate.Append(" and ");
+            }
+
+            var prop = dbModel.dbModel_dbColumn_map![pkDbCol];
+
+            var pkPrm = new SqlParam($"@p_{prop.Name}", prop.GetValue(dbModel));
+            dbModel.dbModel_sql_update.sql_parameters.Add(pkPrm);
+
+            sbUpdate.Append($" {pkDbCol} = @p_{prop.Name}");
+        }
 
         dbModel.dbModel_sql_update.sql_query = sbUpdate.ToString();
     }
 
     private static void RefreshParameterValuesForUpdate(this DbModel dbModel)
     {
-        RefreshPropertiesIfEmpty(dbModel);
+        List<PropertyInfo> propertiesToUpdate = GetPropertiesToUpdate(dbModel);
 
-        if (dbModel.dbModel_properties == null)
-            throw new NullReferenceException("dbModel_properties");
-
-        for (int i = 0; i < dbModel.dbModel_properties.Length; i++)
+        for (int i = 0; i < propertiesToUpdate.Count; i++)
         {
-            PropertyInfo propertyInfo = dbModel.dbModel_properties[i];
+            PropertyInfo propertyInfo = propertiesToUpdate[i];
+
+            var dbCol = dbModel.dbModel_prop_map![propertyInfo.Name];
 
             SqlParam? prm = null;
-            if (propertyInfo.Name == dbModel.dbModel_pkName)
-                prm = dbModel.dbModel_sql_update.sql_parameters.LastOrDefault();
+            if (dbModel.dbModel_primaryKey_dbColumns!.Any(x => x == dbCol))
+            {
+                for (int j = dbModel.dbModel_sql_update.sql_parameters.Count - 1; j >= 0; j--)
+                {
+                    var updateParameter = dbModel.dbModel_sql_update.sql_parameters[j];
+
+                    if (updateParameter.name == $"@p_{propertyInfo.Name}")
+                    {
+                        prm = updateParameter;
+                        break;
+                    }
+                }
+            }
             else if (i > 0)
+            {
                 prm = dbModel.dbModel_sql_update.sql_parameters[i - 1];
+            }
 
             if (prm == null || prm.name != $"@p_{propertyInfo.Name}")
                 prm = dbModel.dbModel_sql_update.sql_parameters.FirstOrDefault(x => x.name == $"@p_{propertyInfo.Name}");
@@ -253,33 +293,38 @@ public static class DbModelExtensions
 
     private static void DeterminePrimaryKey(this DbModel dbModel)
     {
-        if (!string.IsNullOrEmpty(dbModel.dbModel_pkName))
+        if (dbModel.dbModel_primaryKey_dbColumns != null && dbModel.dbModel_primaryKey_dbColumns.Count > 0)
             return;
 
-        if (dbModel.dbModel_properties == null)
-            throw new NullReferenceException("dbModel_properties");
+        if (dbModel.dbModel_dbColumns == null)
+            throw new NullReferenceException("dbModel_dbColumns");
 
-        foreach (PropertyInfo propertyInfo in dbModel.dbModel_properties)
+        if (dbModel.dbModel_dbColumn_map == null)
+            throw new NullReferenceException("dbModel_dbColumn_map");
+
+        dbModel.dbModel_primaryKey_dbColumns = new List<string>();
+
+        foreach (var dbCol in dbModel.dbModel_dbColumns)
         {
-            bool primaryKeyFound = false;
-            object[] attrs = propertyInfo.GetCustomAttributes(true);
+            if (!dbModel.dbModel_dbColumn_map.TryGetValue(dbCol, out PropertyInfo? prop))
+                continue;
+
+            if (prop == null)
+                continue;
+
+            object[] attrs = prop.GetCustomAttributes(true);
 
             foreach (object attr in attrs)
             {
                 if (attr is PrimaryKeyAttribute)
                 {
-                    dbModel.dbModel_pkName = propertyInfo.Name;
-                    dbModel.dbModel_primaryKey = propertyInfo;
-                    primaryKeyFound = true;
+                    dbModel.dbModel_primaryKey_dbColumns.Add(dbCol);
                     break;
                 }
             }
-
-            if (primaryKeyFound)
-                return;
         }
 
-        if (string.IsNullOrEmpty(dbModel.dbModel_pkName))
+        if (dbModel.dbModel_primaryKey_dbColumns.Count == 0)
             throw new Exception("There must be a property with the [PrimaryKey] attribute.");
     }
 
@@ -291,26 +336,7 @@ public static class DbModelExtensions
     public static async Task RefreshDbColumnsAndModelPropertiesAsync(this DbModel dbModel, DbConnection conn, DbTransaction? tx, string table)
     {
         await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
-        RefreshPropertiesIfEmpty(dbModel);
         DeterminePrimaryKey(dbModel);
-    }
-
-    private static Task ConstructInsertQueryAsync(
-        this DbModel dbModel,
-        DbModelSaveType saveType,
-        DbConnection conn,
-        string table,
-        bool insertPrimaryKeyColumn,
-        string sequence2UseForPrimaryKey = "")
-    {
-        return ConstructInsertQueryAsync(
-            dbModel,
-            saveType,
-            conn,
-            tx: null,
-            table,
-            insertPrimaryKeyColumn,
-            sequence2UseForPrimaryKey);
     }
 
     private static async Task ConstructInsertQueryAsync(
@@ -323,7 +349,6 @@ public static class DbModelExtensions
         string sequence2UseForPrimaryKey = "")
     {
         await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
-        RefreshPropertiesIfEmpty(dbModel);
 
         StringBuilder sbInsertValues = new StringBuilder();
         StringBuilder sbInsert = new StringBuilder();
@@ -332,21 +357,23 @@ public static class DbModelExtensions
 
         DeterminePrimaryKey(dbModel);
 
-        if (dbModel.dbModel_properties == null)
-            throw new NullReferenceException("dbModel_properties");
-
         if (dbModel.dbModel_dbColumns == null)
             throw new NullReferenceException("dbModel_dbColumns");
 
+        if (dbModel.dbModel_dbColumn_map == null)
+            throw new NullReferenceException("dbModel_dbColumn_map");
+
+        if (dbModel.dbModel_primaryKey_dbColumns == null)
+            throw new NullReferenceException("dbModel_primaryKey_dbColumns");
+
+        if (dbModel.dbModel_prop_map == null)
+            throw new NullReferenceException("dbModel_prop_map");
+
         bool firstParam = true;
-        PropertyInfo[] propertiesToInsert;
 
-        if (!insertPrimaryKeyColumn && string.IsNullOrEmpty(sequence2UseForPrimaryKey))
-            propertiesToInsert = dbModel.dbModel_properties.Where(x => x.Name != dbModel.dbModel_pkName && dbModel.dbModel_dbColumns.Contains(x.Name)).ToArray();
-        else
-            propertiesToInsert = dbModel.dbModel_properties.Where(x => dbModel.dbModel_dbColumns.Contains(x.Name)).ToArray();
+        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, insertPrimaryKeyColumn);
 
-        for (int i = 0; i < propertiesToInsert.Length; i++)
+        for (int i = 0; i < propertiesToInsert.Count; i++)
         {
             PropertyInfo propertyInfo = propertiesToInsert[i];
 
@@ -358,14 +385,15 @@ public static class DbModelExtensions
                 sbInsertValues.Append(", ");
             }
 
+            var dbCol = dbModel.dbModel_prop_map[propertyInfo.Name];
+
             if (!insertPrimaryKeyColumn
                 && !string.IsNullOrEmpty(sequence2UseForPrimaryKey)
-                && propertyInfo.Name == dbModel.dbModel_pkName
-                && dbModel.dbModel_dbColumns.Contains(propertyInfo.Name))
+                && dbModel.dbModel_primaryKey_dbColumns.Any(x => x == dbCol))
             {
                 if (conn is OracleConnection)
                 {
-                    sbInsert.Append($" {propertyInfo.Name} ");
+                    sbInsert.Append($" {dbCol} ");
                     sbInsertValues.Append($"{sequence2UseForPrimaryKey}.nextval");
 
                     continue;
@@ -378,7 +406,7 @@ public static class DbModelExtensions
             else
                 appendToParam = string.Empty;
 
-            sbInsert.Append($" {propertyInfo.Name} ");
+            sbInsert.Append($" {dbCol} ");
             sbInsertValues.Append($" @p_{propertyInfo.Name}{appendToParam} ");
 
             SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", propertyInfo.GetValue(dbModel));
@@ -395,10 +423,10 @@ public static class DbModelExtensions
         {
             if (conn is OracleConnection)
             {
-                if (!string.IsNullOrEmpty(dbModel.dbModel_pkName))
-                    sbInsert.AppendLine($" returning {dbModel.dbModel_pkName} into @p_out_id ");
+                if (dbModel.dbModel_primaryKey_dbColumns.Count == 1)
+                    sbInsert.AppendLine($" returning {dbModel.dbModel_primaryKey_dbColumns[0]} into @p_out_id ");
                 else
-                    sbInsert.AppendLine($" returning {dbModel.dbModel_properties.FirstOrDefault()?.Name} into @p_out_id ");
+                    sbInsert.AppendLine($" returning {dbModel.dbModel_prop_map[propertiesToInsert.First().Name]} into @p_out_id ");
 
                 SqlParam prm = new SqlParam($"@p_out_id") { paramDirection = ParameterDirection.Output };
                 dbModel.dbModel_sql_insert.sql_parameters.Add(prm);
@@ -414,7 +442,7 @@ public static class DbModelExtensions
                 SqlParam p_serial_table = new SqlParam($"@p_serial_table", table);
                 dbModel.dbModel_sql_insert.sql_parameters.Add(p_serial_table);
 
-                SqlParam p_serial_id = new SqlParam($"@p_serial_id", dbModel.dbModel_pkName);
+                SqlParam p_serial_id = new SqlParam($"@p_serial_id", dbModel.dbModel_primaryKey_dbColumns.Any() ? dbModel.dbModel_primaryKey_dbColumns[0] : dbModel.dbModel_prop_map[propertiesToInsert.First().Name]);
                 dbModel.dbModel_sql_insert.sql_parameters.Add(p_serial_id);
             }
             else if (conn is SQLiteConnection)
@@ -428,22 +456,12 @@ public static class DbModelExtensions
 
     private static void RefreshParameterValuesForInsert(this DbModel dbModel, bool insertPrimaryKeyColumn)
     {
-        RefreshPropertiesIfEmpty(dbModel);
-
-        if (dbModel.dbModel_properties == null)
-            throw new NullReferenceException("dbModel_properties");
-
         if (dbModel.dbModel_sql_insert == null)
             throw new NullReferenceException("dbModel_sql_insert");
 
-        PropertyInfo[] propertiesToInsert;
+        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, insertPrimaryKeyColumn);
 
-        if (!insertPrimaryKeyColumn)
-            propertiesToInsert = dbModel.dbModel_properties.Where(x => x.Name != dbModel.dbModel_pkName).ToArray();
-        else
-            propertiesToInsert = dbModel.dbModel_properties;
-
-        for (int i = 0; i < propertiesToInsert.Length; i++)
+        for (int i = 0; i < propertiesToInsert.Count; i++)
         {
             PropertyInfo propertyInfo = propertiesToInsert[i];
 
@@ -455,26 +473,6 @@ public static class DbModelExtensions
             if (prm != null)
                 prm.value = propertyInfo.GetValue(dbModel) ?? DBNull.Value;
         }
-    }
-
-    private static Task<int> RunQueryAsync(
-        this DbModel dbModel,
-        DbModelSaveType saveType,
-        DbConnection conn,
-        string sql,
-        List<SqlParam> parameters,
-        bool insertPrimaryKeyColumn,
-        bool isInsert = false)
-    {
-        return RunQueryAsync(
-            dbModel,
-            saveType,
-            conn,
-            tx: null,
-            sql,
-            parameters,
-            insertPrimaryKeyColumn,
-            isInsert);
     }
 
     private static async Task<int> RunQueryAsync(
@@ -517,15 +515,17 @@ public static class DbModelExtensions
                     if (prm.Direction != ParameterDirection.Output)
                         continue;
 
-                    if (dbModel.dbModel_primaryKey != null && prm.Value != null && prm.Value != DBNull.Value)
+                    if (dbModel.dbModel_primaryKey_dbColumns != null && dbModel.dbModel_primaryKey_dbColumns.Any() && prm.Value != null && prm.Value != DBNull.Value)
                     {
+                        var pkProp = dbModel.dbModel_dbColumn_map![dbModel.dbModel_primaryKey_dbColumns[0]];
+
                         try
                         {
-                            dbModel.dbModel_primaryKey.SetValue(dbModel, Convert.ToInt64(prm.Value), null);
+                            pkProp.SetValue(dbModel, Convert.ToInt64(prm.Value), null);
                         }
                         catch
                         {
-                            dbModel.dbModel_primaryKey.SetValue(dbModel, prm.Value, null);
+                            pkProp.SetValue(dbModel, prm.Value, null);
                         }
                     }
 
@@ -542,8 +542,11 @@ public static class DbModelExtensions
         {
             long id = Convert.ToInt64((await cmd.ExecuteScalarAsync())!.ToString());
 
-            if (dbModel.dbModel_primaryKey != null)
-                dbModel.dbModel_primaryKey.SetValue(dbModel, id, null);
+            if (dbModel.dbModel_primaryKey_dbColumns != null && dbModel.dbModel_primaryKey_dbColumns.Any())
+            {
+                var pkProp = dbModel.dbModel_dbColumn_map![dbModel.dbModel_primaryKey_dbColumns[0]];
+                pkProp.SetValue(dbModel, id, null);
+            }
         }
         else
         {
@@ -699,7 +702,7 @@ public static class DbModelExtensions
         bool insertPrimaryKeyColumn = false,
         string sequence2UseForPrimaryKey = "")
     {
-        if (saveType == DbModelSaveType.InsertUpdate && PrimaryKeyFieldHasValue(dbModel))
+        if (saveType == DbModelSaveType.InsertUpdate && PrimaryKeyFieldsHaveValues(dbModel))
         {
             // we need to try tp update first since we have a value for the primary key field
             if (string.IsNullOrEmpty(dbModel.dbModel_sql_update.sql_query))
@@ -741,78 +744,79 @@ public static class DbModelExtensions
         );
     }
 
-    private static bool PrimaryKeyFieldHasValue(this DbModel dbModel)
+    private static bool PrimaryKeyFieldsHaveValues(this DbModel dbModel)
     {
-        RefreshPropertiesIfEmpty(dbModel);
         DeterminePrimaryKey(dbModel);
 
-        if (dbModel.dbModel_properties == null)
-            throw new NullReferenceException("dbModel_properties");
+        List<PropertyInfo> primaryKeyProps = dbModel.dbModel_primaryKey_dbColumns!
+            .Select(x => dbModel.dbModel_dbColumn_map![x])
+            .ToList();
 
-        PropertyInfo? primaryKeyProp = dbModel.dbModel_properties.Where(x => x.Name == dbModel.dbModel_pkName).FirstOrDefault();
-
-        if (primaryKeyProp == null)
+        if (!primaryKeyProps.Any())
             return false;
 
-        object primaryKeyVal = primaryKeyProp.GetValue(dbModel) ?? DBNull.Value;
-        Type primaryKeyValType = primaryKeyProp.PropertyType;
-        object? defaultValue = primaryKeyValType.IsValueType ? Activator.CreateInstance(primaryKeyValType) : null;
-
-        if (primaryKeyVal == null)
-            return false;
-
-        if (defaultValue == null && primaryKeyVal != null)
-            return true;
-
-        if (primaryKeyValType.IsValueType)
+        foreach (PropertyInfo primaryKeyProp in primaryKeyProps)
         {
-            if (primaryKeyValType == dbModel_tint || primaryKeyValType == dbModel_tintNull)
-            {
-                int val = Convert.ToInt32(primaryKeyVal);
+            object primaryKeyVal = primaryKeyProp.GetValue(dbModel) ?? DBNull.Value;
+            Type primaryKeyValType = primaryKeyProp.PropertyType;
+            object? defaultValue = primaryKeyValType.IsValueType ? Activator.CreateInstance(primaryKeyValType) : null;
 
-                if (val == -1 || val == Convert.ToInt32(defaultValue))
-                    return false;
-                else
-                    return true;
-            }
-            else if (primaryKeyValType == dbModel_tlong || primaryKeyValType == dbModel_tlongNull)
-            {
-                long val = Convert.ToInt64(primaryKeyVal);
+            if (primaryKeyVal == null)
+                return false;
 
-                if (val == -1L || val == Convert.ToInt64(defaultValue))
-                    return false;
-                else
-                    return true;
-            }
-            else if (primaryKeyValType == dbModel_tbool || primaryKeyValType == dbModel_tboolNull)
-            {
-                if (Convert.ToBoolean(primaryKeyVal) == Convert.ToBoolean(defaultValue))
-                    return false;
-                else
-                    return true;
-            }
-            else if (primaryKeyValType == dbModel_tdecimal || primaryKeyValType == dbModel_tdecimalNull)
-            {
-                decimal val = Convert.ToDecimal(primaryKeyVal);
+            if (defaultValue == null && primaryKeyVal != null)
+                return true;
 
-                if (val == -1M || val == Convert.ToDecimal(defaultValue))
-                    return false;
-                else
-                    return true;
-            }
-            else if (primaryKeyValType == dbModel_tdatetime || primaryKeyValType == dbModel_tdatetimeNull)
+            if (primaryKeyValType.IsValueType)
             {
-                if (Convert.ToDateTime(primaryKeyVal) == Convert.ToDateTime(defaultValue))
-                    return false;
-                else
-                    return true;
-            }
-            else if (primaryKeyValType == dbModel_tString)
-            {
-                if (Convert.ToString(primaryKeyVal) == Convert.ToString(defaultValue))
-                    return false;
-                else
-                    return true;
+                if (primaryKeyValType == dbModel_tint || primaryKeyValType == dbModel_tintNull)
+                {
+                    int val = Convert.ToInt32(primaryKeyVal);
+
+                    if (val == -1 || val == Convert.ToInt32(defaultValue))
+                        return false;
+                    else
+                        return true;
+                }
+                else if (primaryKeyValType == dbModel_tlong || primaryKeyValType == dbModel_tlongNull)
+                {
+                    long val = Convert.ToInt64(primaryKeyVal);
+
+                    if (val == -1L || val == Convert.ToInt64(defaultValue))
+                        return false;
+                    else
+                        return true;
+                }
+                else if (primaryKeyValType == dbModel_tbool || primaryKeyValType == dbModel_tboolNull)
+                {
+                    if (Convert.ToBoolean(primaryKeyVal) == Convert.ToBoolean(defaultValue))
+                        return false;
+                    else
+                        return true;
+                }
+                else if (primaryKeyValType == dbModel_tdecimal || primaryKeyValType == dbModel_tdecimalNull)
+                {
+                    decimal val = Convert.ToDecimal(primaryKeyVal);
+
+                    if (val == -1M || val == Convert.ToDecimal(defaultValue))
+                        return false;
+                    else
+                        return true;
+                }
+                else if (primaryKeyValType == dbModel_tdatetime || primaryKeyValType == dbModel_tdatetimeNull)
+                {
+                    if (Convert.ToDateTime(primaryKeyVal) == Convert.ToDateTime(defaultValue))
+                        return false;
+                    else
+                        return true;
+                }
+                else if (primaryKeyValType == dbModel_tString)
+                {
+                    if (Convert.ToString(primaryKeyVal) == Convert.ToString(defaultValue))
+                        return false;
+                    else
+                        return true;
+                }
             }
         }
 

@@ -7,7 +7,7 @@
     <Nullable>enable</Nullable>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <VersionPrefix>1.0.30.6-beta</VersionPrefix>
+    <VersionPrefix>1.0.30.7-beta</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,7 +23,7 @@
     <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.3.0-dev" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.5" />
     <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
-    <PackageReference Include="Zen.DbAccess.Shared" Version="1.0.5.2-beta" />
+    <PackageReference Include="Zen.DbAccess.Shared" Version="1.0.5.5-beta" />
   </ItemGroup>
 
 </Project>

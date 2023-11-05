@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.Utils;
 
 namespace Zen.DbAccess.Extensions;
 
@@ -22,7 +23,7 @@ public static class DataRowExtensions
     private static Type tdatetimeNull = typeof(DateTime?);
     private static Type tEnum = typeof(Enum);
 
-    public static T ToModel<T>(this DataRow row)
+    public static T ToModel<T>(this DataRow row, ref Dictionary<string, PropertyInfo>? properties, ref bool propertiesAlreadyDetermined)
     {
         Type classType = typeof(T);
         T? rez = (T?)Activator.CreateInstance(classType);
@@ -30,12 +31,28 @@ public static class DataRowExtensions
         if (row == null)
             throw new NullReferenceException(nameof(rez));
 
+        if (properties == null)
+            properties = new Dictionary<string, PropertyInfo>();
+
         for (int i = 0; i < row.Table.Columns.Count; i++)
         {
-            PropertyInfo? p = classType.GetProperty(row.Table.Columns[i].ColumnName.ToLower());
+            string colName = row.Table.Columns[i].ColumnName;
+            PropertyInfo? p = null;
 
-            if (p == null)
-                continue;
+            if (propertiesAlreadyDetermined)
+            {
+                if (!properties.TryGetValue(colName, out p))
+                    continue;
+            }
+            else
+            {
+                p = ColumnNameMapUtils.GetModelPropertyForDbColumn(classType, colName);
+
+                if (p == null)
+                    continue;
+
+                properties[colName] = p;
+            }
 
             object val = row[i];
 
