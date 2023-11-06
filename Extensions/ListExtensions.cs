@@ -146,7 +146,8 @@ public static class ListExtensions
                 string sql = preparedQuery.Item1;
                 SqlParam[] sqlParams = preparedQuery.Item2;
 
-                await sql.ExecuteScalarAsync(conn, tx, sqlParams);
+                if (!string.IsNullOrEmpty(sql))
+                    await sql.ExecuteScalarAsync(conn, tx, sqlParams);
 
                 offset += batch.Count;
             }
@@ -327,7 +328,10 @@ public static class ListExtensions
         sbInsert.AppendLine($"INSERT ALL");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn: false);
+
+        if (list.Count <= 1)
+            return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn: false);
 
@@ -386,7 +390,10 @@ public static class ListExtensions
         sbInsert.AppendLine("BEGIN");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn);
+
+        if (list.Count <= 1)
+            return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn);
         List<string> primaryKeyColumns = firstModel.dbModel_primaryKey_dbColumns!;
@@ -464,7 +471,10 @@ public static class ListExtensions
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn: false);
+
+        if (list.Count <= 1)
+            return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn: false);
 
@@ -535,7 +545,10 @@ public static class ListExtensions
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn);
+
+        if (list.Count <= 1)
+            return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn);
 
@@ -616,7 +629,10 @@ public static class ListExtensions
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn: false);
+
+        if (list.Count <= 1)
+            return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn: false);
 
@@ -690,7 +706,10 @@ public static class ListExtensions
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn);
+
+        if (list.Count <= 1)
+            return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn);
 
@@ -774,7 +793,10 @@ public static class ListExtensions
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn: false);
+
+        if (list.Count <= 1)
+            return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn: false);
 
@@ -842,7 +864,10 @@ public static class ListExtensions
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn);
+
+        if (list.Count <= 1)
+            return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn);
 
