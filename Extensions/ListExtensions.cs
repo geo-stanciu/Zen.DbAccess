@@ -535,9 +535,9 @@ public static class ListExtensions
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -690,9 +690,9 @@ public static class ListExtensions
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -842,9 +842,9 @@ public static class ListExtensions
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(conn, table, insertPrimaryKeyColumn);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(insertPrimaryKeyColumn);
 
         for (int i = 1; i < list.Count; i++)
         {

@@ -37,6 +37,50 @@ namespace Test.Zen.DbAccess
         }
 
         [TestMethod]
+        public async Task TestBulkInsertWithPrimaryKeyColumn()
+        {
+            DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
+
+            using var conn = await dbConnectionFactory.BuildAndOpenAsync();
+
+            string sql =
+                @"create temporary table if not exists test1_t1 (
+                      c1 serial not null,
+                      c2 varchar(256),
+                      c3 date,
+                      c4 timestamp,
+                      c5 timestamp with time zone,
+                      c6 decimal(18, 4),
+                      constraint t1_pk primary key (c1)
+                )";
+
+            await sql.ExecuteNonQueryAsync(conn);
+
+            List<T1> models = new List<T1>
+            {
+                new T1 { C1 = 5, C2 = "t1", C4 = DateTime.UtcNow, C5 = DateTime.UtcNow, C6 = 1234.5678M },
+                new T1 { C1 = 6, C2 = "t2", C3 = DateTime.UtcNow.AddDays(1), C4 = DateTime.UtcNow.AddDays(1), C5 = DateTime.UtcNow.AddDays(1), C6 = 1234.5678M },
+                new T1 { C1 = 7, C2 = "t3", C3 = DateTime.UtcNow.AddDays(2), C4 = DateTime.UtcNow.AddDays(2), C5 = DateTime.UtcNow.AddDays(2), C6 = 1234.5678M * 2 },
+                new T1 { C1 = 8, C2 = "t4", C3 = DateTime.UtcNow.AddDays(3), C4 = DateTime.UtcNow.AddDays(3), C5 = DateTime.UtcNow.AddDays(3), C6 = 1234.5678M * 3 },
+                new T1 { C1 = 9, C2 = "t5", C3 = DateTime.UtcNow.AddDays(4), C4 = DateTime.UtcNow.AddDays(4), C5 = DateTime.UtcNow.AddDays(4), C6 = 1234.5678M * 4 },
+            };
+
+            await models.BulkInsertAsync(conn, "test1_t1", insertPrimaryKeyColumn: true);
+
+            sql = "select * from test1_t1";
+
+            DataTable? dt = await sql.QueryDataTableAsync(conn);
+
+            Assert.IsNotNull(dt);
+            Assert.IsTrue(dt.Rows.Count == 5);
+
+            var resultModels = await sql.QueryAsync<T1>(conn);
+
+            Assert.IsNotNull(resultModels);
+            Assert.IsTrue(resultModels.Count == 5);
+        }
+
+        [TestMethod]
         public async Task TestBulkInsert()
         {
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();

@@ -314,14 +314,11 @@ public static class DbModelExtensions
 
             object[] attrs = prop.GetCustomAttributes(true);
 
-            foreach (object attr in attrs)
-            {
-                if (attr is PrimaryKeyAttribute)
-                {
-                    dbModel.dbModel_primaryKey_dbColumns.Add(dbCol);
-                    break;
-                }
-            }
+            if (attrs == null || attrs.Length == 0)
+                continue;
+
+            if (attrs.Any(x => x is PrimaryKeyAttribute))
+                dbModel.dbModel_primaryKey_dbColumns.Add(dbCol);
         }
 
         if (dbModel.dbModel_primaryKey_dbColumns.Count == 0)
