@@ -171,7 +171,7 @@ public static class DbModelExtensions
             .ToList();
     }
 
-    public static List<PropertyInfo> GetPropertiesToInsert(this DbModel dbModel, bool insertPrimaryKeyColumn)
+    public static List<PropertyInfo> GetPropertiesToInsert(this DbModel dbModel, DbConnection conn, bool insertPrimaryKeyColumn, string sequence2UseForPrimaryKey = "")
     {
         if (dbModel.dbModel_dbColumns == null)
             throw new NullReferenceException("dbModel_dbColumns");
@@ -183,11 +183,32 @@ public static class DbModelExtensions
             throw new NullReferenceException("dbModel_primaryKey_dbColumns");
 
         return dbModel.dbModel_dbColumns
-            .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x) && (insertPrimaryKeyColumn || (!insertPrimaryKeyColumn && !dbModel.dbModel_primaryKey_dbColumns.Contains(x))))
+            .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x)
+                        && (insertPrimaryKeyColumn
+                            || (!insertPrimaryKeyColumn && conn is OracleConnection && !string.IsNullOrEmpty(sequence2UseForPrimaryKey))
+                            || (!insertPrimaryKeyColumn && !dbModel.dbModel_primaryKey_dbColumns.Contains(x))
+                        )
+                    )
             .Select(x => dbModel.dbModel_dbColumn_map[x])
             .ToList();
     }
-    
+
+    public static List<PropertyInfo> GetPrimaryKeyProperties(this DbModel dbModel)
+    {
+        if (dbModel.dbModel_dbColumns == null)
+            throw new NullReferenceException("dbModel_dbColumns");
+
+        if (dbModel.dbModel_dbColumn_map == null)
+            throw new NullReferenceException("dbModel_dbColumn_map");
+
+        if (dbModel.dbModel_primaryKey_dbColumns == null)
+            throw new NullReferenceException("dbModel_primaryKey_dbColumns");
+
+        return dbModel.dbModel_primaryKey_dbColumns
+            .Select(x => dbModel.dbModel_dbColumn_map[x])
+            .ToList();
+    }
+
     private static async Task ConstructUpdateQueryAsync(this DbModel dbModel, DbConnection conn, DbTransaction? tx, string table)
     {
         await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
@@ -264,27 +285,20 @@ public static class DbModelExtensions
 
             var dbCol = dbModel.dbModel_prop_map![propertyInfo.Name];
 
-            SqlParam? prm = null;
-            if (dbModel.dbModel_primaryKey_dbColumns!.Any(x => x == dbCol))
-            {
-                for (int j = dbModel.dbModel_sql_update.sql_parameters.Count - 1; j >= 0; j--)
-                {
-                    var updateParameter = dbModel.dbModel_sql_update.sql_parameters[j];
+            SqlParam? prm = dbModel.dbModel_sql_update.sql_parameters.FirstOrDefault(x => x.name == $"@p_{propertyInfo.Name}");
 
-                    if (updateParameter.name == $"@p_{propertyInfo.Name}")
-                    {
-                        prm = updateParameter;
-                        break;
-                    }
-                }
-            }
-            else if (i > 0)
-            {
-                prm = dbModel.dbModel_sql_update.sql_parameters[i - 1];
-            }
+            if (prm != null)
+                prm.value = propertyInfo.GetValue(dbModel) ?? DBNull.Value;
+        }
 
-            if (prm == null || prm.name != $"@p_{propertyInfo.Name}")
-                prm = dbModel.dbModel_sql_update.sql_parameters.FirstOrDefault(x => x.name == $"@p_{propertyInfo.Name}");
+        List<PropertyInfo> primaryKeys = GetPrimaryKeyProperties(dbModel);
+
+        for (int i = 0; i < primaryKeys.Count; i++)
+        {
+            PropertyInfo propertyInfo = primaryKeys[i];
+            var dbCol = dbModel.dbModel_prop_map![propertyInfo.Name];
+
+            SqlParam? prm = dbModel.dbModel_sql_update.sql_parameters.FirstOrDefault(x => x.name == $"@p_{propertyInfo.Name}");
 
             if (prm != null)
                 prm.value = propertyInfo.GetValue(dbModel) ?? DBNull.Value;
@@ -368,7 +382,7 @@ public static class DbModelExtensions
 
         bool firstParam = true;
 
-        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, conn, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
 
         for (int i = 0; i < propertiesToInsert.Count; i++)
         {
@@ -451,12 +465,12 @@ public static class DbModelExtensions
         dbModel.dbModel_sql_insert.sql_query = sbInsert.ToString();
     }
 
-    private static void RefreshParameterValuesForInsert(this DbModel dbModel, bool insertPrimaryKeyColumn)
+    private static void RefreshParameterValuesForInsert(this DbModel dbModel, DbConnection conn, bool insertPrimaryKeyColumn)
     {
         if (dbModel.dbModel_sql_insert == null)
             throw new NullReferenceException("dbModel_sql_insert");
 
-        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, conn, insertPrimaryKeyColumn);
 
         for (int i = 0; i < propertiesToInsert.Count; i++)
         {
@@ -699,6 +713,8 @@ public static class DbModelExtensions
         bool insertPrimaryKeyColumn = false,
         string sequence2UseForPrimaryKey = "")
     {
+        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
+
         if (saveType == DbModelSaveType.InsertUpdate && PrimaryKeyFieldsHaveValues(dbModel))
         {
             // we need to try tp update first since we have a value for the primary key field
@@ -726,7 +742,7 @@ public static class DbModelExtensions
         if (string.IsNullOrEmpty(dbModel.dbModel_sql_insert.sql_query))
             await ConstructInsertQueryAsync(dbModel, saveType, conn, tx, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
         else
-            RefreshParameterValuesForInsert(dbModel, insertPrimaryKeyColumn);
+            RefreshParameterValuesForInsert(dbModel, conn, insertPrimaryKeyColumn);
 
         // try to insert
         _ = await RunQueryAsync(
