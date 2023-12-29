@@ -15,6 +15,7 @@ using Zen.DbAccess.Shared.Attributes;
 using Zen.DbAccess.Shared.Enums;
 using Zen.DbAccess.Factories;
 using Zen.DbAccess.Utils;
+using System.Security.AccessControl;
 
 namespace Zen.DbAccess.Extensions;
 
@@ -755,6 +756,67 @@ public static class DbModelExtensions
             insertPrimaryKeyColumn,
             true
         );
+    }
+
+    public static async Task DeleteAsync(this DbModel dbModel, string conn_str, string table)
+    {
+        await DeleteAsync(dbModel, new DbConnectionFactory(DbConnectionFactory.DefaultDbType, conn_str), table);
+    }
+
+    public static async Task DeleteAsync(this DbModel dbModel, DbConnectionType dbtype, string conn_str, string table)
+    {
+        await DeleteAsync(dbModel, new DbConnectionFactory(dbtype, conn_str), table);
+    }
+
+    public static async Task DeleteAsync(this DbModel dbModel, DbConnectionFactory dbConnectionFactory, string table)
+    {
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
+        await DeleteAsync(dbModel, conn, table);
+        await conn.CloseAsync();
+    }
+
+    public static async Task DeleteAsync(this DbModel dbModel, DbConnection conn, string table)
+    {
+        await DeleteAsync(dbModel, conn, null, table);
+    }
+
+    public static async Task DeleteAsync(this DbModel dbModel, DbConnection conn, DbTransaction? tx, string table)
+    {
+        if (string.IsNullOrEmpty(dbModel.dbModel_sql_delete.sql_query))
+            await ConstructDeleteQueryAsync(dbModel, conn, tx, table);
+        
+        string sql = dbModel.dbModel_sql_delete.sql_query;
+        
+        _ = await sql.ExecuteNonQueryAsync(conn, dbModel.dbModel_sql_delete.sql_parameters.ToArray());
+    }
+
+    private static async Task ConstructDeleteQueryAsync(DbModel dbModel, DbConnection conn, DbTransaction? tx, string table)
+    {
+        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
+        DeterminePrimaryKey(dbModel);
+
+        StringBuilder sbSql = new StringBuilder();
+        sbSql.Append($"delete from {table} where ");
+
+        bool isFirst = true;
+
+        foreach (string pkDbCol in dbModel.dbModel_primaryKey_dbColumns!)
+        {
+            if (isFirst)
+                isFirst = false;
+            else
+                sbSql.Append(" and ");
+
+            PropertyInfo primaryKeyProp = dbModel.dbModel_dbColumn_map![pkDbCol];
+            string prmName = $"@p_{primaryKeyProp.Name}";
+
+            sbSql.Append($" {pkDbCol} = {prmName} ");
+
+            SqlParam prm = new SqlParam(prmName, primaryKeyProp.GetValue(dbModel) ?? DBNull.Value);
+            dbModel.dbModel_sql_delete.sql_parameters.Add(prm);
+        }
+
+        dbModel.dbModel_sql_delete.sql_query = sbSql.ToString();
     }
 
     private static bool PrimaryKeyFieldsHaveValues(this DbModel dbModel)

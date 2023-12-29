@@ -4,7 +4,6 @@ using Oracle.ManagedDataAccess.Client;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Data.Entity.Core.Common.CommandTrees.ExpressionBuilder;
 using System.Data.SqlClient;
 using System.Data.SQLite;
 using System.Linq;
@@ -266,6 +265,196 @@ public static class ListExtensions
             await tx.CommitAsync();
     }
 
+    public static async Task DeleteAllAsync<T>(
+        this List<T> list,
+        DbConnectionType dbConnectionType,
+        string conn_str,
+        string table,
+        bool runAllInTheSameTransaction = true) where T : DbModel
+    {
+        using DbConnection conn = await (new DbConnectionFactory(dbConnectionType, conn_str).BuildAndOpenAsync());
+        await DeleteAllAsync<T>(list, conn, tx: null, table, runAllInTheSameTransaction);
+        await conn.CloseAsync();
+    }
+
+    public static async Task DeleteAllAsync<T>(
+        this List<T> list,
+        string conn_str,
+        string table,
+        bool runAllInTheSameTransaction = true) where T : DbModel
+    {
+        using DbConnection conn = await (new DbConnectionFactory(DbConnectionFactory.DefaultDbType, conn_str).BuildAndOpenAsync());
+        await DeleteAllAsync<T>(list, conn, tx: null, table, runAllInTheSameTransaction);
+        await conn.CloseAsync();
+    }
+
+    public static async Task DeleteAllAsync<T>(
+        this List<T> list,
+        DbConnectionFactory dbConnectionFactory,
+        string table,
+        bool runAllInTheSameTransaction = true) where T : DbModel
+    {
+        using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
+        await DeleteAllAsync<T>(list, conn, tx: null, table, runAllInTheSameTransaction);
+        await conn.CloseAsync();
+    }
+
+    public static async Task DeleteAllAsync<T>(
+        this List<T> list,
+        DbConnection conn,
+        string table,
+        bool runAllInTheSameTransaction = true) where T : DbModel
+    {
+        await DeleteAllAsync<T>(list, conn, tx: null, table, runAllInTheSameTransaction);
+    }
+
+    public static async Task DeleteAllAsync<T>(
+        this List<T> list,
+        DbConnection conn,
+        DbTransaction? tx,
+        string table,
+        bool runAllInTheSameTransaction = true) where T : DbModel
+    {
+        bool isInTransaction = tx != null;
+
+        if (runAllInTheSameTransaction && tx == null)
+            tx = await conn.BeginTransactionAsync();
+
+        try
+        {
+            T? firstModel = list.FirstOrDefault();
+
+            if (firstModel == null)
+                throw new NullReferenceException(nameof(firstModel));
+
+            await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, tx, table);
+
+            if (firstModel.dbModel_primaryKey_dbColumns == null || firstModel.dbModel_primaryKey_dbColumns!.Count == 0)
+                throw new NullReferenceException(nameof(firstModel.dbModel_primaryKey_dbColumns));
+
+            (List<PropertyInfo> primaryKeyProps, bool isMultiColumnsPrimaryKey) = PreparePrimaryKeyProps4Delete<T>(firstModel);
+
+            string sqlBase = PrepareDeleteBaseSql(firstModel, table, isMultiColumnsPrimaryKey);
+
+            foreach (var items in list.Chunk(512))
+            {
+                (List<SqlParam> sqlParams, string deleteSqlList) = PrepareDeleteBulkSqlList<T>(items, isMultiColumnsPrimaryKey, primaryKeyProps);
+
+                string sql = $" {sqlBase} in ( {deleteSqlList} ) ";
+
+                _ = await sql.ExecuteNonQueryAsync(conn, tx, sqlParams.ToArray());
+            }
+        }
+        catch
+        {
+            if (!isInTransaction && tx != null)
+            {
+                try
+                {
+                    await tx.RollbackAsync();
+                }
+                catch { }
+            }
+
+            throw;
+        }
+
+        if (!isInTransaction && tx != null)
+            await tx.CommitAsync();
+    }
+
+    private static (List<PropertyInfo>, bool) PreparePrimaryKeyProps4Delete<T>(T firstModel) where T : DbModel
+    {
+        List<PropertyInfo> primaryKeyProps = new List<PropertyInfo>();
+        bool isMultiColumnsPrimaryKey = firstModel.dbModel_primaryKey_dbColumns!.Count > 1;
+
+        foreach (string pkDbCol in firstModel.dbModel_primaryKey_dbColumns!)
+        {
+            primaryKeyProps.Add(firstModel.dbModel_dbColumn_map![pkDbCol]);
+        }
+
+        return (primaryKeyProps, isMultiColumnsPrimaryKey);
+    }
+
+    private static string PrepareDeleteBaseSql<T>(T firstModel, string table, bool isMultiColumnsPrimaryKey) where T : DbModel
+    {
+        StringBuilder sbSql = new StringBuilder();
+        sbSql.Append($" delete from {table} where ");
+
+        if (isMultiColumnsPrimaryKey)
+        {
+            bool isFirst = true;
+            sbSql.Append("( ");
+
+            foreach (string pkDbCol in firstModel.dbModel_primaryKey_dbColumns!)
+            {
+                if (isFirst)
+                    isFirst = false;
+                else
+                    sbSql.Append(", ");
+
+                sbSql.Append($" {pkDbCol} ");
+            }
+
+            sbSql.Append(") ");
+        }
+        else
+        {
+            sbSql.Append($" {firstModel.dbModel_primaryKey_dbColumns!.First()} ");
+        }
+
+        return sbSql.ToString();
+    }
+
+    private static (List<SqlParam>, string) PrepareDeleteBulkSqlList<T>(IEnumerable<T> items, bool isMultiColumnsPrimaryKey, List<PropertyInfo> primaryKeyProps) where T : DbModel
+    {
+        List<SqlParam> sqlParams = new List<SqlParam>(items.Count() * primaryKeyProps.Count);
+        StringBuilder sbDeleteSql = new StringBuilder();
+
+        int k = 0;
+        bool isFirstItem = true;
+
+        foreach (var item in items)
+        {
+            if (isFirstItem)
+                isFirstItem = false;
+            else
+                sbDeleteSql.Append(", ");
+
+            if (isMultiColumnsPrimaryKey)
+            {
+                sbDeleteSql.Append("( ");
+
+                bool isFirstProp = true;
+
+                foreach (PropertyInfo pkProp in primaryKeyProps)
+                {
+                    if (isFirstProp)
+                        isFirstProp = false;
+                    else
+                        sbDeleteSql.Append(", ");
+
+                    string prmName = $"@p_{pkProp.Name}_{k}";
+                    sbDeleteSql.Append($" {prmName} ");
+                    sqlParams.Add(new SqlParam(prmName, pkProp.GetValue(item) ?? DBNull.Value));
+                }
+
+                sbDeleteSql.Append(") ");
+            }
+            else
+            {
+                PropertyInfo pkProp = primaryKeyProps.First();
+                string prmName = $"@p_{pkProp.Name}_{k}";
+                sbDeleteSql.Append($" {prmName} ");
+                sqlParams.Add(new SqlParam(prmName, pkProp.GetValue(item) ?? DBNull.Value));
+            }
+
+            k++;
+        }
+
+        return (sqlParams, sbDeleteSql.ToString());
+    }
+
     private static Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
         List<T> list,
         DbConnection conn,
@@ -335,7 +524,6 @@ public static class ListExtensions
         }
     }
     
-
     public static string ToJson<T>(this List<T> list)
     {
         return JsonConvert.SerializeObject(
