@@ -12,6 +12,9 @@ using Zen.DbAccess.Shared.Enums;
 using Zen.DbAccess.Shared.Models;
 using System.Reflection.Metadata.Ecma335;
 using System.Reflection;
+using System.Data.SqlClient;
+using Npgsql;
+using System.Reflection.Emit;
 
 namespace Zen.DbAccess.Repositories;
 
@@ -31,11 +34,11 @@ public abstract class BaseRepository
     {
         ResponseModel rez = (await RunProcedureAsync<ResponseModel, DbModel>(
             table: table,
-            tempTableDDL: null,
             insertPrimaryKeyColumn: false,
             bulkInsert: false,
             sequence2UseForPrimaryKey: "",
             procedure2Execute: procedure2Execute,
+            CreateTempTableCallBack: null,
             models: new List<DbModel> { model })
         ).Single();
 
@@ -48,60 +51,44 @@ public abstract class BaseRepository
     {
         return RunProcedureAsync<T, DbModel>(
             table: null,
-            tempTableDDL: null,
             models: null,
             insertPrimaryKeyColumn: false,
-            null,
-            null,
-            procedure2Execute,
-            parameters);
-    }
-
-    protected Task<List<T>> RunProcedureAsync<T>(
-        string? table,
-        string? tempTableDDL,
-        string procedure2Execute,
-        params SqlParam[] parameters) where T : ResponseModel
-    {
-        return RunProcedureAsync<T, DbModel>(
-            table, tempTableDDL,
-            models: null,
-            insertPrimaryKeyColumn: false,
-            null,
-            null,
             procedure2Execute: procedure2Execute,
+            CreateTempTableCallBack: null,
             parameters);
     }
 
     protected async Task<List<T>> RunProcedureAsync<T, TDBModel>(
         string? table,
-        string? tempTableDDL,
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         string procedure2Execute,
+        Func<DbConnection, DbTransaction?, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
     {
         return await (RunProcedureAsync<T, TDBModel>(
             table,
-            tempTableDDL,
             models,
             insertPrimaryKeyColumn,
             false,
-            "",
+            sequence2UseForPrimaryKey: "",
             procedure2Execute,
+            CreateTempTableCallBack,
             parameters)
         );
 
     }
 
+    //prot
+
     protected async Task<List<T>> RunProcedureAsync<T, TDBModel>(
-        string? table, 
-        string? tempTableDDL, 
+        string? table,
         List<TDBModel>? models, 
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
         string? sequence2UseForPrimaryKey,
-        string procedure2Execute, 
+        string procedure2Execute,
+        Func<DbConnection, DbTransaction?, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
     {
         if (_dbConnectionFactory == null)
@@ -112,17 +99,23 @@ public abstract class BaseRepository
 
         try
         {
-            if (!string.IsNullOrEmpty(table) && !string.IsNullOrEmpty(tempTableDDL))
-                await CreateTempTableAndGrantAccessToProcedureOwnerAsync(conn, table, tempTableDDL, procedure2Execute);
-            else if (!string.IsNullOrEmpty(table))
-                await ClearTempTableAsync(conn, table);
+            if (CreateTempTableCallBack != null)
+            {
+                await CreateTempTableCallBack(conn, tx);
+            }
+            
+            if (!string.IsNullOrEmpty(table))
+            {
+                await ClearTempTableAsync(conn, tx, table);
+            }
 
             if (models != null && !string.IsNullOrEmpty(table))
             {
                 if (bulkInsert ?? false)
                 {
                     await models.BulkInsertAsync(
-                        conn, 
+                        conn,
+                        tx, 
                         table, 
                         runAllInTheSameTransaction: false, 
                         insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false, 
@@ -133,7 +126,8 @@ public abstract class BaseRepository
                 {
                     await models.SaveAllAsync(
                         DbModelSaveType.InsertOnly, 
-                        conn, 
+                        conn,
+                        tx, 
                         table, 
                         runAllInTheSameTransaction: false, 
                         insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
@@ -141,7 +135,7 @@ public abstract class BaseRepository
                 }
             }
 
-            var rez = await RunProcedureAsync<T>(conn, procedure2Execute, parameters);
+            var rez = await RunProcedureAsync<T>(conn, tx, procedure2Execute, parameters);
             await tx.CommitAsync();
 
             return rez;
@@ -159,37 +153,21 @@ public abstract class BaseRepository
 
     protected async Task<List<T>> RunProcedureAsync<T>(
         DbConnection conn, 
+        DbTransaction? tx,
         string procedure2Execute, 
         params SqlParam[] parameters) where T : ResponseModel
     {
-        DataSet? result = await procedure2Execute.ExecuteProcedure2DataSetAsync(conn, parameters);
+        DataTable? result = await procedure2Execute.ExecuteProcedure2DataTableAsync(conn, tx, parameters);
 
-        if (result == null || result.Tables.Count == 0)
+        if (result == null)
             throw new Exception("empty query response");
 
-        var rez = result.Tables[0].ToList<T>();
+        var rez = result.ToList<T>();
 
         return rez;
     }
 
-    private async Task CreateTempTableAndGrantAccessToProcedureOwnerAsync(DbConnection conn, string table, string tempTableDDL, string procedure)
-    {
-        if (conn is OracleConnection)
-        {
-            await ClearTempTableAsync(conn, table);
-            return; // the temp table must exist in Oracle as global temp - cleanup and return
-        }
-
-        string sql = "p$create_temp_table_and_grant_access_to_procedure";
-
-        await sql.ExecuteProcedureAsync(conn,
-            new SqlParam("@sTempTable", table),
-            new SqlParam("@sTempTableDDL", tempTableDDL),
-            new SqlParam("@sProcedure", procedure)
-        );
-    }
-
-    protected async Task ClearTempTableAsync(DbConnection conn, string table)
+    protected async Task ClearTempTableAsync(DbConnection conn, DbTransaction? tx, string table)
     {
         if (conn is OracleConnection)
         {
@@ -201,6 +179,13 @@ public abstract class BaseRepository
                 throw new ArgumentException($"{table} must begin with temp_ or tmp_ .");
             }
         }
+        else if (conn is SqlConnection)
+        {
+            if (!table.StartsWith("##", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new ArgumentException($"{table} must begin with ##.");
+            }
+        }
         else if (!table.StartsWith("temp_", StringComparison.OrdinalIgnoreCase)
             && !table.StartsWith("tmp_", StringComparison.OrdinalIgnoreCase))
         {
@@ -208,6 +193,6 @@ public abstract class BaseRepository
         }
 
         string sql = $"delete from {table}";
-        await sql.ExecuteNonQueryAsync(conn);
+        await sql.ExecuteNonQueryAsync(conn, tx);
     }
 }

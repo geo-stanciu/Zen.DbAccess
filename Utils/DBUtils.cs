@@ -131,7 +131,7 @@ public static class DBUtils
         cmd.CommandText = sbSql.ToString();
     }
 
-    private static void SetupProcedureCall(DbCommand cmd, string sql, bool isDataSetReturn, params SqlParam[] parameters)
+    private static void SetupProcedureCall(DbCommand cmd, string sql, bool isDataSetReturn, bool isTableReturn, params SqlParam[] parameters)
     {
         if (cmd.Connection is NpgsqlConnection)
         {
@@ -152,6 +152,11 @@ public static class DBUtils
             {
                 // we expect the p$ to be a function returning a refcursor
                 sbSql.Append($"SELECT ");
+            }
+            else if (isTableReturn)
+            {
+                // we expect the p$ to be a function returning a table
+                sbSql.Append($"SELECT * FROM ");
             }
             else
             {
@@ -199,7 +204,7 @@ public static class DBUtils
             if (tx != null && cmd.Transaction == null)
                 cmd.Transaction = tx;
 
-            SetupProcedureCall(cmd, sql, false, parameters);
+            SetupProcedureCall(cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
 
             AddParameters(cmd, parameters);
 
@@ -261,12 +266,29 @@ public static class DBUtils
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
-        DataSet? ds = await ExecuteProcedure2DataSetAsync(conn, tx, sql, parameters);
+        DataTable? dt = null;
 
-        if (ds == null)
-            return null;
+        await Task.Run(() =>
+        {
+            using DbCommand cmd = conn.CreateCommand();
 
-        return ds.Tables[0];
+            if (tx != null && cmd.Transaction == null)
+                cmd.Transaction = tx;
+
+            SetupProcedureCall(cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
+
+            AddParameters(cmd, parameters);
+
+            using DbDataAdapter da = CreateDataAdapter(conn)!;
+            da.SelectCommand = cmd;
+
+            dt = new DataTable();
+            da.Fill(dt);
+
+            DisposeLobParameters(da.SelectCommand, parameters);
+        });
+
+        return dt;
     }
 
     public static DataTable? ExecuteProcedure2DataTable(DbCommand cmd)
@@ -345,7 +367,7 @@ public static class DBUtils
             if (tx != null && cmd.Transaction == null)
                 cmd.Transaction = tx;
 
-            SetupProcedureCall(cmd, sql, isDataSetReturn: true, parameters);
+            SetupProcedureCall(cmd, sql, isDataSetReturn: true, isTableReturn: false, parameters);
 
             AddParameters(cmd, parameters);
 
