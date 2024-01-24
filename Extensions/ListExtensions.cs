@@ -336,8 +336,14 @@ public static class ListExtensions
 
             string sqlBase = PrepareDeleteBaseSql(firstModel, table, isMultiColumnsPrimaryKey);
 
-            foreach (var items in list.Chunk(512))
+            int offset = 0;
+            int take = 512;
+
+            while (offset < list.Count)
             {
+                var items = list.Skip(offset).Take(take).ToList();
+                offset += items.Count;
+
                 (List<SqlParam> sqlParams, string deleteSqlList) = PrepareDeleteBulkSqlList<T>(items, isMultiColumnsPrimaryKey, primaryKeyProps);
 
                 string sql = $" {sqlBase} in ( {deleteSqlList} ) ";
