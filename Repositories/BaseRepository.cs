@@ -57,7 +57,7 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         string procedure2Execute,
-        Func<DbConnection, DbTransaction?, Task>? CreateTempTableCallBack,
+        Func<DbConnectionType, DbConnection, DbTransaction?, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
     {
         return await (RunProcedureAsync<T, TDBModel>(
@@ -82,7 +82,7 @@ public abstract class BaseRepository
         bool? bulkInsert,
         string? sequence2UseForPrimaryKey,
         string procedure2Execute,
-        Func<DbConnection, DbTransaction?, Task>? CreateTempTableCallBack,
+        Func<DbConnectionType, DbConnection, DbTransaction?, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
     {
         if (_dbConnectionFactory == null)
@@ -95,7 +95,7 @@ public abstract class BaseRepository
         {
             if (CreateTempTableCallBack != null)
             {
-                await CreateTempTableCallBack(conn, tx);
+                await CreateTempTableCallBack(_dbConnectionFactory.DbType, conn, tx);
             }
             
             if (!string.IsNullOrEmpty(table))
@@ -148,13 +148,13 @@ public abstract class BaseRepository
     }
 
     protected async Task<List<T>> RunProcedureAsync<T>(
-        DbConnectionType dbConnectionType,
+        DbConnectionType dbtype,
         DbConnection conn, 
         DbTransaction? tx,
         string procedure2Execute, 
         params SqlParam[] parameters) where T : ResponseModel
     {
-        DataTable? result = await procedure2Execute.ExecuteProcedure2DataTableAsync(dbConnectionType, conn, tx, parameters);
+        DataTable? result = await procedure2Execute.ExecuteProcedure2DataTableAsync(dbtype, conn, tx, parameters);
 
         if (result == null)
             throw new Exception("empty query response");

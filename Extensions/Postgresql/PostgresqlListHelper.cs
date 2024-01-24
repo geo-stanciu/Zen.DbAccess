@@ -15,7 +15,7 @@ internal static class PostgresqlListHelper
 {
     public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchWithSequence<T>(
         List<T> list,
-        DbConnectionType dbConnectionType,
+        DbConnectionType dbtype,
         DbConnection conn,
         string table,
         bool insertPrimaryKeyColumn) where T : DbModel
@@ -27,12 +27,12 @@ internal static class PostgresqlListHelper
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbConnectionType, conn, table, insertPrimaryKeyColumn);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbtype, conn, table, insertPrimaryKeyColumn);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbConnectionType, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbtype, insertPrimaryKeyColumn);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -73,7 +73,7 @@ internal static class PostgresqlListHelper
                     sbInsert.Append($" {dbCol} ");
 
                 string appendToParam;
-                if (firstModel != null && firstModel.IsPostgreSQLJsonDataType(dbConnectionType, propertyInfo))
+                if (firstModel != null && firstModel.IsPostgreSQLJsonDataType(dbtype, propertyInfo))
                     appendToParam = "::jsonb";
                 else
                     appendToParam = string.Empty;
@@ -104,7 +104,7 @@ internal static class PostgresqlListHelper
 
     public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
         List<T> list,
-        DbConnectionType dbConnectionType,
+        DbConnectionType dbtype,
         DbConnection conn,
         string table) where T : DbModel
     {
@@ -115,12 +115,12 @@ internal static class PostgresqlListHelper
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbConnectionType, conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbtype, conn, table, insertPrimaryKeyColumn: false);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbConnectionType, insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbtype, insertPrimaryKeyColumn: false);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -150,7 +150,7 @@ internal static class PostgresqlListHelper
                     sbInsert.Append($" {dbCol} ");
 
                 string appendToParam;
-                if (firstModel != null && firstModel.IsPostgreSQLJsonDataType(dbConnectionType, propertyInfo))
+                if (firstModel != null && firstModel.IsPostgreSQLJsonDataType(dbtype, propertyInfo))
                     appendToParam = "::jsonb";
                 else
                     appendToParam = string.Empty;

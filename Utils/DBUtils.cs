@@ -32,9 +32,9 @@ public static class DBUtils
         return GetServerDateTime(dbConnectionFactory.DbType, conn);
     }
 
-    public static DateTime GetServerDateTime(DbConnectionType dbConnectionType, DbConnection conn)
+    public static DateTime GetServerDateTime(DbConnectionType dbtype, DbConnection conn)
     {
-        return GetServerDateTime(dbConnectionType, conn, tx: null);
+        return GetServerDateTime(dbtype, conn, tx: null);
     }
 
     public static DateTime GetServerDateTime(DbConnectionType dbtype, DbConnection conn, DbTransaction? tx)
@@ -131,9 +131,9 @@ public static class DBUtils
         cmd.CommandText = sbSql.ToString();
     }
 
-    private static void SetupProcedureCall(DbConnectionType dbConnectionType, DbCommand cmd, string sql, bool isDataSetReturn, bool isTableReturn, params SqlParam[] parameters)
+    private static void SetupProcedureCall(DbConnectionType dbtype, DbCommand cmd, string sql, bool isDataSetReturn, bool isTableReturn, params SqlParam[] parameters)
     {
-        if (dbConnectionType == DbConnectionType.Postgresql)
+        if (dbtype == DbConnectionType.Postgresql)
         {
             // commented on purpose.
             // Npgsql supports this mainly for portability,
@@ -190,12 +190,12 @@ public static class DBUtils
         }
     }
 
-    public static Task<List<SqlParam>> ExecuteProcedureAsync(DbConnectionType dbConnectionType, DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<List<SqlParam>> ExecuteProcedureAsync(DbConnectionType dbtype, DbConnection conn, string sql, params SqlParam[] parameters)
     {
-        return ExecuteProcedureAsync(dbConnectionType, conn, tx: null, sql, parameters);
+        return ExecuteProcedureAsync(dbtype, conn, tx: null, sql, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteProcedureAsync(DbConnectionType dbConnectionType, DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteProcedureAsync(DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         List<SqlParam> outParameters = new List<SqlParam>();
 
@@ -204,9 +204,9 @@ public static class DBUtils
             if (tx != null && cmd.Transaction == null)
                 cmd.Transaction = tx;
 
-            SetupProcedureCall(dbConnectionType, cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
+            SetupProcedureCall(dbtype, cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
 
-            AddParameters(dbConnectionType,cmd, parameters);
+            AddParameters(dbtype,cmd, parameters);
 
             await cmd.ExecuteNonQueryAsync();
 
@@ -218,7 +218,7 @@ public static class DBUtils
                 outParameters.Add(new SqlParam(param.ParameterName, param.Value) { paramDirection = param.Direction });
             }
 
-            DisposeLobParameters(dbConnectionType,cmd, parameters);
+            DisposeLobParameters(dbtype,cmd, parameters);
         }
 
         return outParameters;
@@ -234,14 +234,14 @@ public static class DBUtils
         return ExecuteProcedure2DataTableAsync(dbtype, conn_str, sql, parameters).Result;
     }
 
-    public static DataTable? ExecuteProcedure2DataTable(DbConnectionType dbConnectionType,  DbConnection conn, string sql, params SqlParam[] parameters)
+    public static DataTable? ExecuteProcedure2DataTable(DbConnectionType dbtype,  DbConnection conn, string sql, params SqlParam[] parameters)
     {
-        return ExecuteProcedure2DataTableAsync(dbConnectionType,conn, sql, parameters).Result;
+        return ExecuteProcedure2DataTableAsync(dbtype,conn, sql, parameters).Result;
     }
 
-    public static DataTable? ExecuteProcedure2DataTable(DbConnectionType dbConnectionType, DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    public static DataTable? ExecuteProcedure2DataTable(DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
-        return ExecuteProcedure2DataTableAsync(dbConnectionType, conn, tx, sql, parameters).Result;
+        return ExecuteProcedure2DataTableAsync(dbtype, conn, tx, sql, parameters).Result;
     }
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(string conn_str, string sql, params SqlParam[] parameters)
@@ -259,12 +259,12 @@ public static class DBUtils
         return result;
     }
 
-    public static Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnectionType dbConnectionType, DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnectionType dbtype, DbConnection conn, string sql, params SqlParam[] parameters)
     {
-        return ExecuteProcedure2DataTableAsync(dbConnectionType, conn, tx: null, sql, parameters);
+        return ExecuteProcedure2DataTableAsync(dbtype, conn, tx: null, sql, parameters);
     }
 
-    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnectionType dbConnectionType, DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         DataTable? dt = null;
 
@@ -275,17 +275,17 @@ public static class DBUtils
             if (tx != null && cmd.Transaction == null)
                 cmd.Transaction = tx;
 
-            SetupProcedureCall(dbConnectionType,cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
+            SetupProcedureCall(dbtype,cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
 
-            AddParameters(dbConnectionType,cmd, parameters);
+            AddParameters(dbtype,cmd, parameters);
 
-            using DbDataAdapter da = CreateDataAdapter(dbConnectionType,conn)!;
+            using DbDataAdapter da = CreateDataAdapter(dbtype,conn)!;
             da.SelectCommand = cmd;
 
             dt = new DataTable();
             da.Fill(dt);
 
-            DisposeLobParameters(dbConnectionType, da.SelectCommand, parameters);
+            DisposeLobParameters(dbtype, da.SelectCommand, parameters);
         });
 
         return dt;
@@ -434,18 +434,18 @@ public static class DBUtils
         return Task.FromResult(dt);
     }
 
-    public static DataSet? ExecuteProcedure2DataSet(DbConnectionType dbConnectionType, DbCommand cmd)
+    public static DataSet? ExecuteProcedure2DataSet(DbConnectionType dbtype, DbCommand cmd)
     {
-        return ExecuteProcedure2DataSetAsync(dbConnectionType, cmd).Result;
+        return ExecuteProcedure2DataSetAsync(dbtype, cmd).Result;
     }
 
-    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnectionType dbConnectionType, DbCommand cmd)
+    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnectionType dbtype, DbCommand cmd)
     {
         DataSet? ds = null;
 
         await Task.Run(() =>
         {
-            using DbDataAdapter da = CreateDataAdapter(dbConnectionType, cmd.Connection)!;
+            using DbDataAdapter da = CreateDataAdapter(dbtype, cmd.Connection)!;
             da.SelectCommand = cmd;
 
             ds = new DataSet();
@@ -480,18 +480,18 @@ public static class DBUtils
         return await ExecuteFunctionAsync(DbConnectionFactory.DefaultDbType, conn_str, sql, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteFunctionAsync(DbConnectionType dbConnectionType, string conn_str, string sql, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteFunctionAsync(DbConnectionType dbtype, string conn_str, string sql, params SqlParam[] parameters)
     {
-        using DbConnection conn = await new DbConnectionFactory(dbConnectionType, conn_str).BuildAndOpenAsync();
-        return await ExecuteFunctionAsync(dbConnectionType, conn, sql, parameters);
+        using DbConnection conn = await new DbConnectionFactory(dbtype, conn_str).BuildAndOpenAsync();
+        return await ExecuteFunctionAsync(dbtype, conn, sql, parameters);
     }
 
-    public static Task<List<SqlParam>> ExecuteFunctionAsync(DbConnectionType dbConnectionType, DbConnection conn, string sql, params SqlParam[] parameters)
+    public static Task<List<SqlParam>> ExecuteFunctionAsync(DbConnectionType dbtype, DbConnection conn, string sql, params SqlParam[] parameters)
     {
-        return ExecuteFunctionAsync(dbConnectionType, conn, tx: null, sql, parameters);
+        return ExecuteFunctionAsync(dbtype, conn, tx: null, sql, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteFunctionAsync(DbConnectionType dbConnectionType, DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteFunctionAsync(DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, string sql, params SqlParam[] parameters)
     {
         List<SqlParam> outParameters = new List<SqlParam>();
 
@@ -500,11 +500,11 @@ public static class DBUtils
         if (tx != null && cmd.Transaction == null)
             cmd.Transaction = tx;
 
-        SetupFunctionCall(dbConnectionType, cmd, sql, parameters);
+        SetupFunctionCall(dbtype, cmd, sql, parameters);
 
-        AddParameters(dbConnectionType, cmd, parameters.Where(x => x.paramDirection != ParameterDirection.ReturnValue).ToArray());
+        AddParameters(dbtype, cmd, parameters.Where(x => x.paramDirection != ParameterDirection.ReturnValue).ToArray());
 
-        using DataTable dt = await ExecuteProcedure2DataTableAsync(dbConnectionType, cmd) ?? new DataTable();
+        using DataTable dt = await ExecuteProcedure2DataTableAsync(dbtype, cmd) ?? new DataTable();
 
         foreach (DbParameter param in cmd.Parameters)
         {
@@ -517,7 +517,7 @@ public static class DBUtils
                 outParameters.Add(new SqlParam(param.ParameterName, dt.Rows[0][param.ParameterName]) { paramDirection = param.Direction });
         }
 
-        DisposeLobParameters(dbConnectionType, cmd, parameters);
+        DisposeLobParameters(dbtype, cmd, parameters);
 
         return outParameters;
     }
@@ -1099,15 +1099,15 @@ public static class DBUtils
         dataAdapter.Update(dt);
     }
 
-    private static DbDataAdapter? CreateDataAdapter(DbConnectionType dbConnectionType, DbConnection? conn)
+    private static DbDataAdapter? CreateDataAdapter(DbConnectionType dbtype, DbConnection? conn)
     {
         if (conn == null)
             throw new ArgumentNullException(nameof(conn));
 
         DbDataAdapter? da = DbProviderFactories.GetFactory(conn)?.CreateDataAdapter();
 
-        if (dbConnectionType == DbConnectionType.Oracle)
-            DbConnectionFactory.DatabaseSpeciffic[dbConnectionType].PrepareDataAdapter(da);
+        if (dbtype == DbConnectionType.Oracle)
+            DbConnectionFactory.DatabaseSpeciffic[dbtype].PrepareDataAdapter(da);
 
         return da;
     }
@@ -1124,20 +1124,20 @@ public static class DBUtils
         return builder;
     }
 
-    private static void DisposeLobParameters(DbConnectionType dbConnectionType, DbCommand cmd, params SqlParam[] parameters)
+    private static void DisposeLobParameters(DbConnectionType dbtype, DbCommand cmd, params SqlParam[] parameters)
     {
         if (parameters == null)
             return;
 
         foreach (SqlParam prm in parameters)
         {
-            if (prm.isClob && dbConnectionType == DbConnectionType.Oracle)
+            if (prm.isClob && dbtype == DbConnectionType.Oracle)
             {
-                DbConnectionFactory.DatabaseSpeciffic[dbConnectionType].DisposeClob(cmd, prm);
+                DbConnectionFactory.DatabaseSpeciffic[dbtype].DisposeClob(cmd, prm);
             }
-            else if (prm.isBlob && dbConnectionType == DbConnectionType.Oracle && prm.value != null && prm.value != DBNull.Value)
+            else if (prm.isBlob && dbtype == DbConnectionType.Oracle && prm.value != null && prm.value != DBNull.Value)
             {
-                DbConnectionFactory.DatabaseSpeciffic[dbConnectionType].DisposeBlob(cmd, prm);
+                DbConnectionFactory.DatabaseSpeciffic[dbtype].DisposeBlob(cmd, prm);
             }
         }
     }
@@ -1147,7 +1147,7 @@ public static class DBUtils
         AddParameters(dbtype, cmd, parameters.ToArray());
     }
 
-    public static void AddParameters(DbConnectionType dbConnectionType, DbCommand cmd, params SqlParam[] parameters)
+    public static void AddParameters(DbConnectionType dbtype, DbCommand cmd, params SqlParam[] parameters)
     {
         if (parameters == null)
             return;
@@ -1156,13 +1156,13 @@ public static class DBUtils
         {
             DbParameter param = cmd.CreateParameter();
 
-            if (dbConnectionType == DbConnectionType.Oracle)
+            if (dbtype == DbConnectionType.Oracle)
             {
                 string baseParameterName = prm.name.StartsWith("@") ? prm.name.Substring(1) : prm.name;
                 param.ParameterName = baseParameterName;
                 cmd.CommandText = cmd.CommandText.Replace($"@{baseParameterName}", $":{baseParameterName}");
             }
-            else if (dbConnectionType == DbConnectionType.Sqlite)
+            else if (dbtype == DbConnectionType.Sqlite)
             {
                 string baseParameterName = prm.name.StartsWith("@") ? prm.name.Substring(1) : prm.name;
                 param.ParameterName = baseParameterName;
@@ -1177,7 +1177,7 @@ public static class DBUtils
             {
                 param.Value = Convert.ToBoolean(prm.value) ? 1 : 0;
             }
-            else if (prm.isClob && dbConnectionType == DbConnectionType.Oracle && prm.value != null && prm.value != DBNull.Value)
+            else if (prm.isClob && dbtype == DbConnectionType.Oracle && prm.value != null && prm.value != DBNull.Value)
             {
                 if (prm.value == null)
                 {
@@ -1185,10 +1185,10 @@ public static class DBUtils
                 }
                 else
                 {
-                    param.Value = DbConnectionFactory.DatabaseSpeciffic[dbConnectionType].GetValueAsClob(cmd.Connection, prm.value);
+                    param.Value = DbConnectionFactory.DatabaseSpeciffic[dbtype].GetValueAsClob(cmd.Connection, prm.value);
                 }
             }
-            else if (prm.isBlob && dbConnectionType == DbConnectionType.Oracle && prm.value != null && prm.value != DBNull.Value)
+            else if (prm.isBlob && dbtype == DbConnectionType.Oracle && prm.value != null && prm.value != DBNull.Value)
             {
                 if (prm.value == null)
                 {
@@ -1196,7 +1196,7 @@ public static class DBUtils
                 }
                 else
                 {
-                    param.Value = DbConnectionFactory.DatabaseSpeciffic[dbConnectionType].GetValueAsBlob(cmd.Connection, prm.value);
+                    param.Value = DbConnectionFactory.DatabaseSpeciffic[dbtype].GetValueAsBlob(cmd.Connection, prm.value);
                 }
             }
             else if (prm.value is Enum)

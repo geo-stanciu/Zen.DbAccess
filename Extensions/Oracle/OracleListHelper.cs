@@ -14,7 +14,7 @@ internal static class OracleListHelper
 {
     public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchWithSequenceAsync<T>(
         List<T> list,
-        DbConnectionType dbConnectionType,
+        DbConnectionType dbtype,
         DbConnection conn,
         string table,
         bool insertPrimaryKeyColumn,
@@ -28,12 +28,12 @@ internal static class OracleListHelper
 
         T firstModel = list.First();
 
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbConnectionType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbtype, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbConnectionType, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbtype, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
         List<string> primaryKeyColumns = firstModel.dbModel_primaryKey_dbColumns!;
 
         for (int i = 1; i < list.Count; i++)
@@ -80,7 +80,7 @@ internal static class OracleListHelper
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (firstModel != null && firstModel.IsOracleClobDataType(dbConnectionType, propertyInfo))
+                if (firstModel != null && firstModel.IsOracleClobDataType(dbtype, propertyInfo))
                     prm.isClob = true;
 
                 insertParams.Add(prm);
@@ -99,7 +99,7 @@ internal static class OracleListHelper
 
     public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
         List<T> list,
-        DbConnectionType dbConnectionType,
+        DbConnectionType dbtype,
         DbConnection conn,
         string table) where T : DbModel
     {
@@ -109,12 +109,12 @@ internal static class OracleListHelper
         sbInsert.AppendLine($"INSERT ALL");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbConnectionType, conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbtype, conn, table, insertPrimaryKeyColumn: false);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbConnectionType, insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbtype, insertPrimaryKeyColumn: false);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -143,7 +143,7 @@ internal static class OracleListHelper
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (firstModel != null && firstModel.IsOracleClobDataType(dbConnectionType, propertyInfo))
+                if (firstModel != null && firstModel.IsOracleClobDataType(dbtype, propertyInfo))
                     prm.isClob = true;
 
                 insertParams.Add(prm);
