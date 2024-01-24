@@ -1,5 +1,4 @@
-﻿using Oracle.ManagedDataAccess.Client;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Data;
@@ -8,12 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Zen.DbAccess.Extensions;
 using Zen.DbAccess.Factories;
-using Zen.DbAccess.Shared.Enums;
-using Zen.DbAccess.Shared.Models;
-using System.Reflection;
-using System.Data.SqlClient;
-using Npgsql;
-using System.Reflection.Emit;
+using Zen.DbAccess.Enums;
+using Zen.DbAccess.Models;
 
 namespace Zen.DbAccess.Repositories;
 
@@ -105,7 +100,7 @@ public abstract class BaseRepository
             
             if (!string.IsNullOrEmpty(table))
             {
-                await ClearTempTableAsync(conn, tx, table);
+                await ClearTempTableAsync(_dbConnectionFactory.DbType, conn, tx, table);
             }
 
             if (models != null && !string.IsNullOrEmpty(table))
@@ -113,6 +108,7 @@ public abstract class BaseRepository
                 if (bulkInsert ?? false)
                 {
                     await models.BulkInsertAsync(
+                        _dbConnectionFactory.DbType,
                         conn,
                         tx, 
                         table, 
@@ -125,6 +121,7 @@ public abstract class BaseRepository
                 {
                     await models.SaveAllAsync(
                         DbModelSaveType.InsertOnly, 
+                        _dbConnectionFactory.DbType,
                         conn,
                         tx, 
                         table, 
@@ -134,7 +131,7 @@ public abstract class BaseRepository
                 }
             }
 
-            var rez = await RunProcedureAsync<T>(conn, tx, procedure2Execute, parameters);
+            var rez = await RunProcedureAsync<T>(_dbConnectionFactory.DbType, conn, tx, procedure2Execute, parameters);
             await tx.CommitAsync();
 
             return rez;
@@ -151,12 +148,13 @@ public abstract class BaseRepository
     }
 
     protected async Task<List<T>> RunProcedureAsync<T>(
+        DbConnectionType dbConnectionType,
         DbConnection conn, 
         DbTransaction? tx,
         string procedure2Execute, 
         params SqlParam[] parameters) where T : ResponseModel
     {
-        DataTable? result = await procedure2Execute.ExecuteProcedure2DataTableAsync(conn, tx, parameters);
+        DataTable? result = await procedure2Execute.ExecuteProcedure2DataTableAsync(dbConnectionType, conn, tx, parameters);
 
         if (result == null)
             throw new Exception("empty query response");
@@ -166,9 +164,9 @@ public abstract class BaseRepository
         return rez;
     }
 
-    protected async Task ClearTempTableAsync(DbConnection conn, DbTransaction? tx, string table)
+    protected async Task ClearTempTableAsync(DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, string table)
     {
-        if (conn is OracleConnection)
+        if (dbtype == DbConnectionType.Oracle)
         {
             string simplifiedName = table.IndexOf(".") > 0 ? table.Substring(table.IndexOf(".") + 1) : table;
 
@@ -178,7 +176,7 @@ public abstract class BaseRepository
                 throw new ArgumentException($"{table} must begin with temp_ or tmp_ .");
             }
         }
-        else if (conn is SqlConnection)
+        else if (dbtype == DbConnectionType.SqlServer)
         {
             if (!table.StartsWith("##", StringComparison.OrdinalIgnoreCase))
             {
@@ -192,6 +190,6 @@ public abstract class BaseRepository
         }
 
         string sql = $"delete from {table}";
-        await sql.ExecuteNonQueryAsync(conn, tx);
+        await sql.ExecuteNonQueryAsync(dbtype, conn, tx);
     }
 }

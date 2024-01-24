@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Test.Zen.DbAccess
+namespace Tests.Zen.DbAccess
 {
     public abstract class CommonTestSetup
     {

@@ -5,8 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using Zen.DbAccess.Shared.Enums;
-using Zen.DbAccess.Shared.Models;
+using Zen.DbAccess.Enums;
+using Zen.DbAccess.Models;
 
 namespace Zen.DbAccess.Extensions.Sqlite;
 
@@ -14,6 +14,7 @@ internal static class SqliteListHelper
 {
     public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
         List<T> list,
+        DbConnectionType dbConnectionType,
         DbConnection conn,
         string table,
         bool insertPrimaryKeyColumn) where T : DbModel
@@ -25,12 +26,12 @@ internal static class SqliteListHelper
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbConnectionType, conn, table, insertPrimaryKeyColumn);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbConnectionType, insertPrimaryKeyColumn);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -74,7 +75,7 @@ internal static class SqliteListHelper
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (firstModel != null && firstModel.IsOracleClobDataType(conn, propertyInfo))
+                if (firstModel != null && firstModel.IsOracleClobDataType(dbConnectionType, propertyInfo))
                     prm.isClob = true;
 
                 insertParams.Add(prm);
@@ -99,6 +100,7 @@ internal static class SqliteListHelper
 
     public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
         List<T> list,
+        DbConnectionType dbConnectionType,
         DbConnection conn,
         string table) where T : DbModel
     {
@@ -109,12 +111,12 @@ internal static class SqliteListHelper
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbConnectionType, conn, table, insertPrimaryKeyColumn: false);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbConnectionType, insertPrimaryKeyColumn: false);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -147,7 +149,7 @@ internal static class SqliteListHelper
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (firstModel != null && firstModel.IsOracleClobDataType(conn, propertyInfo))
+                if (firstModel != null && firstModel.IsOracleClobDataType(dbConnectionType, propertyInfo))
                     prm.isClob = true;
 
                 insertParams.Add(prm);

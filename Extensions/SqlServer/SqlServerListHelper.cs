@@ -5,8 +5,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using Zen.DbAccess.Shared.Enums;
-using Zen.DbAccess.Shared.Models;
+using Zen.DbAccess.Enums;
+using Zen.DbAccess.Models;
 
 namespace Zen.DbAccess.Extensions.SqlServer;
 
@@ -14,6 +14,7 @@ internal static class SqlServerListHelper
 {
     public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchWithSequenceAsync<T>(
        List<T> list,
+       DbConnectionType dbConnectionType,
        DbConnection conn,
        DbTransaction? tx,
        string table,
@@ -26,12 +27,12 @@ internal static class SqlServerListHelper
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, tx, table, insertPrimaryKeyColumn);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbConnectionType, conn, tx, table, insertPrimaryKeyColumn);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbConnectionType, insertPrimaryKeyColumn);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -95,6 +96,7 @@ internal static class SqlServerListHelper
 
     public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
         List<T> list,
+        DbConnectionType dbConnectionType,
         DbConnection conn,
         DbTransaction? tx,
         string table) where T : DbModel
@@ -106,12 +108,12 @@ internal static class SqlServerListHelper
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, tx, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbConnectionType, conn, tx, table, insertPrimaryKeyColumn: false);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbConnectionType, insertPrimaryKeyColumn: false);
 
         for (int i = 1; i < list.Count; i++)
         {

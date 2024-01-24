@@ -1,15 +1,15 @@
 ﻿using Microsoft.Extensions.Configuration;
-using Npgsql;
-using Oracle.ManagedDataAccess.Client;
 using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.Common;
-using System.Data.SqlClient;
-using System.Data.SQLite;
 using System.Threading.Tasks;
+using Zen.DbAccess.Constants;
+using Zen.DbAccess.DatabaseSpeciffic;
 using Zen.DbAccess.Extensions;
-using Zen.DbAccess.Shared.Enums;
-using Zen.DbAccess.Shared.Models;
+using Zen.DbAccess.Enums;
+using Zen.DbAccess.Models;
 
 namespace Zen.DbAccess.Factories;
 
@@ -22,6 +22,8 @@ public class DbConnectionFactory
     public string TimeZone { get; private set; }
 
     public static DbConnectionType DefaultDbType { get; set; } = DbConnectionType.Oracle;
+
+    public static Dictionary<DbConnectionType, IDbSpeciffic> DatabaseSpeciffic { get; private set; } = new Dictionary<DbConnectionType, IDbSpeciffic>();
 
     /// <summary>
     /// 
@@ -51,6 +53,36 @@ public class DbConnectionFactory
         TimeZone = timeZone;
     }
 
+    public static void RegisterDatabaseFactory(string factoryName, DbProviderFactory dbProviderFactory, IDbSpeciffic? dbSpeciffic = null)
+    {
+        DbProviderFactories.RegisterFactory(factoryName, dbProviderFactory);
+        RegisterDatabaseSpeciffc(factoryName, dbProviderFactory, dbSpeciffic);
+    }
+
+    public static void RegisterDatabaseFactories((string factoryName, DbProviderFactory dbProviderFactory, IDbSpeciffic? dbSpeciffic)[] factories)
+    {
+        foreach (var factory in factories)
+        {
+            DbProviderFactories.RegisterFactory(factory.factoryName, factory.dbProviderFactory);
+            RegisterDatabaseSpeciffc(factory.factoryName, factory.dbProviderFactory, factory.dbSpeciffic);
+        }
+    }
+
+    private static void RegisterDatabaseSpeciffc(string factoryName, DbProviderFactory dbProviderFactory, IDbSpeciffic? dbSpeciffic)
+    {
+        DbConnectionType dbType = factoryName switch
+        {
+            DbFactoryNames.SQL_SERVER => DbConnectionType.SqlServer,
+            DbFactoryNames.ORACLE => DbConnectionType.Oracle,
+            DbFactoryNames.POSTGRESQL => DbConnectionType.Postgresql,
+            DbFactoryNames.SQLITE => DbConnectionType.Sqlite,
+            _ => throw new NotImplementedException($"Not implemented {factoryName}")
+        };
+
+        if (dbSpeciffic != null)
+            DatabaseSpeciffic[dbType] = dbSpeciffic;
+    }
+
     /// <summary>
     /// 
     /// </summary>
@@ -60,50 +92,49 @@ public class DbConnectionFactory
     {
         DbConnection conn;
 
-        if (DbType == DbConnectionType.SqlServer)
+        string driverClass = DbType switch
         {
-            conn = new SqlConnection(_connStr);
-        }
-        else if (DbType == DbConnectionType.Oracle)
+            DbConnectionType.SqlServer => DbFactoryNames.SQL_SERVER,
+            DbConnectionType.Oracle => DbFactoryNames.ORACLE,
+            DbConnectionType.Postgresql => DbFactoryNames.POSTGRESQL,
+            DbConnectionType.Sqlite => DbFactoryNames.SQLITE,
+            _ => throw new NotImplementedException($"Not implemented {DbType}")
+        };
+
+        DbProviderFactory dbProviderFactory = DbProviderFactories.GetFactory(driverClass);
+        conn = dbProviderFactory.CreateConnection();
+        conn.ConnectionString = _connStr;
+
+        if (DbType == DbConnectionType.Oracle)
         {
-            conn = new OracleConnection(_connStr);
             await conn.OpenAsync();
 
             if (_commitNoWait)
             {
                 string sql = "alter session set commit_logging=batch commit_wait=nowait";
-                await sql.ExecuteNonQueryAsync(conn);
+                await sql.ExecuteNonQueryAsync(DbType, conn);
             }
 
             if (!string.IsNullOrEmpty(TimeZone))
             {
                 string sql = $"alter session set time_zone = '{TimeZone.Replace("'", "''").Replace("&", "")}' ";
-                await sql.ExecuteNonQueryAsync(conn);
+                await sql.ExecuteNonQueryAsync(DbType, conn);
             }
         }
         else if (DbType == DbConnectionType.Postgresql)
         {
+            await conn.OpenAsync();
+
             if (!string.IsNullOrEmpty(TimeZone) && !_connStr.Contains(";Timezone=", StringComparison.OrdinalIgnoreCase))
             {
                 _connStr += $"Timezone={TimeZone};";
             }
 
-            conn = new NpgsqlConnection(_connStr);
-            await conn.OpenAsync();
-
             if (_commitNoWait)
             {
                 string sql = "SET synchronous_commit = 'off'";
-                await sql.ExecuteNonQueryAsync(conn);
+                await sql.ExecuteNonQueryAsync(DbType, conn);
             }
-        }
-        else if (DbType == DbConnectionType.Sqlite)
-        {
-            conn = new SQLiteConnection(_connStr);
-        }
-        else
-        {
-            throw new NotImplementedException($"Unknown database type {DbType}");
         }
 
         if (conn.State != ConnectionState.Open)

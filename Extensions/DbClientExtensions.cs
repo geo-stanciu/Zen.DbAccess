@@ -6,8 +6,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using Zen.DbAccess.Shared.Enums;
-using Zen.DbAccess.Shared.Models;
+using Zen.DbAccess.Enums;
+using Zen.DbAccess.Models;
 using Zen.DbAccess.Utils;
 using Zen.DbAccess.Factories;
 
@@ -37,24 +37,24 @@ public static class DbClientExtensions
         return DBUtils.ExecuteProcedure(dbtype, conn_str, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteProcedure(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteProcedure(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure(conn, query, parameters);
+        return DBUtils.ExecuteProcedure(dbtype, conn, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteProcedure(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteProcedure(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure(conn, tx, query, parameters);
+        return DBUtils.ExecuteProcedure(dbtype, conn, tx, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteProcedure(this DbConnection conn, string query, string conn_str, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteProcedure(this DbConnection conn, DbConnectionType dbtype, string query, string conn_str, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure(conn, query, parameters);
+        return DBUtils.ExecuteProcedure(dbtype, conn, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteProcedure(this DbConnection conn, DbTransaction? tx, string query, string conn_str, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteProcedure(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, string conn_str, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure(conn, tx, query, parameters);
+        return DBUtils.ExecuteProcedure(dbtype, conn, tx, query, parameters);
     }
 
     public static List<SqlParam> ExecuteProcedure(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
@@ -77,24 +77,24 @@ public static class DbClientExtensions
         return await DBUtils.ExecuteProcedureAsync(dbConnectionFactory, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteProcedureAsync(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteProcedureAsync(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedureAsync(conn, query, parameters);
+        return await DBUtils.ExecuteProcedureAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteProcedureAsync(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteProcedureAsync(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedureAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteProcedureAsync(dbtype, conn, tx, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteProcedureAsync(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteProcedureAsync(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedureAsync(conn, query, parameters);
+        return await DBUtils.ExecuteProcedureAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteProcedureAsync(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteProcedureAsync(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedureAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteProcedureAsync(dbtype, conn, tx, query, parameters);
     }
 
     public static DataTable? ExecuteProcedure2DataTable(this string query, string conn_str, params SqlParam[] parameters)
@@ -107,24 +107,24 @@ public static class DbClientExtensions
         return DBUtils.ExecuteProcedure2DataTable(dbtype, conn_str, query, parameters);
     }
 
-    public static DataTable? ExecuteProcedure2DataTable(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static DataTable? ExecuteProcedure2DataTable(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure2DataTable(conn, query, parameters);
+        return DBUtils.ExecuteProcedure2DataTable(dbtype, conn, query, parameters);
     }
 
-    public static DataTable? ExecuteProcedure2DataTable(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static DataTable? ExecuteProcedure2DataTable(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure2DataTable(conn, tx, query, parameters);
+        return DBUtils.ExecuteProcedure2DataTable(dbtype, conn, tx, query, parameters);
     }
 
-    public static DataTable? ExecuteProcedure2DataTable(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static DataTable? ExecuteProcedure2DataTable(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure2DataTable(conn, query, parameters);
+        return DBUtils.ExecuteProcedure2DataTable(dbtype, conn, query, parameters);
     }
 
-    public static DataTable? ExecuteProcedure2DataTable(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static DataTable? ExecuteProcedure2DataTable(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure2DataTable(conn, tx, query, parameters);
+        return DBUtils.ExecuteProcedure2DataTable(dbtype, conn, tx, query, parameters);
     }
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(this string query, string conn_str, params SqlParam[] parameters)
@@ -137,24 +137,24 @@ public static class DbClientExtensions
         return await DBUtils.ExecuteProcedure2DataTableAsync(dbtype, conn_str, query, parameters);
     }
 
-    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedure2DataTableAsync(conn, query, parameters);
+        return await DBUtils.ExecuteProcedure2DataTableAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedure2DataTableAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteProcedure2DataTableAsync(dbtype, conn, tx, query, parameters);
     }
 
-    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedure2DataTableAsync(conn, query, parameters);
+        return await DBUtils.ExecuteProcedure2DataTableAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedure2DataTableAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteProcedure2DataTableAsync(dbtype, conn, tx, query, parameters);
     }
 
     public static DataSet? ExecuteProcedure2DataSet(this string query, string conn_str, params SqlParam[] parameters)
@@ -167,24 +167,24 @@ public static class DbClientExtensions
         return DBUtils.ExecuteProcedure2DataSet(dbtype, conn_str, query, parameters);
     }
 
-    public static DataSet? ExecuteProcedure2DataSet(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static DataSet? ExecuteProcedure2DataSet(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure2DataSet(conn, query, parameters);
+        return DBUtils.ExecuteProcedure2DataSet(dbtype, conn, query, parameters);
     }
 
-    public static DataSet? ExecuteProcedure2DataSet(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static DataSet? ExecuteProcedure2DataSet(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure2DataSet(conn, tx, query, parameters);
+        return DBUtils.ExecuteProcedure2DataSet(dbtype, conn, tx, query, parameters);
     }
 
-    public static DataSet? ExecuteProcedure2DataSet(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static DataSet? ExecuteProcedure2DataSet(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure2DataSet(conn, query, parameters);
+        return DBUtils.ExecuteProcedure2DataSet(dbtype, conn, tx: null, query, parameters);
     }
 
-    public static DataSet? ExecuteProcedure2DataSet(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static DataSet? ExecuteProcedure2DataSet(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteProcedure2DataSet(conn, tx, query, parameters);
+        return DBUtils.ExecuteProcedure2DataSet(dbtype, conn, tx, query, parameters);
     }
 
     public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this string query, string conn_str, params SqlParam[] parameters)
@@ -202,24 +202,24 @@ public static class DbClientExtensions
         return await DBUtils.ExecuteProcedure2DataSetAsync(dbConnectionFactory, query, parameters);
     }
 
-    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedure2DataSetAsync(conn, query, parameters);
+        return await DBUtils.ExecuteProcedure2DataSetAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedure2DataSetAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteProcedure2DataSetAsync(dbtype, conn, tx, query, parameters);
     }
 
-    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedure2DataSetAsync(conn, query, parameters);
+        return await DBUtils.ExecuteProcedure2DataSetAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteProcedure2DataSetAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteProcedure2DataSetAsync(dbtype, conn, tx, query, parameters);
     }
 
     public static List<SqlParam> ExecuteFunction(this string query, string conn_str, params SqlParam[] parameters)
@@ -232,24 +232,24 @@ public static class DbClientExtensions
         return DBUtils.ExecuteFunction(dbtype, conn_str, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteFunction(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteFunction(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteFunction(conn, query, parameters);
+        return DBUtils.ExecuteFunction(dbtype, conn, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteFunction(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteFunction(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteFunction(conn, tx, query, parameters);
+        return DBUtils.ExecuteFunction(dbtype, conn, tx, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteFunction(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteFunction(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteFunction(conn, query, parameters);
+        return DBUtils.ExecuteFunction(dbtype, conn, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteFunction(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteFunction(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteFunction(conn, tx, query, parameters);
+        return DBUtils.ExecuteFunction(dbtype, conn, tx, query, parameters);
     }
 
     public static async Task<List<SqlParam>> ExecuteFunctionAsync(this string query, string conn_str, params SqlParam[] parameters)
@@ -262,24 +262,24 @@ public static class DbClientExtensions
         return await DBUtils.ExecuteFunctionAsync(dbtype, conn_str, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteFunctionAsync(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteFunctionAsync(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteFunctionAsync(conn, query, parameters);
+        return await DBUtils.ExecuteFunctionAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteFunctionAsync(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteFunctionAsync(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteFunctionAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteFunctionAsync(dbtype, conn, tx, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteFunctionAsync(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteFunctionAsync(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteFunctionAsync(conn, query, parameters);
+        return await DBUtils.ExecuteFunctionAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteFunctionAsync(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteFunctionAsync(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteFunctionAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteFunctionAsync(dbtype, conn, tx, query, parameters);
     }
 
     public static object? ExecuteScalar(this string query, string conn_str, params SqlParam[] parameters)
@@ -297,24 +297,24 @@ public static class DbClientExtensions
         return DBUtils.ExecuteScalar(dbConnectionFactory, query, parameters);
     }
 
-    public static object? ExecuteScalar(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static object? ExecuteScalar(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteScalar(conn, query, parameters);
+        return DBUtils.ExecuteScalar(dbtype, conn, query, parameters);
     }
 
-    public static object? ExecuteScalar(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static object? ExecuteScalar(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteScalar(conn, tx, query, parameters);
+        return DBUtils.ExecuteScalar(dbtype, conn, tx, query, parameters);
     }
 
-    public static object? ExecuteScalar(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static object? ExecuteScalar(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteScalar(conn, query, parameters);
+        return DBUtils.ExecuteScalar(dbtype, conn, query, parameters);
     }
 
-    public static object? ExecuteScalar(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static object? ExecuteScalar(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteScalar(conn, tx, query, parameters);
+        return DBUtils.ExecuteScalar(dbtype, conn, tx, query, parameters);
     }
 
     public static async Task<object?> ExecuteScalarAsync(this string query, string conn_str, params SqlParam[] parameters)
@@ -332,24 +332,24 @@ public static class DbClientExtensions
         return await DBUtils.ExecuteScalarAsync(dbConnectionFactory, query, parameters);
     }
 
-    public static async Task<object?> ExecuteScalarAsync(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static async Task<object?> ExecuteScalarAsync(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteScalarAsync(conn, query, parameters);
+        return await DBUtils.ExecuteScalarAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<object?> ExecuteScalarAsync(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static async Task<object?> ExecuteScalarAsync(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteScalarAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteScalarAsync(dbtype, conn, tx, query, parameters);
     }
 
-    public static async Task<object?> ExecuteScalarAsync(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static async Task<object?> ExecuteScalarAsync(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteScalarAsync(conn, query, parameters);
+        return await DBUtils.ExecuteScalarAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<object?> ExecuteScalarAsync(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static async Task<object?> ExecuteScalarAsync(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteScalarAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteScalarAsync(dbtype, conn, tx, query, parameters);
     }
 
     public static List<SqlParam> ExecuteNonQuery(this string query, string conn_str, params SqlParam[] parameters)
@@ -367,24 +367,24 @@ public static class DbClientExtensions
         return DBUtils.ExecuteNonQuery(dbConnectionFactory, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteNonQuery(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteNonQuery(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteNonQuery(conn, query, parameters);
+        return DBUtils.ExecuteNonQuery(dbtype, conn, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteNonQuery(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteNonQuery(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteNonQuery(conn, tx, query, parameters);
+        return DBUtils.ExecuteNonQuery(dbtype, conn, tx, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteNonQuery(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteNonQuery(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteNonQuery(conn, query, parameters);
+        return DBUtils.ExecuteNonQuery(dbtype, conn, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteNonQuery(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteNonQuery(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return DBUtils.ExecuteNonQuery(conn, tx, query, parameters);
+        return DBUtils.ExecuteNonQuery(dbtype, conn, tx, query, parameters);
     }
 
     public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this string query, string conn_str, params SqlParam[] parameters)
@@ -402,24 +402,24 @@ public static class DbClientExtensions
         return await DBUtils.ExecuteNonQueryAsync(dbConnectionFactory, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteNonQueryAsync(conn, query, parameters);
+        return await DBUtils.ExecuteNonQueryAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteNonQueryAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteNonQueryAsync(dbtype, conn, tx, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteNonQueryAsync(conn, query, parameters);
+        return await DBUtils.ExecuteNonQueryAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.ExecuteNonQueryAsync(conn, tx, query, parameters);
+        return await DBUtils.ExecuteNonQueryAsync(dbtype, conn, tx, query, parameters);
     }
 
     public static T? QueryRow<T>(this string query, string conn_str, params SqlParam[] parameters)
@@ -437,24 +437,24 @@ public static class DbClientExtensions
         return DBUtils.QueryRow<T>(dbConnectionFactory, query, parameters);
     }
 
-    public static T? QueryRow<T>(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static T? QueryRow<T>(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return DBUtils.QueryRow<T>(conn, query, parameters);
+        return DBUtils.QueryRow<T>(dbtype, conn, query, parameters);
     }
 
-    public static T? QueryRow<T>(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static T? QueryRow<T>(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return DBUtils.QueryRow<T>(conn, tx, query, parameters);
+        return DBUtils.QueryRow<T>(dbtype, conn, tx, query, parameters);
     }
 
-    public static T? QueryRow<T>(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static T? QueryRow<T>(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return DBUtils.QueryRow<T>(conn, query, parameters);
+        return DBUtils.QueryRow<T>(dbtype, conn, query, parameters);
     }
 
-    public static T? QueryRow<T>(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static T? QueryRow<T>(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return DBUtils.QueryRow<T>(conn, tx, query, parameters);
+        return DBUtils.QueryRow<T>(dbtype, conn, tx, query, parameters);
     }
 
     public static async Task<T?> QueryRowAsync<T>(this string query, string conn_str, params SqlParam[] parameters)
@@ -472,24 +472,24 @@ public static class DbClientExtensions
         return await DBUtils.QueryRowAsync<T>(dbConnectionFactory, query, parameters);
     }
 
-    public static async Task<T?> QueryRowAsync<T>(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static async Task<T?> QueryRowAsync<T>(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryRowAsync<T>(conn, query, parameters);
+        return await DBUtils.QueryRowAsync<T>(dbtype, conn, query, parameters);
     }
 
-    public static async Task<T?> QueryRowAsync<T>(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static async Task<T?> QueryRowAsync<T>(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryRowAsync<T>(conn, tx, query, parameters);
+        return await DBUtils.QueryRowAsync<T>(dbtype, conn, tx, query, parameters);
     }
 
-    public static async Task<T?> QueryRowAsync<T>(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static async Task<T?> QueryRowAsync<T>(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryRowAsync<T>(conn, query, parameters);
+        return await DBUtils.QueryRowAsync<T>(dbtype, conn, query, parameters);
     }
 
-    public static async Task<T?> QueryRowAsync<T>(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static async Task<T?> QueryRowAsync<T>(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryRowAsync<T>(conn, tx, query, parameters);
+        return await DBUtils.QueryRowAsync<T>(dbtype, conn, tx, query, parameters);
     }
 
     public static List<T>? Query<T>(this string query, string conn_str, params SqlParam[] parameters)
@@ -507,24 +507,24 @@ public static class DbClientExtensions
         return DBUtils.Query<T>(dbConnectionFactory, query, parameters);
     }
 
-    public static List<T>? Query<T>(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static List<T>? Query<T>(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return DBUtils.Query<T>(conn, query, parameters);
+        return DBUtils.Query<T>(dbtype, conn, query, parameters);
     }
 
-    public static List<T>? Query<T>(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static List<T>? Query<T>(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return DBUtils.Query<T>(conn, tx, query, parameters);
+        return DBUtils.Query<T>(dbtype, conn, tx, query, parameters);
     }
 
-    public static List<T>? Query<T>(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static List<T>? Query<T>(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return DBUtils.Query<T>(conn, query, parameters);
+        return DBUtils.Query<T>(dbtype, conn, tx: null, query, parameters);
     }
 
-    public static List<T>? Query<T>(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static List<T>? Query<T>(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return DBUtils.Query<T>(conn, tx, query, parameters);
+        return DBUtils.Query<T>(dbtype, conn, tx, query, parameters);
     }
 
     public static async Task<List<T>?> QueryAsync<T>(this string query, string conn_str, params SqlParam[] parameters)
@@ -542,24 +542,24 @@ public static class DbClientExtensions
         return await DBUtils.QueryAsync<T>(dbConnectionFactory, query, parameters);
     }
 
-    public static async Task<List<T>?> QueryAsync<T>(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static async Task<List<T>?> QueryAsync<T>(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryAsync<T>(conn, query, parameters);
+        return await DBUtils.QueryAsync<T>(dbtype, conn, query, parameters);
     }
 
-    public static async Task<List<T>?> QueryAsync<T>(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static async Task<List<T>?> QueryAsync<T>(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryAsync<T>(conn, tx, query, parameters);
+        return await DBUtils.QueryAsync<T>(dbtype, conn, tx, query, parameters);
     }
 
-    public static async Task<List<T>?> QueryAsync<T>(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static async Task<List<T>?> QueryAsync<T>(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryAsync<T>(conn, query, parameters);
+        return await DBUtils.QueryAsync<T>(dbtype, conn, tx: null, query, parameters);
     }
 
-    public static async Task<List<T>?> QueryAsync<T>(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static async Task<List<T>?> QueryAsync<T>(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryAsync<T>(conn, tx, query, parameters);
+        return await DBUtils.QueryAsync<T>(dbtype, conn, tx, query, parameters);
     }
 
     public static DataTable? QueryDataTable(this string query, string conn_str, params SqlParam[] parameters)
@@ -572,24 +572,24 @@ public static class DbClientExtensions
         return DBUtils.QueryDataTable(dbtype, conn_str, query, parameters);
     }
 
-    public static DataTable? QueryDataTable(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static DataTable? QueryDataTable(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return DBUtils.QueryDataTable(conn, query, parameters);
+        return DBUtils.QueryDataTable(dbtype, conn, query, parameters);
     }
 
-    public static DataTable? QueryDataTable(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static DataTable? QueryDataTable(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return DBUtils.QueryDataTable(conn, tx, query, parameters);
+        return DBUtils.QueryDataTable(dbtype, conn, tx, query, parameters);
     }
 
-    public static DataTable? QueryDataTable(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static DataTable? QueryDataTable(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return DBUtils.QueryDataTable(conn, query, parameters);
+        return DBUtils.QueryDataTable(dbtype, conn, query, parameters);
     }
 
-    public static DataTable? QueryDataTable(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static DataTable? QueryDataTable(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return DBUtils.QueryDataTable(conn, tx, query, parameters);
+        return DBUtils.QueryDataTable(dbtype, conn, tx, query, parameters);
     }
 
     public static async Task<DataTable?> QueryDataTableAsync(this string query, string conn_str, params SqlParam[] parameters)
@@ -602,24 +602,24 @@ public static class DbClientExtensions
         return await DBUtils.QueryDataTableAsync(dbtype, conn_str, query, parameters);
     }
 
-    public static async Task<DataTable?> QueryDataTableAsync(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static async Task<DataTable?> QueryDataTableAsync(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryDataTableAsync(conn, query, parameters);
+        return await DBUtils.QueryDataTableAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<DataTable?> QueryDataTableAsync(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static async Task<DataTable?> QueryDataTableAsync(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryDataTableAsync(conn, tx, query, parameters);
+        return await DBUtils.QueryDataTableAsync(dbtype, conn, tx, query, parameters);
     }
 
-    public static async Task<DataTable?> QueryDataTableAsync(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static async Task<DataTable?> QueryDataTableAsync(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryDataTableAsync(conn, query, parameters);
+        return await DBUtils.QueryDataTableAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<DataTable?> QueryDataTableAsync(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static async Task<DataTable?> QueryDataTableAsync(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryDataTableAsync(conn, tx, query, parameters);
+        return await DBUtils.QueryDataTableAsync(dbtype, conn, tx, query, parameters);
     }
 
     public static DataSet? QueryDataSet(this string query, string conn_str, params SqlParam[] parameters)
@@ -632,24 +632,24 @@ public static class DbClientExtensions
         return DBUtils.QueryDataSet(dbtype, conn_str, query, parameters);
     }
 
-    public static DataSet? QueryDataSet(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static DataSet? QueryDataSet(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return DBUtils.QueryDataSet(conn, query, parameters);
+        return DBUtils.QueryDataSet(dbtype, conn, query, parameters);
     }
 
-    public static DataSet? QueryDataSet(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static DataSet? QueryDataSet(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return DBUtils.QueryDataSet(conn, tx, query, parameters);
+        return DBUtils.QueryDataSet(dbtype, conn, tx, query, parameters);
     }
 
-    public static DataSet? QueryDataSet(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static DataSet? QueryDataSet(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return DBUtils.QueryDataSet(conn, query, parameters);
+        return DBUtils.QueryDataSet(dbtype, conn, query, parameters);
     }
 
-    public static DataSet? QueryDataSet(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static DataSet? QueryDataSet(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return DBUtils.QueryDataSet(conn, tx, query, parameters);
+        return DBUtils.QueryDataSet(dbtype, conn, tx, query, parameters);
     }
 
     public static async Task<DataSet?> QueryDataSetAsync(this string query, string conn_str, params SqlParam[] parameters)
@@ -662,24 +662,24 @@ public static class DbClientExtensions
         return await DBUtils.QueryDataSetAsync(dbtype, conn_str, query, parameters);
     }
 
-    public static async Task<DataSet?> QueryDataSetAsync(this string query, DbConnection conn, params SqlParam[] parameters)
+    public static async Task<DataSet?> QueryDataSetAsync(this string query, DbConnectionType dbtype, DbConnection conn, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryDataSetAsync(conn, query, parameters);
+        return await DBUtils.QueryDataSetAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<DataSet?> QueryDataSetAsync(this string query, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
+    public static async Task<DataSet?> QueryDataSetAsync(this string query, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryDataSetAsync(conn, tx, query, parameters);
+        return await DBUtils.QueryDataSetAsync(dbtype, conn, tx, query, parameters);
     }
 
-    public static async Task<DataSet?> QueryDataSetAsync(this DbConnection conn, string query, params SqlParam[] parameters)
+    public static async Task<DataSet?> QueryDataSetAsync(this DbConnection conn, DbConnectionType dbtype, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryDataSetAsync(conn, query, parameters);
+        return await DBUtils.QueryDataSetAsync(dbtype, conn, query, parameters);
     }
 
-    public static async Task<DataSet?> QueryDataSetAsync(this DbConnection conn, DbTransaction? tx, string query, params SqlParam[] parameters)
+    public static async Task<DataSet?> QueryDataSetAsync(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string query, params SqlParam[] parameters)
     {
-        return await DBUtils.QueryDataSetAsync(conn, tx, query, parameters);
+        return await DBUtils.QueryDataSetAsync(dbtype, conn, tx, query, parameters);
     }
 
     public static void UpdateTable<T>(this string tableName, string conn_str, T model)
@@ -697,24 +697,24 @@ public static class DbClientExtensions
         DBUtils.UpdateTable(dbConnectionFactory, tableName, model);
     }
 
-    public static void UpdateTable<T>(this string tableName, DbConnection conn, T model)
+    public static void UpdateTable<T>(this string tableName, DbConnectionType dbtype, DbConnection conn, T model)
     {
-        DBUtils.UpdateTable(conn, tableName, model);
+        DBUtils.UpdateTable(dbtype, conn, tableName, model);
     }
 
-    public static void UpdateTable<T>(this string tableName, DbConnection conn, DbTransaction? tx, T model)
+    public static void UpdateTable<T>(this string tableName, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, T model)
     {
-        DBUtils.UpdateTable(conn, tx, tableName, model);
+        DBUtils.UpdateTable(dbtype, conn, tx, tableName, model);
     }
 
-    public static void UpdateTable<T>(this DbConnection conn, string tableName, T model)
+    public static void UpdateTable<T>(this DbConnection conn, DbConnectionType dbtype, string tableName, T model)
     {
-        DBUtils.UpdateTable(conn, tableName, model);
+        DBUtils.UpdateTable(dbtype, conn, tableName, model);
     }
 
-    public static void UpdateTable<T>(this DbConnection conn, DbTransaction? tx, string tableName, T model)
+    public static void UpdateTable<T>(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string tableName, T model)
     {
-        DBUtils.UpdateTable(conn, tx, tableName, model);
+        DBUtils.UpdateTable(dbtype, conn, tx, tableName, model);
     }
 
     public static void UpdateTable<T>(this string tableName, string conn_str, List<T> models)
@@ -732,24 +732,24 @@ public static class DbClientExtensions
         DBUtils.UpdateTable(dbConnectionFactory, tableName, models);
     }
 
-    public static void UpdateTable<T>(this string tableName, DbConnection conn, List<T> models)
+    public static void UpdateTable<T>(this string tableName, DbConnectionType dbtype, DbConnection conn, List<T> models)
     {
-        DBUtils.UpdateTable(conn, tableName, models);
+        DBUtils.UpdateTable(dbtype, conn, tableName, models);
     }
 
-    public static void UpdateTable<T>(this string tableName, DbConnection conn, DbTransaction? tx, List<T> models)
+    public static void UpdateTable<T>(this string tableName, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, List<T> models)
     {
-        DBUtils.UpdateTable(conn, tx, tableName, models);
+        DBUtils.UpdateTable(dbtype, conn, tx, tableName, models);
     }
 
-    public static void UpdateTable<T>(this DbConnection conn, string tableName, List<T> models)
+    public static void UpdateTable<T>(this DbConnection conn, DbConnectionType dbtype, string tableName, List<T> models)
     {
-        DBUtils.UpdateTable(conn, tableName, models);
+        DBUtils.UpdateTable(dbtype, conn, tableName, models);
     }
 
-    public static void UpdateTable<T>(this DbConnection conn, DbTransaction? tx, string tableName, List<T> models)
+    public static void UpdateTable<T>(this DbConnection conn, DbConnectionType dbtype, DbTransaction? tx, string tableName, List<T> models)
     {
-        DBUtils.UpdateTable(conn, tx, tableName, models);
+        DBUtils.UpdateTable(dbtype, conn, tx, tableName, models);
     }
 
     public static T? QueryRow<T>(this DbCommand cmd)

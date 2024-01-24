@@ -1,18 +1,14 @@
-﻿using Npgsql;
-using Oracle.ManagedDataAccess.Client;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Data.SqlClient;
-using System.Data.SQLite;
 using System.Data;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using Zen.DbAccess.Shared.Models;
-using Zen.DbAccess.Shared.Attributes;
-using Zen.DbAccess.Shared.Enums;
+using Zen.DbAccess.Models;
+using Zen.DbAccess.Attributes;
+using Zen.DbAccess.Enums;
 using Zen.DbAccess.Factories;
 using Zen.DbAccess.Utils;
 using System.Security.AccessControl;
@@ -96,9 +92,9 @@ public static class DbModelExtensions
         return attrs.Any(x => x is DbModelPropertyIgnoreAttribute);
     }
 
-    public static bool IsPostgreSQLJsonDataType(this DbModel dbModel, DbConnection conn, PropertyInfo propertyInfo)
+    public static bool IsPostgreSQLJsonDataType(this DbModel dbModel, DbConnectionType dbConnectionType, PropertyInfo propertyInfo)
     {
-        if (conn is NpgsqlConnection)
+        if (dbConnectionType == DbConnectionType.Postgresql)
         {
             object[] attrs = propertyInfo.GetCustomAttributes(true);
 
@@ -111,9 +107,9 @@ public static class DbModelExtensions
         return false;
     }
 
-    public static bool IsOracleClobDataType(this DbModel dbModel, DbConnection conn, PropertyInfo propertyInfo)
+    public static bool IsOracleClobDataType(this DbModel dbModel, DbConnectionType dbConnectionType, PropertyInfo propertyInfo)
     {
-        if (conn is OracleConnection)
+        if (dbConnectionType == DbConnectionType.Oracle)
         {
             object[] attrs = propertyInfo.GetCustomAttributes(true);
 
@@ -126,7 +122,7 @@ public static class DbModelExtensions
         return false;
     }
 
-    private static async Task RefreshDbColumnsIfEmptyAsync(this DbModel dbModel, DbConnection conn, DbTransaction? tx, string table)
+    private static async Task RefreshDbColumnsIfEmptyAsync(this DbModel dbModel, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, string table)
     {
         if (dbModel.dbModel_dbColumns != null && dbModel.dbModel_dbColumns.Count > 0)
             return;
@@ -137,7 +133,7 @@ public static class DbModelExtensions
 
         string sql = $"select * from {table} where 1 = -1";
 
-        DataTable? dt = await sql.QueryDataTableAsync(conn, tx);
+        DataTable? dt = await sql.QueryDataTableAsync(dbtype, conn, tx);
 
         if (dt == null)
             throw new NullReferenceException(nameof(dt));
@@ -172,7 +168,7 @@ public static class DbModelExtensions
             .ToList();
     }
 
-    public static List<PropertyInfo> GetPropertiesToInsert(this DbModel dbModel, DbConnection conn, bool insertPrimaryKeyColumn, string sequence2UseForPrimaryKey = "")
+    public static List<PropertyInfo> GetPropertiesToInsert(this DbModel dbModel, DbConnectionType dbConnectionType, bool insertPrimaryKeyColumn, string sequence2UseForPrimaryKey = "")
     {
         if (dbModel.dbModel_dbColumns == null)
             throw new NullReferenceException("dbModel_dbColumns");
@@ -186,7 +182,7 @@ public static class DbModelExtensions
         return dbModel.dbModel_dbColumns
             .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x)
                         && (insertPrimaryKeyColumn
-                            || (!insertPrimaryKeyColumn && conn is OracleConnection && !string.IsNullOrEmpty(sequence2UseForPrimaryKey))
+                            || (!insertPrimaryKeyColumn && dbConnectionType == DbConnectionType.Oracle && !string.IsNullOrEmpty(sequence2UseForPrimaryKey))
                             || (!insertPrimaryKeyColumn && !dbModel.dbModel_primaryKey_dbColumns.Contains(x))
                         )
                     )
@@ -210,9 +206,9 @@ public static class DbModelExtensions
             .ToList();
     }
 
-    private static async Task ConstructUpdateQueryAsync(this DbModel dbModel, DbConnection conn, DbTransaction? tx, string table)
+    private static async Task ConstructUpdateQueryAsync(this DbModel dbModel, DbConnectionType dbConnectionType, DbConnection conn, DbTransaction? tx, string table)
     {
-        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
+        await RefreshDbColumnsIfEmptyAsync(dbModel, dbConnectionType, conn, tx, table);
 
         StringBuilder sbUpdate = new StringBuilder();
         sbUpdate.Append($"update {table} set ");
@@ -236,7 +232,7 @@ public static class DbModelExtensions
                 sbUpdate.Append(", ");
 
             string appendToParam;
-            if (IsPostgreSQLJsonDataType(dbModel, conn, propertyInfo))
+            if (IsPostgreSQLJsonDataType(dbModel, dbConnectionType, propertyInfo))
                 appendToParam = "::jsonb";
             else
                 appendToParam = string.Empty;
@@ -245,7 +241,7 @@ public static class DbModelExtensions
 
             SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", propertyInfo.GetValue(dbModel));
 
-            if (IsOracleClobDataType(dbModel, conn, propertyInfo))
+            if (IsOracleClobDataType(dbModel, dbConnectionType, propertyInfo))
                 prm.isClob = true;
 
             dbModel.dbModel_sql_update.sql_parameters.Add(prm);
@@ -340,27 +336,28 @@ public static class DbModelExtensions
             throw new Exception("There must be a property with the [PrimaryKey] attribute.");
     }
 
-    public static Task RefreshDbColumnsAndModelPropertiesAsync(this DbModel dbModel, DbConnection conn, string table)
+    public static Task RefreshDbColumnsAndModelPropertiesAsync(this DbModel dbModel, DbConnectionType dbtype, DbConnection conn, string table)
     {
-        return RefreshDbColumnsAndModelPropertiesAsync(dbModel, conn, tx: null, table);
+        return RefreshDbColumnsAndModelPropertiesAsync(dbModel, dbtype, conn, tx: null, table);
     }
 
-    public static async Task RefreshDbColumnsAndModelPropertiesAsync(this DbModel dbModel, DbConnection conn, DbTransaction? tx, string table)
+    public static async Task RefreshDbColumnsAndModelPropertiesAsync(this DbModel dbModel, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, string table)
     {
-        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
+        await RefreshDbColumnsIfEmptyAsync(dbModel, dbtype, conn, tx, table);
         DeterminePrimaryKey(dbModel);
     }
 
     private static async Task ConstructInsertQueryAsync(
         this DbModel dbModel,
         DbModelSaveType saveType,
+        DbConnectionType dbConnectionType,
         DbConnection conn,
         DbTransaction? tx, 
         string table, 
         bool insertPrimaryKeyColumn,
         string sequence2UseForPrimaryKey = "")
     {
-        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
+        await RefreshDbColumnsIfEmptyAsync(dbModel, dbConnectionType, conn, tx, table);
 
         StringBuilder sbInsertValues = new StringBuilder();
         StringBuilder sbInsert = new StringBuilder();
@@ -383,7 +380,7 @@ public static class DbModelExtensions
 
         bool firstParam = true;
 
-        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, conn, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, dbConnectionType, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
 
         for (int i = 0; i < propertiesToInsert.Count; i++)
         {
@@ -403,7 +400,7 @@ public static class DbModelExtensions
                 && !string.IsNullOrEmpty(sequence2UseForPrimaryKey)
                 && dbModel.dbModel_primaryKey_dbColumns.Any(x => x == dbCol))
             {
-                if (conn is OracleConnection)
+                if (dbConnectionType == DbConnectionType.Oracle)
                 {
                     sbInsert.Append($" {dbCol} ");
                     sbInsertValues.Append($"{sequence2UseForPrimaryKey}.nextval");
@@ -413,7 +410,7 @@ public static class DbModelExtensions
             }
 
             string appendToParam;
-            if (IsPostgreSQLJsonDataType(dbModel, conn, propertyInfo))
+            if (IsPostgreSQLJsonDataType(dbModel, dbConnectionType, propertyInfo))
                 appendToParam = "::jsonb";
             else
                 appendToParam = string.Empty;
@@ -423,7 +420,7 @@ public static class DbModelExtensions
 
             SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", propertyInfo.GetValue(dbModel));
 
-            if (IsOracleClobDataType(dbModel, conn, propertyInfo))
+            if (IsOracleClobDataType(dbModel, dbConnectionType, propertyInfo))
                 prm.isClob = true;
 
             dbModel.dbModel_sql_insert.sql_parameters.Add(prm);
@@ -433,7 +430,7 @@ public static class DbModelExtensions
 
         if (!insertPrimaryKeyColumn && saveType != DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
         {
-            if (conn is OracleConnection)
+            if (dbConnectionType == DbConnectionType.Oracle)
             {
                 if (dbModel.dbModel_primaryKey_dbColumns.Count == 1)
                     sbInsert.AppendLine($" returning {dbModel.dbModel_primaryKey_dbColumns[0]} into @p_out_id ");
@@ -443,11 +440,11 @@ public static class DbModelExtensions
                 SqlParam prm = new SqlParam($"@p_out_id") { paramDirection = ParameterDirection.Output };
                 dbModel.dbModel_sql_insert.sql_parameters.Add(prm);
             }
-            else if (conn is SqlConnection)
+            else if (dbConnectionType == DbConnectionType.SqlServer)
             {
                 sbInsert.Append("; select SCOPE_IDENTITY() as ROW_ID;");
             }
-            else if (conn is NpgsqlConnection)
+            else if (dbConnectionType == DbConnectionType.Postgresql)
             {
                 sbInsert.Append("; select currval(pg_get_serial_sequence(@p_serial_table, @p_serial_id));");
 
@@ -457,7 +454,7 @@ public static class DbModelExtensions
                 SqlParam p_serial_id = new SqlParam($"@p_serial_id", dbModel.dbModel_primaryKey_dbColumns.Any() ? dbModel.dbModel_primaryKey_dbColumns[0] : dbModel.dbModel_prop_map[propertiesToInsert.First().Name]);
                 dbModel.dbModel_sql_insert.sql_parameters.Add(p_serial_id);
             }
-            else if (conn is SQLiteConnection)
+            else if (dbConnectionType == DbConnectionType.Sqlite)
             {
                 sbInsert.Append("; select last_insert_rowid() as ROW_ID;");
             }
@@ -466,12 +463,12 @@ public static class DbModelExtensions
         dbModel.dbModel_sql_insert.sql_query = sbInsert.ToString();
     }
 
-    private static void RefreshParameterValuesForInsert(this DbModel dbModel, DbConnection conn, bool insertPrimaryKeyColumn)
+    private static void RefreshParameterValuesForInsert(this DbModel dbModel, DbConnectionType dbConnectionType, bool insertPrimaryKeyColumn)
     {
         if (dbModel.dbModel_sql_insert == null)
             throw new NullReferenceException("dbModel_sql_insert");
 
-        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, conn, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, dbConnectionType, insertPrimaryKeyColumn);
 
         for (int i = 0; i < propertiesToInsert.Count; i++)
         {
@@ -490,6 +487,7 @@ public static class DbModelExtensions
     private static async Task<int> RunQueryAsync(
         this DbModel dbModel,
         DbModelSaveType saveType,
+        DbConnectionType dbtype,
         DbConnection conn,
         DbTransaction? tx, 
         string sql, 
@@ -508,7 +506,7 @@ public static class DbModelExtensions
 
         cmd.CommandText = sql;
 
-        DBUtils.AddParameters(cmd, parameters);
+        DBUtils.AddParameters(dbtype, cmd, parameters);
 
         if (!isInsert)
         {
@@ -516,7 +514,7 @@ public static class DbModelExtensions
             return affected;
         }
 
-        if (conn is OracleConnection)
+        if (dbtype == DbConnectionType.Oracle)
         {
             affected = await cmd.ExecuteNonQueryAsync();
 
@@ -588,24 +586,24 @@ public static class DbModelExtensions
         SaveAsync(dbModel, saveType, dbtype, conn_str, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).Wait();
     }
 
-    public static void Save(this DbModel dbModel, DbConnection conn, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
+    public static void Save(this DbModel dbModel, DbConnectionType dbConnectionType, DbConnection conn, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
-        SaveAsync(dbModel, DbModelSaveType.InsertUpdate, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).Wait();
+        SaveAsync(dbModel, DbModelSaveType.InsertUpdate, dbConnectionType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).Wait();
     }
 
-    public static void Save(this DbModel dbModel, DbConnection conn, DbTransaction? tx, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
+    public static void Save(this DbModel dbModel, DbConnectionType dbConnectionType, DbConnection conn, DbTransaction? tx, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
-        SaveAsync(dbModel, DbModelSaveType.InsertUpdate, conn, tx, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).Wait();
+        SaveAsync(dbModel, DbModelSaveType.InsertUpdate, dbConnectionType, conn, tx, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).Wait();
     }
 
-    public static void Save(this DbModel dbModel, DbModelSaveType saveType, DbConnection conn, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
+    public static void Save(this DbModel dbModel, DbModelSaveType saveType, DbConnectionType dbConnectionType, DbConnection conn, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
-        SaveAsync(dbModel, saveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).Wait();
+        SaveAsync(dbModel, saveType, dbConnectionType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).Wait();
     }
 
-    public static void Save(this DbModel dbModel, DbModelSaveType saveType, DbConnection conn, DbTransaction? tx, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
+    public static void Save(this DbModel dbModel, DbModelSaveType saveType, DbConnectionType dbConnectionType, DbConnection conn, DbTransaction? tx, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
-        SaveAsync(dbModel, saveType, conn, tx, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).Wait();
+        SaveAsync(dbModel, saveType, dbConnectionType, conn, tx, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).Wait();
     }
 
     public static void Save(this DbModel dbModel, DbConnectionFactory dbConnectionFactory, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
@@ -641,19 +639,20 @@ public static class DbModelExtensions
     public static async Task SaveAsync(this DbModel dbModel, DbConnectionFactory dbConnectionFactory, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
         using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
-        await SaveAsync(dbModel, DbModelSaveType.InsertUpdate, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+        await SaveAsync(dbModel, DbModelSaveType.InsertUpdate, dbConnectionFactory.DbType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
         await conn.CloseAsync();
     }
 
     public static async Task SaveAsync(this DbModel dbModel, DbModelSaveType saveType, DbConnectionFactory dbConnectionFactory, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
         using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
-        await SaveAsync(dbModel, saveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+        await SaveAsync(dbModel, saveType, dbConnectionFactory.DbType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
         await conn.CloseAsync();
     }
 
     public static Task SaveAsync(
         this DbModel dbModel,
+        DbConnectionType dbConnectionType,
         DbConnection conn,
         string table,
         bool insertPrimaryKeyColumn = false,
@@ -661,6 +660,7 @@ public static class DbModelExtensions
     {
         return SaveAsync(
             dbModel,
+            dbConnectionType,
             conn,
             tx: null,
             table,
@@ -669,7 +669,8 @@ public static class DbModelExtensions
     }
 
     public static async Task SaveAsync(
-        this DbModel dbModel, 
+        this DbModel dbModel,
+        DbConnectionType dbConnectionType,
         DbConnection conn,
         DbTransaction? tx, 
         string table, 
@@ -679,6 +680,7 @@ public static class DbModelExtensions
         await SaveAsync(
             dbModel, 
             DbModelSaveType.InsertUpdate, 
+            dbConnectionType,
             conn,
             tx,
             table, 
@@ -690,6 +692,7 @@ public static class DbModelExtensions
     public static Task SaveAsync(
         this DbModel dbModel,
         DbModelSaveType saveType,
+        DbConnectionType dbConnectionType,
         DbConnection conn,
         string table,
         bool insertPrimaryKeyColumn = false,
@@ -698,6 +701,7 @@ public static class DbModelExtensions
         return SaveAsync(
             dbModel,
             saveType,
+            dbConnectionType,
             conn,
             tx: null,
             table,
@@ -707,20 +711,21 @@ public static class DbModelExtensions
 
     public static async Task SaveAsync(
         this DbModel dbModel,
-        DbModelSaveType saveType, 
+        DbModelSaveType saveType,
+        DbConnectionType dbConnectionType,
         DbConnection conn,
         DbTransaction? tx, 
         string table, 
         bool insertPrimaryKeyColumn = false,
         string sequence2UseForPrimaryKey = "")
     {
-        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
+        await RefreshDbColumnsIfEmptyAsync(dbModel, dbConnectionType, conn, tx, table);
 
         if (saveType == DbModelSaveType.InsertUpdate && PrimaryKeyFieldsHaveValues(dbModel))
         {
             // we need to try tp update first since we have a value for the primary key field
             if (string.IsNullOrEmpty(dbModel.dbModel_sql_update.sql_query))
-                await ConstructUpdateQueryAsync(dbModel, conn, tx, table);
+                await ConstructUpdateQueryAsync(dbModel, dbConnectionType, conn, tx, table);
             else
                 RefreshParameterValuesForUpdate(dbModel);
 
@@ -728,6 +733,7 @@ public static class DbModelExtensions
             int affected = await RunQueryAsync(
                 dbModel,
                 saveType,
+                dbConnectionType,
                 conn, 
                 tx,
                 dbModel.dbModel_sql_update.sql_query, 
@@ -741,14 +747,15 @@ public static class DbModelExtensions
         }
 
         if (string.IsNullOrEmpty(dbModel.dbModel_sql_insert.sql_query))
-            await ConstructInsertQueryAsync(dbModel, saveType, conn, tx, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+            await ConstructInsertQueryAsync(dbModel, saveType, dbConnectionType, conn, tx, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
         else
-            RefreshParameterValuesForInsert(dbModel, conn, insertPrimaryKeyColumn);
+            RefreshParameterValuesForInsert(dbModel, dbConnectionType, insertPrimaryKeyColumn);
 
         // try to insert
         _ = await RunQueryAsync(
             dbModel,
             saveType,
+            dbConnectionType,
             conn, 
             tx,
             dbModel.dbModel_sql_insert.sql_query, 
@@ -771,28 +778,28 @@ public static class DbModelExtensions
     public static async Task DeleteAsync(this DbModel dbModel, DbConnectionFactory dbConnectionFactory, string table)
     {
         using DbConnection conn = await dbConnectionFactory.BuildAndOpenAsync();
-        await DeleteAsync(dbModel, conn, table);
+        await DeleteAsync(dbModel, dbConnectionFactory.DbType, conn, table);
         await conn.CloseAsync();
     }
 
-    public static async Task DeleteAsync(this DbModel dbModel, DbConnection conn, string table)
+    public static async Task DeleteAsync(this DbModel dbModel, DbConnectionType dbtype, DbConnection conn, string table)
     {
-        await DeleteAsync(dbModel, conn, null, table);
+        await DeleteAsync(dbModel, dbtype, conn, null, table);
     }
 
-    public static async Task DeleteAsync(this DbModel dbModel, DbConnection conn, DbTransaction? tx, string table)
+    public static async Task DeleteAsync(this DbModel dbModel, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, string table)
     {
         if (string.IsNullOrEmpty(dbModel.dbModel_sql_delete.sql_query))
-            await ConstructDeleteQueryAsync(dbModel, conn, tx, table);
+            await ConstructDeleteQueryAsync(dbModel, dbtype, conn, tx, table);
         
         string sql = dbModel.dbModel_sql_delete.sql_query;
         
-        _ = await sql.ExecuteNonQueryAsync(conn, dbModel.dbModel_sql_delete.sql_parameters.ToArray());
+        _ = await sql.ExecuteNonQueryAsync(dbtype, conn, dbModel.dbModel_sql_delete.sql_parameters.ToArray());
     }
 
-    private static async Task ConstructDeleteQueryAsync(DbModel dbModel, DbConnection conn, DbTransaction? tx, string table)
+    private static async Task ConstructDeleteQueryAsync(DbModel dbModel, DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, string table)
     {
-        await RefreshDbColumnsIfEmptyAsync(dbModel, conn, tx, table);
+        await RefreshDbColumnsIfEmptyAsync(dbModel, dbtype, conn, tx, table);
         DeterminePrimaryKey(dbModel);
 
         StringBuilder sbSql = new StringBuilder();
