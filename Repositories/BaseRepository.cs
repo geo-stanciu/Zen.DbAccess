@@ -52,6 +52,25 @@ public abstract class BaseRepository
             parameters);
     }
 
+    protected Task<List<T>> RunProcedureAsync<T, TDBModel>(
+        string? table,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
+    {
+        return RunProcedureAsync<T, TDBModel>(
+            table,
+            models,
+            insertPrimaryKeyColumn,
+            false,
+            sequence2UseForPrimaryKey: "",
+            procedure2Execute,
+            CreateTempTableCallBack: null,
+            parameters);
+
+    }
+
     protected async Task<List<T>> RunProcedureAsync<T, TDBModel>(
         string? table,
         List<TDBModel>? models,
@@ -73,7 +92,25 @@ public abstract class BaseRepository
 
     }
 
-    //prot
+    protected Task<List<T>> RunProcedureAsync<T, TDBModel>(
+        string? table,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        bool? bulkInsert,
+        string? sequence2UseForPrimaryKey,
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
+    {
+        return RunProcedureAsync<T, TDBModel>(
+            table,
+            models,
+            insertPrimaryKeyColumn,
+            bulkInsert,
+            sequence2UseForPrimaryKey,
+            procedure2Execute,
+            CreateTempTableCallBack: null,
+            parameters);
+    }
 
     protected async Task<List<T>> RunProcedureAsync<T, TDBModel>(
         string? table,
