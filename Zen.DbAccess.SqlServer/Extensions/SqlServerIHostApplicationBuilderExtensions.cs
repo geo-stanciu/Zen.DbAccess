@@ -13,12 +13,23 @@ public static class SqlServerIHostApplicationBuilderExtensions
 {
     public static IHostApplicationBuilder AddSqlServerZenDbAccessConnection(
         this IHostApplicationBuilder builder,
-        string connectionStringName)
+        string connectionStringName = "")
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance, new SqlServerDatabaseSpeciffic());
 
-        DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
+        if (!string.IsNullOrEmpty(connectionStringName))
+            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
 
         return builder;
+    }
+
+    public static void AddSqlServerZenDbAccessConnection(
+       this HostBuilderContext hostingContext,
+       string connectionStringName = "")
+    {
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance, new SqlServerDatabaseSpeciffic());
+
+        if (!string.IsNullOrEmpty(connectionStringName))
+            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
     }
 }

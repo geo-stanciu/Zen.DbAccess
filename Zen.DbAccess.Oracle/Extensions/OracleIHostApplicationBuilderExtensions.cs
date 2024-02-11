@@ -19,12 +19,23 @@ public static class OracleIHostApplicationBuilderExtensions
 {
     public static IHostApplicationBuilder AddOracleZenDbAccessConnection(
         this IHostApplicationBuilder builder,
-        string connectionStringName)
+        string connectionStringName = "")
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.ORACLE, OracleClientFactory.Instance, new OracleDatabaseSpeciffic());
 
-        DbConnectionFactory.RegisterConnectionDI(DbConnectionType.Oracle, connectionStringName);
+        if (!string.IsNullOrEmpty(connectionStringName))
+            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
 
         return builder;
+    }
+
+    public static void AddOracleZenDbAccessConnection(
+        this HostBuilderContext hostingContext,
+        string connectionStringName = "")
+    {
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.ORACLE, OracleClientFactory.Instance, new OracleDatabaseSpeciffic());
+
+        if (!string.IsNullOrEmpty(connectionStringName))
+            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
     }
 }

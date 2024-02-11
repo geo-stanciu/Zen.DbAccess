@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Zen.DbAccess.Constants;
 using Zen.DbAccess.Factories;
@@ -20,5 +21,13 @@ public static class IHostApplicationBuilderExtensions
         }
 
         return builder;
+    }
+
+    public static void AddZenDbAccessConnection(this HostBuilderContext hostingContext, IServiceCollection services)
+    {
+        if (!services.Any(x => x.ServiceType == typeof(IDbConnectionFactory)))
+        {
+            services.AddSingleton<IDbConnectionFactory, DbConnectionFactory>(provider => new DbConnectionFactory(provider.GetRequiredService<IConfiguration>()));
+        }
     }
 }

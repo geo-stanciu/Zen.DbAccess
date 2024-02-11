@@ -13,12 +13,23 @@ public static class PostgresqlIHostApplicationBuilderExtensions
 {
     public static IHostApplicationBuilder AddPostgresqlZenDbAccessConnection(
         this IHostApplicationBuilder builder,
-        string connectionStringName)
+        string connectionStringName = "")
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance, new PostgresqlDatabaseSpeciffic());
 
-        DbConnectionFactory.RegisterConnectionDI(DbConnectionType.Postgresql, connectionStringName);
+        if (!string.IsNullOrEmpty(connectionStringName))
+            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
 
         return builder;
+    }
+
+    public static void AddPostgresqlZenDbAccessConnection(
+        this HostBuilderContext hostingContext,
+        string connectionStringName = "")
+    {
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance, new PostgresqlDatabaseSpeciffic());
+
+        if (!string.IsNullOrEmpty(connectionStringName))
+            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
     }
 }

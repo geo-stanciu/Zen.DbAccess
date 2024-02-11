@@ -13,12 +13,23 @@ public static class SqliteIHostApplicationBuilderExtensions
 {
     public static IHostApplicationBuilder AddSqliteZenDbAccessConnection(
         this IHostApplicationBuilder builder,
-        string connectionStringName)
+        string connectionStringName = "")
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance, new DatabaseSpeciffic());
 
-        DbConnectionFactory.RegisterConnectionDI(DbConnectionType.Sqlite, connectionStringName);
+        if (!string.IsNullOrEmpty(connectionStringName))
+            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
 
         return builder;
+    }
+
+    public static void AddSqliteZenDbAccessConnection(
+       this HostBuilderContext hostingContext,
+       string connectionStringName = "")
+    {
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance, new DatabaseSpeciffic());
+
+        if (!string.IsNullOrEmpty(connectionStringName))
+            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
     }
 }
