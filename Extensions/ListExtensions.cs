@@ -18,7 +18,7 @@ public static class ListExtensions
 {
     public static async Task SaveAllAsync<T>(
         this List<T> list,
-        DbConnectionFactory dbConnectionFactory,
+        IDbConnectionFactory dbConnectionFactory,
         string table,
         bool runAllInTheSameTransaction = true,
         bool insertPrimaryKeyColumn = false) where T : DbModel
@@ -30,7 +30,7 @@ public static class ListExtensions
     public static async Task SaveAllAsync<T>(
         this List<T> list,
         DbModelSaveType dbModelSaveType,
-        DbConnectionFactory dbConnectionFactory,
+        IDbConnectionFactory dbConnectionFactory,
         string table,
         bool runAllInTheSameTransaction = true,
         bool insertPrimaryKeyColumn = false) where T : DbModel
@@ -173,7 +173,7 @@ public static class ListExtensions
 
     public static async Task DeleteAllAsync<T>(
         this List<T> list,
-        DbConnectionFactory dbConnectionFactory,
+        IDbConnectionFactory dbConnectionFactory,
         string table,
         bool runAllInTheSameTransaction = true) where T : DbModel
     {

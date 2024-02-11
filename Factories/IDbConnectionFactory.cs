@@ -8,6 +8,10 @@ namespace Zen.DbAccess.Factories
     public interface IDbConnectionFactory
     {
         Task<IZenDbConnection> BuildAsync();
-        IDbConnectionFactory Create(string connectionStringName);
+        DbConnectionType DbType { get; }
+
+        IDbConnectionFactory Get(string connectionStringName);
+        IDbConnectionFactory Create(DbConnectionType dbType, string conn_str, bool commitNoWait = true, string timeZone = "");
+        void RegisterConnection(DbConnectionType dbType, string connectionStringName);
     }
 }

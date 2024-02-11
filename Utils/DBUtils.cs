@@ -16,7 +16,7 @@ namespace Zen.DbAccess.Utils;
 
 public static class DBUtils
 {
-    public static async Task<DateTime> GetServerDateTime(DbConnectionFactory dbConnectionFactory)
+    public static async Task<DateTime> GetServerDateTime(IDbConnectionFactory dbConnectionFactory)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
         return GetServerDateTime(conn);
@@ -35,7 +35,7 @@ public static class DBUtils
         return ExecuteProcedureAsync( conn, sql, parameters).Result;
     }
 
-    public static async Task<List<SqlParam>> ExecuteProcedureAsync(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteProcedureAsync(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
         return await ExecuteProcedureAsync(conn, sql, parameters);
@@ -122,7 +122,7 @@ public static class DBUtils
         return ExecuteProcedure2DataSetAsync(conn, sql, parameters).Result;
     }
 
-    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
         var result = await ExecuteProcedure2DataSetAsync(conn, sql, parameters);
@@ -213,7 +213,7 @@ public static class DBUtils
         return outParameters;
     }
 
-    public static object? ExecuteScalar(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    public static object? ExecuteScalar(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         return ExecuteScalarAsync(dbConnectionFactory, sql, parameters).Result;
     }
@@ -223,7 +223,7 @@ public static class DBUtils
         return ExecuteScalarAsync(conn, sql, parameters).Result;
     }
 
-    public static async Task<object?> ExecuteScalarAsync(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    public static async Task<object?> ExecuteScalarAsync(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
         return await ExecuteScalarAsync(conn, sql, parameters);
@@ -247,7 +247,7 @@ public static class DBUtils
         return result;
     }
 
-    public static List<SqlParam> ExecuteNonQuery(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteNonQuery(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         return ExecuteNonQueryAsync(dbConnectionFactory, sql, parameters).Result;
     }
@@ -257,7 +257,7 @@ public static class DBUtils
         return ExecuteNonQueryAsync(conn, sql, parameters).Result;
     }
 
-    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
         return await ExecuteNonQueryAsync(conn, sql, parameters);
@@ -293,7 +293,7 @@ public static class DBUtils
         return outParameters;
     }
 
-    public static T? QueryRow<T>(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    public static T? QueryRow<T>(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         return QueryRowAsync<T>(dbConnectionFactory, sql, parameters).Result;
     }
@@ -303,7 +303,7 @@ public static class DBUtils
         return QueryRowAsync<T>(conn, sql, parameters).Result;
     }
 
-    public static async Task<T?> QueryRowAsync<T>(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    public static async Task<T?> QueryRowAsync<T>(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
         return await QueryRowAsync<T>(conn, sql, parameters);
@@ -319,7 +319,7 @@ public static class DBUtils
         return results.FirstOrDefault();
     }
 
-    public static List<T> Query<T>(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    public static List<T> Query<T>(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         return QueryAsync<T>(dbConnectionFactory, sql, parameters).Result;
     }
@@ -329,7 +329,7 @@ public static class DBUtils
         return QueryAsync<T>(conn, sql, parameters).Result;
     }
 
-    public static async Task<List<T>> QueryAsync<T>(DbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    public static async Task<List<T>> QueryAsync<T>(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
         return await QueryAsync<T>(conn, sql, parameters);
@@ -414,7 +414,7 @@ public static class DBUtils
         return ds;
     }
 
-    public static async Task UpdateTableAsync<T>(DbConnectionFactory dbConnectionFactory, string table, T model)
+    public static async Task UpdateTableAsync<T>(IDbConnectionFactory dbConnectionFactory, string table, T model)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
         UpdateTable(conn, table, model);
@@ -529,7 +529,7 @@ public static class DBUtils
             UpdateTableFromGenericModel(conn, table, model);
     }
 
-    public static async Task UpdateTableAsync<T>(DbConnectionFactory dbConnectionFactory, string table, List<T> models)
+    public static async Task UpdateTableAsync<T>(IDbConnectionFactory dbConnectionFactory, string table, List<T> models)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
         UpdateTable(conn, table, models);

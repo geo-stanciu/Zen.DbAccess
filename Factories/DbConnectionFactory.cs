@@ -24,7 +24,7 @@ public class DbConnectionFactory : IDbConnectionFactory
     private IConfiguration? _configuration;
 
     private static Dictionary<DbConnectionType, IDbSpeciffic> _databaseSpeciffic = new Dictionary<DbConnectionType, IDbSpeciffic>();
-    private static Dictionary<string, string> _connections = new Dictionary<string, string>();
+    private static Dictionary<string, DbConnectionType> _connectionTypes = new Dictionary<string, DbConnectionType>();
 
     public DbConnectionFactory(IConfiguration configuration)
     {
@@ -39,12 +39,35 @@ public class DbConnectionFactory : IDbConnectionFactory
         _timeZone = timeZone;
     }
 
-    public IDbConnectionFactory Create(string connectionStringName)
+    public DbConnectionType DbType
+    {
+        get
+        {
+            if (_dbType == null)
+                throw new NullReferenceException(nameof(DbType));
+
+            return _dbType.Value;
+        }
+    }
+
+    public IDbConnectionFactory Get(string connectionStringName)
     {
         if (_configuration == null)
             throw new NullReferenceException(nameof(_configuration));
 
-        IDbConnectionFactory factory = FromConfiguration(_configuration!, connectionStringName);
+        if (!_connectionTypes.TryGetValue(connectionStringName, out DbConnectionType dbType))
+        {
+            throw new NotImplementedException($"Connection string {connectionStringName} is not configured.");
+        }
+
+        IDbConnectionFactory factory = CreateFromConfiguration(_configuration!, connectionStringName, dbType);
+
+        return factory;
+    }
+
+    public IDbConnectionFactory Create(DbConnectionType dbType, string conn_str, bool commitNoWait = true, string timeZone = "")
+    {
+        IDbConnectionFactory factory = new DbConnectionFactory(dbType, conn_str, commitNoWait = true, timeZone = "");
 
         return factory;
     }
@@ -64,9 +87,14 @@ public class DbConnectionFactory : IDbConnectionFactory
         }
     }
 
-    public static void RegisterConnection(string connectionName, string connectionStringName)
+    public static void RegisterConnectionDI(DbConnectionType dbType, string connectionStringName)
     {
-        _connections[connectionName] = connectionStringName;
+        _connectionTypes[connectionStringName] = dbType;
+    }
+
+    public void RegisterConnection(DbConnectionType dbType, string connectionStringName)
+    {
+        _connectionTypes[connectionStringName] = dbType;
     }
 
     private static void RegisterDatabaseSpeciffc(string factoryName, IDbSpeciffic? dbSpeciffic)
@@ -147,10 +175,26 @@ public class DbConnectionFactory : IDbConnectionFactory
         return connection;
     }
 
-    public static DbConnectionFactory FromConfiguration(
+    private DbConnectionFactory CreateFromConfiguration(
         IConfiguration configuration,
-        string connectionStringName)
+        string connectionStringName,
+        DbConnectionType dbType)
     {
+        DbConnectionFactory? dbConnectionFactory = null;
+        string? connString = configuration.GetConnectionString(connectionStringName);
+
+        if (!string.IsNullOrEmpty(connString))
+        {
+            dbConnectionFactory = new DbConnectionFactory(
+                dbType,
+                connString,
+                commitNoWait: true,
+                "UTC"
+            );
+
+            return dbConnectionFactory;
+        }
+
         ConnectionStringModel? connStringModel = configuration?
                 .GetSection("DatabaseConnections")?
                 .GetSection(connectionStringName)?
@@ -159,7 +203,7 @@ public class DbConnectionFactory : IDbConnectionFactory
         if (connStringModel == null)
             throw new NullReferenceException(nameof(connStringModel));
 
-        DbConnectionFactory dbConnectionFactory = new DbConnectionFactory(
+        dbConnectionFactory = new DbConnectionFactory(
             connStringModel.DbConnectionType,
             connStringModel.ConnectionString,
             commitNoWait: true,

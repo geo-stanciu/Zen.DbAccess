@@ -15,7 +15,7 @@ namespace Zen.DbAccess.Repositories;
 
 public abstract class BaseRepository
 {
-    protected DbConnectionFactory? _dbConnectionFactory;
+    protected IDbConnectionFactory? _dbConnectionFactory;
 
     public BaseRepository()
     {

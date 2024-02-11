@@ -33,12 +33,12 @@ public static class DbClientExtensions
         return DBUtils.ExecuteProcedure(conn, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteProcedure(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteProcedure(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return DBUtils.ExecuteProcedureAsync(dbConnectionFactory, query, parameters).Result;
     }
 
-    public static async Task<List<SqlParam>> ExecuteProcedureAsync(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteProcedureAsync(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return await DBUtils.ExecuteProcedureAsync(dbConnectionFactory, query, parameters);
     }
@@ -63,7 +63,7 @@ public static class DbClientExtensions
         return DBUtils.ExecuteProcedure2DataSet(conn, query, parameters);
     }
 
-    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static async Task<DataSet?> ExecuteProcedure2DataSetAsync(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return await DBUtils.ExecuteProcedure2DataSetAsync(dbConnectionFactory, query, parameters);
     }
@@ -83,7 +83,7 @@ public static class DbClientExtensions
         return await DBUtils.ExecuteFunctionAsync(conn, query, parameters);
     }
 
-    public static object? ExecuteScalar(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static object? ExecuteScalar(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return DBUtils.ExecuteScalar(dbConnectionFactory, query, parameters);
     }
@@ -93,7 +93,7 @@ public static class DbClientExtensions
         return DBUtils.ExecuteScalar(conn, query, parameters);
     }
 
-    public static async Task<object?> ExecuteScalarAsync(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static async Task<object?> ExecuteScalarAsync(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return await DBUtils.ExecuteScalarAsync(dbConnectionFactory, query, parameters);
     }
@@ -103,7 +103,7 @@ public static class DbClientExtensions
         return await DBUtils.ExecuteScalarAsync(conn, query, parameters);
     }
 
-    public static List<SqlParam> ExecuteNonQuery(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static List<SqlParam> ExecuteNonQuery(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return DBUtils.ExecuteNonQuery(dbConnectionFactory, query, parameters);
     }
@@ -113,7 +113,7 @@ public static class DbClientExtensions
         return DBUtils.ExecuteNonQuery(conn, query, parameters);
     }
 
-    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static async Task<List<SqlParam>> ExecuteNonQueryAsync(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return await DBUtils.ExecuteNonQueryAsync(dbConnectionFactory, query, parameters);
     }
@@ -123,7 +123,7 @@ public static class DbClientExtensions
         return await DBUtils.ExecuteNonQueryAsync(conn, query, parameters);
     }
 
-    public static T? QueryRow<T>(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static T? QueryRow<T>(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return DBUtils.QueryRow<T>(dbConnectionFactory, query, parameters);
     }
@@ -133,7 +133,7 @@ public static class DbClientExtensions
         return DBUtils.QueryRow<T>(conn, query, parameters);
     }
 
-    public static async Task<T?> QueryRowAsync<T>(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static async Task<T?> QueryRowAsync<T>(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return await DBUtils.QueryRowAsync<T>(dbConnectionFactory, query, parameters);
     }
@@ -143,7 +143,7 @@ public static class DbClientExtensions
         return await DBUtils.QueryRowAsync<T>(conn, query, parameters);
     }
 
-    public static List<T>? Query<T>(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static List<T>? Query<T>(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return DBUtils.Query<T>(dbConnectionFactory, query, parameters);
     }
@@ -153,7 +153,7 @@ public static class DbClientExtensions
         return DBUtils.Query<T>(conn, query, parameters);
     }
 
-    public static async Task<List<T>?> QueryAsync<T>(this string query, DbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    public static async Task<List<T>?> QueryAsync<T>(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return await DBUtils.QueryAsync<T>(dbConnectionFactory, query, parameters);
     }
@@ -183,7 +183,7 @@ public static class DbClientExtensions
         return await DBUtils.QueryDataSetAsync(conn, query, parameters);
     }
 
-    public static void UpdateTable<T>(this string tableName, DbConnectionFactory dbConnectionFactory, T model)
+    public static void UpdateTable<T>(this string tableName, IDbConnectionFactory dbConnectionFactory, T model)
     {
         DBUtils.UpdateTableAsync(dbConnectionFactory, tableName, model).Wait();
     }
@@ -193,7 +193,7 @@ public static class DbClientExtensions
         DBUtils.UpdateTable(conn, tableName, model);
     }
 
-    public static void UpdateTable<T>(this string tableName, DbConnectionFactory dbConnectionFactory, List<T> models)
+    public static void UpdateTable<T>(this string tableName, IDbConnectionFactory dbConnectionFactory, List<T> models)
     {
         DBUtils.UpdateTableAsync(dbConnectionFactory, tableName, models).Wait();
     }

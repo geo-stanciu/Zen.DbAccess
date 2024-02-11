@@ -5,6 +5,7 @@ using System.Text;
 using Zen.DbAccess.Constants;
 using Zen.DbAccess.Factories;
 using System.Data.SqlClient;
+using Zen.DbAccess.Enums;
 
 namespace Zen.DbAccess.SqlServer.Extensions;
 
@@ -12,12 +13,11 @@ public static class SqlServerIHostApplicationBuilderExtensions
 {
     public static IHostApplicationBuilder AddSqlServerZenDbAccessConnection(
         this IHostApplicationBuilder builder,
-        string connectionName,
         string connectionStringName)
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance, new SqlServerDatabaseSpeciffic());
 
-        DbConnectionFactory.RegisterConnection(connectionName, connectionStringName);
+        DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
 
         return builder;
     }
