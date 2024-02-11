@@ -19,6 +19,12 @@
     <None Remove="Tests.Zen.DbAccess\**" />
     <Compile Remove="Zen.DbAccess.Oracle\**" />
     <None Remove="Zen.DbAccess.Oracle\**" />
+    <Compile Remove="Zen.DbAccess.Postgresql\**" />
+    <None Remove="Zen.DbAccess.Postgresql\**" />
+    <Compile Remove="Zen.DbAccess.Sqlite\**" />
+    <None Remove="Zen.DbAccess.Sqlite\**" />
+    <Compile Remove="Zen.DbAccess.SqlServer\**" />
+    <None Remove="Zen.DbAccess.SqlServer\**" />
   </ItemGroup>
 
   <ItemGroup>

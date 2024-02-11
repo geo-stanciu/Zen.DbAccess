@@ -46,7 +46,7 @@ namespace Tests.Zen.DbAccess
 
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
-            using var conn = await dbConnectionFactory.BuildAndOpenAsync();
+            await using var conn = await dbConnectionFactory.BuildAsync();
 
             string sql =
                 @"create temporary table if not exists test1_t1 (
@@ -58,7 +58,7 @@ namespace Tests.Zen.DbAccess
                       c6 decimal(18, 4)
                 )";
 
-            await sql.ExecuteNonQueryAsync(dbConnectionFactory.DbType, conn);
+            await sql.ExecuteNonQueryAsync(conn);
 
             List<T1> models = new List<T1>
             {
@@ -69,16 +69,16 @@ namespace Tests.Zen.DbAccess
                 new T1 { C1 = 9, C2 = "t5", C3 = DateTime.UtcNow.AddDays(4), C4 = DateTime.UtcNow.AddDays(4), C5 = DateTime.UtcNow.AddDays(4), C6 = 1234.5678M * 4 },
             };
 
-            await models.BulkInsertAsync(dbConnectionFactory.DbType, conn, "test1_t1", insertPrimaryKeyColumn: true);
+            await models.BulkInsertAsync(conn, "test1_t1", insertPrimaryKeyColumn: true);
 
             sql = "select * from test1_t1";
 
-            DataTable? dt = await sql.QueryDataTableAsync(dbConnectionFactory.DbType, conn);
+            DataTable? dt = await sql.QueryDataTableAsync(conn);
 
             Assert.IsNotNull(dt);
             Assert.IsTrue(dt.Rows.Count == 5);
 
-            var resultModels = await sql.QueryAsync<T1>(dbConnectionFactory.DbType, conn);
+            var resultModels = await sql.QueryAsync<T1>(conn);
 
             Assert.IsNotNull(resultModels);
             Assert.IsTrue(resultModels.Count == 5);
@@ -91,7 +91,7 @@ namespace Tests.Zen.DbAccess
 
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
-            using var conn = await dbConnectionFactory.BuildAndOpenAsync();
+            await using var conn = await dbConnectionFactory.BuildAsync();
 
             string sql =
                 @"create temporary table if not exists test1_t1 (
@@ -103,7 +103,7 @@ namespace Tests.Zen.DbAccess
                       c6 decimal(18, 4)
                 )";
 
-            await sql.ExecuteNonQueryAsync(dbConnectionFactory.DbType, conn);
+            await sql.ExecuteNonQueryAsync(conn);
 
             List<T1> models = new List<T1>
             {
@@ -114,16 +114,16 @@ namespace Tests.Zen.DbAccess
                 new T1 { C2 = "t5", C3 = DateTime.UtcNow.AddDays(4), C4 = DateTime.UtcNow.AddDays(4), C5 = DateTime.UtcNow.AddDays(4), C6 = 1234.5678M * 4 },
             };
 
-            await models.BulkInsertAsync(dbConnectionFactory.DbType, conn, "test1_t1");
+            await models.BulkInsertAsync(conn, "test1_t1");
 
             sql = "select * from test1_t1";
 
-            DataTable? dt = await sql.QueryDataTableAsync(dbConnectionFactory.DbType, conn);
+            DataTable? dt = await sql.QueryDataTableAsync(conn);
 
             Assert.IsNotNull(dt);
             Assert.IsTrue(dt.Rows.Count == 5);
 
-            var resultModels = await sql.QueryAsync<T1>(dbConnectionFactory.DbType, conn);
+            var resultModels = await sql.QueryAsync<T1>(conn);
 
             Assert.IsNotNull(resultModels);
             Assert.IsTrue(resultModels.Count == 5);
@@ -136,7 +136,7 @@ namespace Tests.Zen.DbAccess
 
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
-            using var conn = await dbConnectionFactory.BuildAndOpenAsync();
+            await using var conn = await dbConnectionFactory.BuildAsync();
 
             string sql =
                 @"create temporary table if not exists test1_t1 (
@@ -148,7 +148,7 @@ namespace Tests.Zen.DbAccess
                       c6 decimal(18, 4)
                 )";
 
-            await sql.ExecuteNonQueryAsync(dbConnectionFactory.DbType, conn);
+            await sql.ExecuteNonQueryAsync(conn);
 
             List<T1> models = new List<T1>
             {
@@ -159,16 +159,16 @@ namespace Tests.Zen.DbAccess
                 new T1 { C2 = "t5", C3 = DateTime.UtcNow.AddDays(4), C4 = DateTime.UtcNow.AddDays(4), C5 = DateTime.UtcNow.AddDays(4), C6 = 1234.5678M * 4 },
             };
 
-            await models.BulkInsertAsync(dbConnectionFactory.DbType, conn, "test1_t1", sequence2UseForPrimaryKey: "default");
+            await models.BulkInsertAsync(conn, "test1_t1", sequence2UseForPrimaryKey: "default");
 
             sql = "select * from test1_t1";
 
-            DataTable? dt = await sql.QueryDataTableAsync(dbConnectionFactory.DbType, conn);
+            DataTable? dt = await sql.QueryDataTableAsync(conn);
 
             Assert.IsNotNull(dt);
             Assert.IsTrue(dt.Rows.Count == 5);
 
-            var resultModels = await sql.QueryAsync<T1>(dbConnectionFactory.DbType, conn);
+            var resultModels = await sql.QueryAsync<T1>(conn);
 
             Assert.IsNotNull(resultModels);
             Assert.IsTrue(resultModels.Count == 5);

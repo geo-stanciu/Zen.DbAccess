@@ -1,23 +1,61 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.DatabaseSpeciffic;
 using Zen.DbAccess.Enums;
+using Zen.DbAccess.Extensions;
+using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Models;
 
-namespace Zen.DbAccess.Extensions.Sqlite;
+namespace Zen.DbAccess.Sqlite;
 
-internal static class SqliteListHelper
+public class DatabaseSpeciffic : IDbSpeciffic
 {
-    public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
+    public DbParameter CreateDbParameter(DbCommand cmd, SqlParam prm)
+    {
+        DbParameter param = cmd.CreateParameter();
+
+        string baseParameterName = prm.name.StartsWith("@") ? prm.name.Substring(1) : prm.name;
+        param.ParameterName = baseParameterName;
+        cmd.CommandText = cmd.CommandText.Replace($"@{baseParameterName}", $"${baseParameterName}");
+
+        return param;
+    }
+
+    public void EnsureTempTable(string table)
+    {
+        if (!table.StartsWith("temp_", StringComparison.OrdinalIgnoreCase)
+            && !table.StartsWith("tmp_", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException($"{table} must begin with temp_ or tmp_ .");
+        }
+    }
+
+    public string GetGetServerDateTimeQuery()
+    {
+        string sql = "SELECT current_timestamp";
+
+        return sql;
+    }
+
+    public (string, IEnumerable<SqlParam>) GetInsertedIdQuery(string table, DbModel model, string firstPropertyName)
+    {
+        string sql = "; select last_insert_rowid() as ROW_ID;";
+
+        return (sql, Array.Empty<SqlParam>());
+    }
+
+    public async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchWithSequenceAsync<T>(
         List<T> list,
-        DbConnectionType dbtype,
-        DbConnection conn,
+        IZenDbConnection conn,
         string table,
-        bool insertPrimaryKeyColumn) where T : DbModel
+        bool insertPrimaryKeyColumn,
+        string sequence2UseForPrimaryKey) where T : DbModel
     {
         int k = -1;
         bool firstRow = true;
@@ -26,12 +64,12 @@ internal static class SqliteListHelper
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbtype, conn, table, insertPrimaryKeyColumn);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbtype, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -75,9 +113,6 @@ internal static class SqliteListHelper
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (firstModel != null && firstModel.IsOracleClobDataType(dbtype, propertyInfo))
-                    prm.isClob = true;
-
                 insertParams.Add(prm);
             }
 
@@ -98,10 +133,9 @@ internal static class SqliteListHelper
         return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
     }
 
-    public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
+    public async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
         List<T> list,
-        DbConnectionType dbtype,
-        DbConnection conn,
+        IZenDbConnection conn,
         string table) where T : DbModel
     {
         int k = -1;
@@ -111,12 +145,12 @@ internal static class SqliteListHelper
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbtype, conn, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn: false);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbtype, insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -148,9 +182,6 @@ internal static class SqliteListHelper
                 sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
-
-                if (firstModel != null && firstModel.IsOracleClobDataType(dbtype, propertyInfo))
-                    prm.isClob = true;
 
                 insertParams.Add(prm);
             }

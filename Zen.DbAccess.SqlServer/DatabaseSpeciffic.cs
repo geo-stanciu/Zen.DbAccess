@@ -1,24 +1,49 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.DatabaseSpeciffic;
 using Zen.DbAccess.Enums;
+using Zen.DbAccess.Extensions;
+using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Models;
 
-namespace Zen.DbAccess.Extensions.SqlServer;
+namespace Zen.DbAccess.SqlServer;
 
-internal static class SqlServerListHelper
+public class DatabaseSpeciffic : IDbSpeciffic
 {
-    public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchWithSequenceAsync<T>(
+    public void EnsureTempTable(string table)
+    {
+        if (!table.StartsWith("##", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException($"{table} must begin with ##.");
+        }
+    }
+
+    public string GetGetServerDateTimeQuery()
+    {
+        string sql = "SELECT GETDATE()";
+
+        return sql;
+    }
+
+    public (string, IEnumerable<SqlParam>) GetInsertedIdQuery(string table, DbModel model, string firstPropertyName)
+    {
+        string sql = "; select SCOPE_IDENTITY() as ROW_ID;";
+
+        return (sql, Array.Empty<SqlParam>());
+    }
+
+    public async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchWithSequenceAsync<T>(
        List<T> list,
-       DbConnectionType dbtype,
-       DbConnection conn,
-       DbTransaction? tx,
+       IZenDbConnection conn,
        string table,
-       bool insertPrimaryKeyColumn) where T : DbModel
+       bool insertPrimaryKeyColumn,
+        string sequence2UseForPrimaryKey) where T : DbModel
     {
         int k = -1;
         bool firstRow = true;
@@ -27,12 +52,12 @@ internal static class SqlServerListHelper
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbtype, conn, tx, table, insertPrimaryKeyColumn);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbtype, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn);
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -94,11 +119,9 @@ internal static class SqlServerListHelper
         return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
     }
 
-    public static async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
+    public async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
         List<T> list,
-        DbConnectionType dbtype,
-        DbConnection conn,
-        DbTransaction? tx,
+        IZenDbConnection conn,
         string table) where T : DbModel
     {
         int k = -1;
@@ -108,12 +131,12 @@ internal static class SqlServerListHelper
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, dbtype, conn, tx, table, insertPrimaryKeyColumn: false);
+        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn: false);
 
         if (list.Count <= 1)
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(dbtype, insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false);
 
         for (int i = 1; i < list.Count; i++)
         {

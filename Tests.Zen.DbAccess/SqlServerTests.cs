@@ -44,7 +44,7 @@ namespace Tests.Zen.DbAccess
         {
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
-            using var conn = await dbConnectionFactory.BuildAndOpenAsync();
+            await using var conn = await dbConnectionFactory.BuildAsync();
 
             string sql =
                 @"create table #test1_t1 (
@@ -57,11 +57,11 @@ namespace Tests.Zen.DbAccess
                     constraint t1_pk primary key (c1)
                 )";
 
-            await sql.ExecuteNonQueryAsync(dbConnectionFactory.DbType, conn);
+            await sql.ExecuteNonQueryAsync(conn);
 
             sql = "SET IDENTITY_INSERT  #test1_t1 ON ";
 
-            await sql.ExecuteNonQueryAsync(dbConnectionFactory.DbType, conn);
+            await sql.ExecuteNonQueryAsync(conn);
 
             List<T1> models = new List<T1>
             {
@@ -72,23 +72,23 @@ namespace Tests.Zen.DbAccess
                 new T1 { C1 = 5, C2 = "t5", C3 = DateTime.UtcNow.AddDays(4), C4 = DateTime.UtcNow.AddDays(4), C5 = DateTime.UtcNow.AddDays(4), C6 = 1234.5678M * 4 },
             };
             
-            await models.BulkInsertAsync(dbConnectionFactory.DbType, conn, "#test1_t1", insertPrimaryKeyColumn: true);
+            await models.BulkInsertAsync(conn, "#test1_t1", insertPrimaryKeyColumn: true);
 
             sql = "select * from #test1_t1";
 
-            DataTable? dt = await sql.QueryDataTableAsync(dbConnectionFactory.DbType, conn);
+            DataTable? dt = await sql.QueryDataTableAsync(conn);
 
             Assert.IsNotNull(dt);
             Assert.IsTrue(dt.Rows.Count == 5);
 
-            var resultModels = await sql.QueryAsync<T1>(dbConnectionFactory.DbType, conn);
+            var resultModels = await sql.QueryAsync<T1>(conn);
 
             Assert.IsNotNull(resultModels);
             Assert.IsTrue(resultModels.Count == 5);
 
             sql = "drop table #test1_t1";
 
-            await sql.ExecuteNonQueryAsync(dbConnectionFactory.DbType, conn);
+            await sql.ExecuteNonQueryAsync(conn);
         }
 
         [TestMethod]
@@ -96,7 +96,7 @@ namespace Tests.Zen.DbAccess
         {
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
-            using var conn = await dbConnectionFactory.BuildAndOpenAsync();
+            await using var conn = await dbConnectionFactory.BuildAsync();
 
             string sql =
                 @"create table #test1_t1 (
@@ -109,7 +109,7 @@ namespace Tests.Zen.DbAccess
                       constraint t1_pk primary key (c1)
                 )";
 
-            await sql.ExecuteNonQueryAsync(dbConnectionFactory.DbType, conn);
+            await sql.ExecuteNonQueryAsync(conn);
 
             List<T1> models = new List<T1>
             {
@@ -120,16 +120,16 @@ namespace Tests.Zen.DbAccess
                 new T1 { C2 = "t5", C3 = DateTime.UtcNow.AddDays(4), C4 = DateTime.UtcNow.AddDays(4), C5 = DateTime.UtcNow.AddDays(4), C6 = 1234.5678M * 4 },
             };
 
-            await models.BulkInsertAsync(dbConnectionFactory.DbType, conn, "#test1_t1");
+            await models.BulkInsertAsync(conn, "#test1_t1");
 
             sql = "select * from #test1_t1";
 
-            DataTable? dt = await sql.QueryDataTableAsync(dbConnectionFactory.DbType, conn);
+            DataTable? dt = await sql.QueryDataTableAsync(conn);
 
             Assert.IsNotNull(dt);
             Assert.IsTrue(dt.Rows.Count == 5);
 
-            var resultModels = await sql.QueryAsync<T1>(dbConnectionFactory.DbType, conn);
+            var resultModels = await sql.QueryAsync<T1>(conn);
 
             Assert.IsNotNull(resultModels);
             Assert.IsTrue(resultModels.Count == 5);
@@ -137,18 +137,18 @@ namespace Tests.Zen.DbAccess
             resultModels[0].C2 = "t212121212";
             resultModels.Add(new T1 { C2 = "t6", C3 = DateTime.UtcNow.AddDays(5), C4 = DateTime.UtcNow.AddDays(5), C5 = DateTime.UtcNow.AddDays(5), C6 = 1234.5678M * 5 });
 
-            await resultModels.SaveAllAsync(dbConnectionFactory.DbType, conn, "#test1_t1");
+            await resultModels.SaveAllAsync(conn, "#test1_t1");
 
             sql = "select * from #test1_t1";
 
-            dt = await sql.QueryDataTableAsync(dbConnectionFactory.DbType, conn);
+            dt = await sql.QueryDataTableAsync(conn);
 
             Assert.IsNotNull(dt);
             Assert.IsTrue(dt.Rows.Count == 6);
 
             sql = "drop table #test1_t1";
 
-            await sql.ExecuteNonQueryAsync(dbConnectionFactory.DbType, conn);
+            await sql.ExecuteNonQueryAsync(conn);
         }
     }
 }

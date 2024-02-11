@@ -9,6 +9,7 @@ using Zen.DbAccess.Extensions;
 using Zen.DbAccess.Factories;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Models;
+using Zen.DbAccess.Interfaces;
 
 namespace Zen.DbAccess.Repositories;
 
@@ -76,7 +77,7 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         string procedure2Execute,
-        Func<DbConnectionType, DbConnection, DbTransaction?, Task>? CreateTempTableCallBack,
+        Func<IZenDbConnection, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
     {
         return await (RunProcedureAsync<T, TDBModel>(
@@ -119,25 +120,25 @@ public abstract class BaseRepository
         bool? bulkInsert,
         string? sequence2UseForPrimaryKey,
         string procedure2Execute,
-        Func<DbConnectionType, DbConnection, DbTransaction?, Task>? CreateTempTableCallBack,
+        Func<IZenDbConnection, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
     {
         if (_dbConnectionFactory == null)
             throw new NullReferenceException(nameof(_dbConnectionFactory));
 
-        using DbConnection conn = await _dbConnectionFactory.BuildAndOpenAsync();
-        using DbTransaction tx = await conn.BeginTransactionAsync();
+        await using IZenDbConnection conn = await _dbConnectionFactory.BuildAsync();
+        await conn.BeginTransactionAsync();
 
         try
         {
             if (CreateTempTableCallBack != null)
             {
-                await CreateTempTableCallBack(_dbConnectionFactory.DbType, conn, tx);
+                await CreateTempTableCallBack(conn);
             }
             
             if (!string.IsNullOrEmpty(table))
             {
-                await ClearTempTableAsync(_dbConnectionFactory.DbType, conn, tx, table);
+                await ClearTempTableAsync(conn, table);
             }
 
             if (models != null && !string.IsNullOrEmpty(table))
@@ -145,9 +146,7 @@ public abstract class BaseRepository
                 if (bulkInsert ?? false)
                 {
                     await models.BulkInsertAsync(
-                        _dbConnectionFactory.DbType,
                         conn,
-                        tx, 
                         table, 
                         runAllInTheSameTransaction: false, 
                         insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false, 
@@ -158,9 +157,7 @@ public abstract class BaseRepository
                 {
                     await models.SaveAllAsync(
                         DbModelSaveType.InsertOnly, 
-                        _dbConnectionFactory.DbType,
                         conn,
-                        tx, 
                         table, 
                         runAllInTheSameTransaction: false, 
                         insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
@@ -168,30 +165,24 @@ public abstract class BaseRepository
                 }
             }
 
-            var rez = await RunProcedureAsync<T>(_dbConnectionFactory.DbType, conn, tx, procedure2Execute, parameters);
-            await tx.CommitAsync();
+            var rez = await RunProcedureAsync<T>(conn, procedure2Execute, parameters);
+            await conn.CommitAsync();
 
             return rez;
         }
         catch
         {
-            await tx.RollbackAsync();
+            await conn.RollbackAsync();
             throw;
-        }
-        finally
-        {
-            await conn.CloseAsync();
         }
     }
 
     protected async Task<List<T>> RunProcedureAsync<T>(
-        DbConnectionType dbtype,
-        DbConnection conn, 
-        DbTransaction? tx,
+        IZenDbConnection conn,
         string procedure2Execute, 
         params SqlParam[] parameters) where T : ResponseModel
     {
-        DataTable? result = await procedure2Execute.ExecuteProcedure2DataTableAsync(dbtype, conn, tx, parameters);
+        DataTable? result = await procedure2Execute.ExecuteProcedure2DataTableAsync(conn, parameters);
 
         if (result == null)
             throw new Exception("empty query response");
@@ -201,32 +192,11 @@ public abstract class BaseRepository
         return rez;
     }
 
-    protected async Task ClearTempTableAsync(DbConnectionType dbtype, DbConnection conn, DbTransaction? tx, string table)
+    protected async Task ClearTempTableAsync(IZenDbConnection conn, string table)
     {
-        if (dbtype == DbConnectionType.Oracle)
-        {
-            string simplifiedName = table.IndexOf(".") > 0 ? table.Substring(table.IndexOf(".") + 1) : table;
-
-            if (!simplifiedName.StartsWith("temp_", StringComparison.OrdinalIgnoreCase)
-                && !simplifiedName.StartsWith("tmp_", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new ArgumentException($"{table} must begin with temp_ or tmp_ .");
-            }
-        }
-        else if (dbtype == DbConnectionType.SqlServer)
-        {
-            if (!table.StartsWith("##", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new ArgumentException($"{table} must begin with ##.");
-            }
-        }
-        else if (!table.StartsWith("temp_", StringComparison.OrdinalIgnoreCase)
-            && !table.StartsWith("tmp_", StringComparison.OrdinalIgnoreCase))
-        {
-            throw new ArgumentException($"{table} must begin with temp_ or tmp_ .");
-        }
+        conn.DatabaseSpeciffic.EnsureTempTable(table);
 
         string sql = $"delete from {table}";
-        await sql.ExecuteNonQueryAsync(dbtype, conn, tx);
+        await sql.ExecuteNonQueryAsync(conn);
     }
 }
