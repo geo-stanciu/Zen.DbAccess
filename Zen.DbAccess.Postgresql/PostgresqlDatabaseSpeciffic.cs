@@ -17,7 +17,7 @@ using Zen.DbAccess.Postgresql.Extensions;
 
 namespace Zen.DbAccess.Postgresql;
 
-public class DatabaseSpeciffic : IDbSpeciffic
+public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
 {
     public (string, SqlParam) PrepareParameter(DbModel model, PropertyInfo propertyInfo)
     {

@@ -14,7 +14,7 @@ using Zen.DbAccess.Models;
 
 namespace Zen.DbAccess.SqlServer;
 
-public class DatabaseSpeciffic : IDbSpeciffic
+public class SqlServerDatabaseSpeciffic : IDbSpeciffic
 {
     public void EnsureTempTable(string table)
     {

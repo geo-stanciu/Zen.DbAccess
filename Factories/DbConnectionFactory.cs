@@ -15,27 +15,38 @@ using Zen.DbAccess.Utils;
 
 namespace Zen.DbAccess.Factories;
 
-public class DbConnectionFactory
+public class DbConnectionFactory : IDbConnectionFactory
 {
-    private string _connStr;
-    private bool _commitNoWait;
-    private DbConnectionType _dbType;
-    private string _timeZone;
+    private string? _connStr;
+    private bool? _commitNoWait;
+    private DbConnectionType? _dbType;
+    private string? _timeZone;
+    private IConfiguration? _configuration;
 
     private static Dictionary<DbConnectionType, IDbSpeciffic> _databaseSpeciffic = new Dictionary<DbConnectionType, IDbSpeciffic>();
+    private static Dictionary<string, string> _connections = new Dictionary<string, string>();
 
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="dbType"></param>
-    /// <param name="conn_str"></param>
-    /// <param name="commitNoWait">Signals if Oracle and PostgreSql are set to not wait on synchronus commit</param>
-    public DbConnectionFactory(DbConnectionType dbType, string conn_str, bool commitNoWait = true, string timeZone = "")
+    public DbConnectionFactory(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
+
+    private DbConnectionFactory(DbConnectionType dbType, string conn_str, bool commitNoWait = true, string timeZone = "")
     {
         _dbType = dbType;
         _connStr = conn_str;
         _commitNoWait = commitNoWait;
         _timeZone = timeZone;
+    }
+
+    public IDbConnectionFactory Create(string connectionStringName)
+    {
+        if (_configuration == null)
+            throw new NullReferenceException(nameof(_configuration));
+
+        IDbConnectionFactory factory = FromConfiguration(_configuration!, connectionStringName);
+
+        return factory;
     }
 
     public static void RegisterDatabaseFactory(string factoryName, DbProviderFactory dbProviderFactory, IDbSpeciffic? dbSpeciffic = null)
@@ -51,6 +62,11 @@ public class DbConnectionFactory
             DbProviderFactories.RegisterFactory(factory.factoryName, factory.dbProviderFactory);
             RegisterDatabaseSpeciffc(factory.factoryName, factory.dbSpeciffic);
         }
+    }
+
+    public static void RegisterConnection(string connectionName, string connectionStringName)
+    {
+        _connections[connectionName] = connectionStringName;
     }
 
     private static void RegisterDatabaseSpeciffc(string factoryName, IDbSpeciffic? dbSpeciffic)
@@ -90,14 +106,14 @@ public class DbConnectionFactory
         conn = dbProviderFactory.CreateConnection();
         conn.ConnectionString = _connStr;
 
-        _databaseSpeciffic.TryGetValue(_dbType, out IDbSpeciffic? dbSpeciffic);
-        ZenDbConnection connection = new ZenDbConnection(conn, _dbType, dbSpeciffic);
+        _databaseSpeciffic.TryGetValue(_dbType!.Value, out IDbSpeciffic? dbSpeciffic);
+        ZenDbConnection connection = new ZenDbConnection(conn, _dbType!.Value, dbSpeciffic);
 
         if (_dbType == DbConnectionType.Oracle)
         {
             await conn.OpenAsync();
 
-            if (_commitNoWait)
+            if (_commitNoWait!.Value)
             {
                 string sql = "alter session set commit_logging=batch commit_wait=nowait";
                 await sql.ExecuteNonQueryAsync(connection);
@@ -113,12 +129,12 @@ public class DbConnectionFactory
         {
             await conn.OpenAsync();
 
-            if (!string.IsNullOrEmpty(_timeZone) && !_connStr.Contains(";Timezone=", StringComparison.OrdinalIgnoreCase))
+            if (!string.IsNullOrEmpty(_timeZone) && !_connStr!.Contains(";Timezone=", StringComparison.OrdinalIgnoreCase))
             {
                 _connStr += $"Timezone={_timeZone};";
             }
 
-            if (_commitNoWait)
+            if (_commitNoWait!.Value)
             {
                 string sql = "SET synchronous_commit = 'off'";
                 await sql.ExecuteNonQueryAsync(connection);

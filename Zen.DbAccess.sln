@@ -7,13 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zen.DbAccess", "Zen.DbAcces
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zen.DbAccess.Oracle", "Zen.DbAccess.Oracle\Zen.DbAccess.Oracle.csproj", "{597C6839-F2B4-44D4-9D2F-66B3AE8305CE}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Tests.Zen.DbAccess", "Tests.Zen.DbAccess\Tests.Zen.DbAccess.csproj", "{D3BDFA0A-2C34-4EBE-8FD1-B3A2F481118C}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zen.DbAccess.SqlServer", "Zen.DbAccess.SqlServer\Zen.DbAccess.SqlServer.csproj", "{CA1BFAE5-5BBF-4A05-A9C8-F415B257E6C1}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zen.DbAccess.Postgresql", "Zen.DbAccess.Postgresql\Zen.DbAccess.Postgresql.csproj", "{14AAE696-B754-4CAA-9297-56B1D6151975}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zen.DbAccess.Sqlite", "Zen.DbAccess.Sqlite\Zen.DbAccess.Sqlite.csproj", "{E1298882-412B-4849-B821-997561D069ED}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zen.DbAccess.Sqlite", "Zen.DbAccess.Sqlite\Zen.DbAccess.Sqlite.csproj", "{E1298882-412B-4849-B821-997561D069ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -29,10 +27,6 @@ Global
 		{597C6839-F2B4-44D4-9D2F-66B3AE8305CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{597C6839-F2B4-44D4-9D2F-66B3AE8305CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{597C6839-F2B4-44D4-9D2F-66B3AE8305CE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{D3BDFA0A-2C34-4EBE-8FD1-B3A2F481118C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{D3BDFA0A-2C34-4EBE-8FD1-B3A2F481118C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{D3BDFA0A-2C34-4EBE-8FD1-B3A2F481118C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{D3BDFA0A-2C34-4EBE-8FD1-B3A2F481118C}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CA1BFAE5-5BBF-4A05-A9C8-F415B257E6C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CA1BFAE5-5BBF-4A05-A9C8-F415B257E6C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CA1BFAE5-5BBF-4A05-A9C8-F415B257E6C1}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -17,7 +17,7 @@ using Zen.DbAccess.Oracle.Extensions;
 
 namespace Zen.DbAccess.Oracle;
 
-public class DatabaseSpeciffic : IDbSpeciffic
+public class OracleDatabaseSpeciffic : IDbSpeciffic
 {
     public (string, SqlParam) PrepareParameter(DbModel model, PropertyInfo propertyInfo)
     {
