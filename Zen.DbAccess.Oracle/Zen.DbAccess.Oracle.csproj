@@ -8,7 +8,7 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <VersionPrefix>1.0.1.1</VersionPrefix>
+    <VersionPrefix>2.0.0.0</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,8 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Tests.Zen.DbAccess\**" />
-    <None Remove="Tests.Zen.DbAccess\**" />
     <Compile Remove="Zen.DbAccess\**" />
     <None Remove="Zen.DbAccess\**" />
   </ItemGroup>

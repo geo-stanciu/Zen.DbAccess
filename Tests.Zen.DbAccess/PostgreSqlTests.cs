@@ -7,6 +7,8 @@ using Zen.DbAccess.Factories;
 using Zen.DbAccess.Attributes;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Models;
+using Zen.DbAccess.Postgresql;
+
 
 namespace Tests.Zen.DbAccess
 {
@@ -41,7 +43,7 @@ namespace Tests.Zen.DbAccess
         [TestMethod]
         public async Task TestBulkInsertWithPrimaryKeyColumn()
         {
-            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance);
+            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance, new DatabaseSpeciffic());
 
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
@@ -87,7 +89,7 @@ namespace Tests.Zen.DbAccess
         [TestMethod]
         public async Task TestBulkInsert()
         {
-            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance);
+            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance, new DatabaseSpeciffic());
 
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 

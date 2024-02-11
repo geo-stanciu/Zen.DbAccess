@@ -14,11 +14,16 @@ namespace Zen.DbAccess.DatabaseSpeciffic;
 
 public interface IDbSpeciffic
 {
-    (string, SqlParam) PrepareParameter(DbModel model, PropertyInfo propertyInfo)
+    (string, SqlParam) CommonPrepareParameter(DbModel model, PropertyInfo propertyInfo)
     {
         SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", propertyInfo.GetValue(model));
 
         return ($"@p_{propertyInfo.Name}", prm);
+    }
+
+    (string, SqlParam) PrepareParameter(DbModel model, PropertyInfo propertyInfo)
+    {
+        return CommonPrepareParameter(model, propertyInfo);
     }
 
     void DisposeBlob(DbCommand cmd, SqlParam prm)
@@ -81,7 +86,7 @@ public interface IDbSpeciffic
 
     void EnsureTempTable(string table);
 
-    void SetupFunctionCall(DbCommand cmd, string sql, params SqlParam[] parameters)
+    void CommonSetupFunctionCall(DbCommand cmd, string sql, params SqlParam[] parameters)
     {
         StringBuilder sbSql = new StringBuilder();
         sbSql.Append($"select {sql}(");
@@ -111,6 +116,11 @@ public interface IDbSpeciffic
             sbSql.Append($" AS {returnValueParameterName} ");
 
         cmd.CommandText = sbSql.ToString();
+    }
+
+    void SetupFunctionCall(DbCommand cmd, string sql, params SqlParam[] parameters)
+    {
+        CommonSetupFunctionCall(cmd, sql, parameters);
     }
 
     void SetupProcedureCall(IZenDbConnection conn, DbCommand cmd, string sql, bool isDataSetReturn, bool isTableReturn, params SqlParam[] parameters)

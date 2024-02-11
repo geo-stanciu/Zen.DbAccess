@@ -21,8 +21,7 @@ public class DatabaseSpeciffic : IDbSpeciffic
 {
     public (string, SqlParam) PrepareParameter(DbModel model, PropertyInfo propertyInfo)
     {
-        IDbSpeciffic dbSpeciffic = this;
-        (string prmName, SqlParam prm) = dbSpeciffic.PrepareParameter(model, propertyInfo);
+        (string prmName, SqlParam prm) = ((IDbSpeciffic)this).CommonPrepareParameter(model, propertyInfo);
 
         if (model.IsClobDataType(propertyInfo))
             prm.isClob = true;
@@ -143,8 +142,7 @@ public class DatabaseSpeciffic : IDbSpeciffic
 
     public void SetupFunctionCall(DbCommand cmd, string sql, params SqlParam[] parameters)
     {
-        IDbSpeciffic dbSpeciffic = this;
-        dbSpeciffic.SetupFunctionCall(cmd, sql, parameters);
+        ((IDbSpeciffic)this).CommonSetupFunctionCall(cmd, sql, parameters);
 
         cmd.CommandText += " from dual";
     }

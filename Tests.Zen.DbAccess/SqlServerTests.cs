@@ -7,6 +7,10 @@ using Zen.DbAccess.Factories;
 using Zen.DbAccess.Attributes;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Models;
+using System.Data.SQLite;
+using Zen.DbAccess.Constants;
+using System.Data.SqlClient;
+using Zen.DbAccess.SqlServer;
 
 namespace Tests.Zen.DbAccess
 {
@@ -42,6 +46,8 @@ namespace Tests.Zen.DbAccess
         [TestMethod]
         public async Task TestBulkInsert()
         {
+            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance, new DatabaseSpeciffic());
+
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
             await using var conn = await dbConnectionFactory.BuildAsync();
@@ -94,6 +100,8 @@ namespace Tests.Zen.DbAccess
         [TestMethod]
         public async Task TestBulkInsertWithSequence()
         {
+            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance, new DatabaseSpeciffic());
+
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
             await using var conn = await dbConnectionFactory.BuildAsync();

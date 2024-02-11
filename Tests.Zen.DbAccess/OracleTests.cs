@@ -103,7 +103,7 @@ namespace Tests.Zen.DbAccess
         [TestMethod]
         public async Task TestBulkInsertWithSequence()
         {
-            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.ORACLE, OracleClientFactory.Instance);
+            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.ORACLE, OracleClientFactory.Instance, new DatabaseSpeciffic());
 
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 

@@ -8,6 +8,7 @@ using Zen.DbAccess.Factories;
 using Zen.DbAccess.Attributes;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Models;
+using Zen.DbAccess.Sqlite;
 
 namespace Tests.Zen.DbAccess
 {
@@ -42,7 +43,7 @@ namespace Tests.Zen.DbAccess
         [TestMethod]
         public async Task TestBulkInsertWithPrimaryKeyColumn()
         {
-            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
+            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance, new DatabaseSpeciffic());
 
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
@@ -87,7 +88,7 @@ namespace Tests.Zen.DbAccess
         [TestMethod]
         public async Task TestBulkInsert()
         {
-            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
+            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance, new DatabaseSpeciffic());
 
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
@@ -132,7 +133,7 @@ namespace Tests.Zen.DbAccess
         [TestMethod]
         public async Task TestBulkInsertWithSequence()
         {
-            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
+            DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance, new DatabaseSpeciffic());
 
             DbConnectionFactory dbConnectionFactory = GetDbConnectionFactory();
 
