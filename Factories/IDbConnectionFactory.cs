@@ -8,6 +8,8 @@ namespace Zen.DbAccess.Factories
     public interface IDbConnectionFactory
     {
         Task<IZenDbConnection> BuildAsync();
-        DbConnectionType DbType { get; }
+        DbConnectionType DbType { get; set; }
+        string? ConnectionString { get; set; }
+        IDbConnectionFactory Copy();
     }
 }

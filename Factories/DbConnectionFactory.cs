@@ -41,6 +41,24 @@ public class DbConnectionFactory : IDbConnectionFactory
 
             return _dbType.Value;
         }
+        set
+        {
+            _dbType = value;
+        }
+    }
+
+    public string? ConnectionString
+    {
+        get { return _connStr; }
+        set { _connStr = value; }
+    }
+
+    public IDbConnectionFactory Copy()
+    {
+        if (_dbType == null)
+            throw new NullReferenceException(nameof(_dbType));
+
+        return new DbConnectionFactory(_dbType.Value, _connStr, _dbSpeciffic, _commitNoWait ?? true, _timeZone ?? "");
     }
 
     public static void RegisterDatabaseFactory(string factoryName, DbProviderFactory dbProviderFactory)
