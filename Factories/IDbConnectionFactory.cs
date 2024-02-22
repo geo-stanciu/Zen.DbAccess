@@ -10,6 +10,6 @@ namespace Zen.DbAccess.Factories
         Task<IZenDbConnection> BuildAsync();
         DbConnectionType DbType { get; set; }
         string? ConnectionString { get; set; }
-        IDbConnectionFactory Copy();
+        IDbConnectionFactory Copy(string? newConnectionString = null);
     }
 }

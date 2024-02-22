@@ -53,12 +53,17 @@ public class DbConnectionFactory : IDbConnectionFactory
         set { _connStr = value; }
     }
 
-    public IDbConnectionFactory Copy()
+    public IDbConnectionFactory Copy(string? newConnectionString = null)
     {
         if (_dbType == null)
             throw new NullReferenceException(nameof(_dbType));
 
-        return new DbConnectionFactory(_dbType.Value, _connStr, _dbSpeciffic, _commitNoWait ?? true, _timeZone ?? "");
+        string? connString = newConnectionString;
+
+        if (connString == null)
+            connString = _connStr ?? string.Empty;
+
+        return new DbConnectionFactory(_dbType.Value, connString, _dbSpeciffic, _commitNoWait ?? true, _timeZone ?? string.Empty);
     }
 
     public static void RegisterDatabaseFactory(string factoryName, DbProviderFactory dbProviderFactory)
