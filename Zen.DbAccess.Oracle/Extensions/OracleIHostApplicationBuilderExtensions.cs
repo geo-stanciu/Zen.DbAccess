@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using Zen.DbAccess.Constants;
 using Zen.DbAccess.DatabaseSpeciffic;
@@ -17,25 +18,50 @@ namespace Zen.DbAccess.Oracle.Extensions;
 
 public static class OracleIHostApplicationBuilderExtensions
 {
-    public static IHostApplicationBuilder AddOracleZenDbAccessConnection(
+    public static IHostApplicationBuilder AddOracleZenDbAccessConnection<T>(
         this IHostApplicationBuilder builder,
-        string connectionStringName = "")
+        T serviceKey,
+        string connectionStringName = "",
+        bool commitNoWait = true,
+        string? timeZone = null)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.ORACLE, OracleClientFactory.Instance, new OracleDatabaseSpeciffic());
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.ORACLE, OracleClientFactory.Instance);
 
-        if (!string.IsNullOrEmpty(connectionStringName))
-            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
+        IConfigurationManager configurationManager = builder.Configuration;
+
+        DbConnectionFactory dbConnectionFactory = DbConnectionFactory.CreateFromConfiguration(
+            configurationManager,
+            connectionStringName,
+            DbConnectionType.Oracle,
+            new OracleDatabaseSpeciffic(),
+            commitNoWait,
+            timeZone);
+
+        builder.Services.AddKeyedSingleton<IDbConnectionFactory, DbConnectionFactory>(serviceKey, (_ /* serviceProvider */, _ /* object */) => dbConnectionFactory);
 
         return builder;
     }
 
-    public static void AddOracleZenDbAccessConnection(
+    public static void AddOracleZenDbAccessConnection<T>(
         this HostBuilderContext hostingContext,
-        string connectionStringName = "")
+        IServiceCollection services,
+        T serviceKey,
+        string connectionStringName = "",
+        bool commitNoWait = true,
+        string? timeZone = null)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.ORACLE, OracleClientFactory.Instance, new OracleDatabaseSpeciffic());
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.ORACLE, OracleClientFactory.Instance);
 
-        if (!string.IsNullOrEmpty(connectionStringName))
-            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
+        IConfiguration configuration = hostingContext.Configuration;
+
+        DbConnectionFactory dbConnectionFactory = DbConnectionFactory.CreateFromConfiguration(
+            configuration,
+            connectionStringName,
+            DbConnectionType.Oracle,
+            new OracleDatabaseSpeciffic(),
+            commitNoWait,
+            timeZone);
+
+        services.AddKeyedSingleton<IDbConnectionFactory, DbConnectionFactory>(serviceKey, (_ /* serviceProvider */, _ /* object */) => dbConnectionFactory);
     }
 }

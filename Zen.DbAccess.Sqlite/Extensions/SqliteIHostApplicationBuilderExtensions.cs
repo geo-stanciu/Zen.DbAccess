@@ -6,30 +6,57 @@ using Zen.DbAccess.Constants;
 using Zen.DbAccess.Factories;
 using System.Data.SQLite;
 using Zen.DbAccess.Enums;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Zen.DbAccess.Sqlite.Extensions;
 
 public static class SqliteIHostApplicationBuilderExtensions
 {
-    public static IHostApplicationBuilder AddSqliteZenDbAccessConnection(
+    public static IHostApplicationBuilder AddSqliteZenDbAccessConnection<T>(
         this IHostApplicationBuilder builder,
-        string connectionStringName = "")
+        T serviceKey,
+        string connectionStringName = "",
+        bool commitNoWait = true,
+        string? timeZone = null)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance, new DatabaseSpeciffic());
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
 
-        if (!string.IsNullOrEmpty(connectionStringName))
-            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
+        IConfigurationManager configurationManager = builder.Configuration;
+
+        DbConnectionFactory dbConnectionFactory = DbConnectionFactory.CreateFromConfiguration(
+            configurationManager,
+            connectionStringName,
+            DbConnectionType.Sqlite,
+            new DatabaseSpeciffic(),
+            commitNoWait,
+            timeZone);
+
+        builder.Services.AddKeyedSingleton<IDbConnectionFactory, DbConnectionFactory>(serviceKey, (_ /* serviceProvider */, _ /* object */) => dbConnectionFactory);
 
         return builder;
     }
 
-    public static void AddSqliteZenDbAccessConnection(
-       this HostBuilderContext hostingContext,
-       string connectionStringName = "")
+    public static void AddSqliteZenDbAccessConnection<T>(
+        this HostBuilderContext hostingContext,
+        IServiceCollection services,
+        T serviceKey,
+        string connectionStringName = "",
+        bool commitNoWait = true,
+        string? timeZone = null)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance, new DatabaseSpeciffic());
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
 
-        if (!string.IsNullOrEmpty(connectionStringName))
-            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
+        IConfiguration configuration = hostingContext.Configuration;
+
+        DbConnectionFactory dbConnectionFactory = DbConnectionFactory.CreateFromConfiguration(
+            configuration,
+            connectionStringName,
+            DbConnectionType.Sqlite,
+            new DatabaseSpeciffic(),
+            commitNoWait,
+            timeZone);
+
+        services.AddKeyedSingleton<IDbConnectionFactory, DbConnectionFactory>(serviceKey, (_ /* serviceProvider */, _ /* object */) => dbConnectionFactory);
     }
 }

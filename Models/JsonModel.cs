@@ -1,10 +1,9 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Zen.DbAccess.ContractResolvers;
 
 namespace Zen.DbAccess.Models;
 
@@ -12,11 +11,7 @@ public class JsonModel
 {
     public string ToJson()
     {
-        return JsonConvert.SerializeObject(
-            this,
-            Formatting.None,
-            new JsonSerializerSettings { ContractResolver = new JsonModelContractResolver() }
-        );
+        return JsonSerializer.Serialize(this);
     }
 
     public override string ToString()

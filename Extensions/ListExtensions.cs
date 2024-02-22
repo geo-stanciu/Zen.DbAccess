@@ -1,5 +1,4 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
@@ -7,10 +6,10 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Zen.DbAccess.Factories;
-using Zen.DbAccess.ContractResolvers;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Models;
 using Zen.DbAccess.Interfaces;
+using System.Text.Json;
 
 namespace Zen.DbAccess.Extensions;
 
@@ -351,11 +350,7 @@ public static class ListExtensions
     
     public static string ToJson<T>(this List<T> list)
     {
-        return JsonConvert.SerializeObject(
-            list,
-            Formatting.None,
-            new JsonSerializerSettings { ContractResolver = new JsonModelContractResolver() }
-        );
+        return JsonSerializer.Serialize(list);
     }
 
     public static string ToString<T>(this List<T> list)

@@ -19,57 +19,46 @@ namespace Zen.DbAccess.Extensions;
 public static class DbModelExtensions
 {
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tint = typeof(int);
 
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tintNull = typeof(int?);
 
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tlong = typeof(long);
 
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tlongNull = typeof(long?);
 
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tbool = typeof(bool);
 
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tboolNull = typeof(bool?);
 
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tdecimal = typeof(decimal);
 
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tdecimalNull = typeof(decimal?);
 
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tdatetime = typeof(DateTime);
 
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tdatetimeNull = typeof(DateTime?);
 
     [DbModelPropertyIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tString = typeof(string);
 

@@ -6,30 +6,57 @@ using Zen.DbAccess.Constants;
 using Zen.DbAccess.Factories;
 using Npgsql;
 using Zen.DbAccess.Enums;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Zen.DbAccess.Postgresql.Extensions;
 
 public static class PostgresqlIHostApplicationBuilderExtensions
 {
-    public static IHostApplicationBuilder AddPostgresqlZenDbAccessConnection(
+    public static IHostApplicationBuilder AddPostgresqlZenDbAccessConnection<T>(
         this IHostApplicationBuilder builder,
-        string connectionStringName = "")
+        T serviceKey,
+        string connectionStringName = "",
+        bool commitNoWait = true,
+        string? timeZone = null)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance, new PostgresqlDatabaseSpeciffic());
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance);
 
-        if (!string.IsNullOrEmpty(connectionStringName))
-            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
+        IConfigurationManager configurationManager = builder.Configuration;
+
+        DbConnectionFactory dbConnectionFactory = DbConnectionFactory.CreateFromConfiguration(
+            configurationManager,
+            connectionStringName,
+            DbConnectionType.Postgresql,
+            new PostgresqlDatabaseSpeciffic(),
+            commitNoWait,
+            timeZone);
+
+        builder.Services.AddKeyedSingleton<IDbConnectionFactory, DbConnectionFactory>(serviceKey, (_ /* serviceProvider */, _ /* object */) => dbConnectionFactory);
 
         return builder;
     }
 
-    public static void AddPostgresqlZenDbAccessConnection(
+    public static void AddPostgresqlZenDbAccessConnection<T>(
         this HostBuilderContext hostingContext,
-        string connectionStringName = "")
+        IServiceCollection services,
+        T serviceKey,
+        string connectionStringName = "",
+        bool commitNoWait = true,
+        string? timeZone = null)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance, new PostgresqlDatabaseSpeciffic());
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance);
 
-        if (!string.IsNullOrEmpty(connectionStringName))
-            DbConnectionFactory.RegisterConnectionDI(DbConnectionType.SqlServer, connectionStringName);
+        IConfiguration configuration = hostingContext.Configuration;
+
+        DbConnectionFactory dbConnectionFactory = DbConnectionFactory.CreateFromConfiguration(
+            configuration,
+            connectionStringName,
+            DbConnectionType.Postgresql,
+            new PostgresqlDatabaseSpeciffic(),
+            commitNoWait,
+            timeZone);
+
+        services.AddKeyedSingleton<IDbConnectionFactory, DbConnectionFactory>(serviceKey, (_ /* serviceProvider */, _ /* object */) => dbConnectionFactory);
     }
 }
