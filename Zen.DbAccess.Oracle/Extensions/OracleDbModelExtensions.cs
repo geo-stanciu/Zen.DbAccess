@@ -13,11 +13,7 @@ public static class OracleDbModelExtensions
 {
     public static bool IsClobDataType(this DbModel dbModel, PropertyInfo propertyInfo)
     {
-        object[] attrs = propertyInfo.GetCustomAttributes(true);
-
-        if (attrs == null || attrs.Length == 0)
-            return false;
-
-        return attrs.Any(x => x is ClobDbTypeAttribute || x is JsonDbTypeAttribute);
+        return Attribute.IsDefined(propertyInfo, typeof(ClobDbTypeAttribute))
+            || Attribute.IsDefined(propertyInfo, typeof(JsonDbTypeAttribute));
     }
 }

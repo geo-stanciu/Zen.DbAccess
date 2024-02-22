@@ -64,22 +64,12 @@ public static class DbModelExtensions
 
     public static bool HasAuditIgnoreAttribute(this DbModel dbModel,  PropertyInfo propertyInfo)
     {
-        object[] attrs = propertyInfo.GetCustomAttributes(true);
-
-        if (attrs == null || attrs.Length == 0)
-            return false;
-
-        return attrs.Any(x => x is AuditIgnoreAttribute);
+        return Attribute.IsDefined(propertyInfo, typeof(AuditIgnoreAttribute));
     }
 
     public static bool HasDbModelPropertyIgnoreAttribute(this DbModel dbModel, PropertyInfo propertyInfo)
     {
-        object[] attrs = propertyInfo.GetCustomAttributes(true);
-
-        if (attrs == null || attrs.Length == 0)
-            return false;
-
-        return attrs.Any(x => x is DbModelPropertyIgnoreAttribute);
+        return Attribute.IsDefined(propertyInfo, typeof(DbModelPropertyIgnoreAttribute));
     }
 
     private static async Task RefreshDbColumnsIfEmptyAsync(this DbModel dbModel, IZenDbConnection conn, string table)
@@ -274,12 +264,7 @@ public static class DbModelExtensions
             if (prop == null)
                 continue;
 
-            object[] attrs = prop.GetCustomAttributes(true);
-
-            if (attrs == null || attrs.Length == 0)
-                continue;
-
-            if (attrs.Any(x => x is PrimaryKeyAttribute))
+            if (Attribute.IsDefined(prop, typeof(PrimaryKeyAttribute)))
                 dbModel.dbModel_primaryKey_dbColumns.Add(dbCol);
         }
 

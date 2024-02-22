@@ -12,11 +12,6 @@ public static class PostgresqlDbModelExtentions
 {
     public static bool IsJsonDataType(this DbModel dbModel, PropertyInfo propertyInfo)
     {
-        object[] attrs = propertyInfo.GetCustomAttributes(true);
-
-        if (attrs == null || attrs.Length == 0)
-            return false;
-
-        return attrs.Any(x => x is JsonDbTypeAttribute);
+        return Attribute.IsDefined(propertyInfo, typeof(JsonDbTypeAttribute));
     }
 }
