@@ -105,6 +105,12 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
         {
             string sql = da.SelectCommand.CommandText;
             string procedureName = sql.IndexOf(".") > 0 ? sql.Substring(sql.IndexOf(".") + 1) : sql;
+            int endIdx = procedureName.IndexOf("(");
+
+            if (endIdx > 0)
+            {
+                procedureName = procedureName.Substring(0, endIdx);
+            }
 
             if (ds.Tables[0].Columns[0].ToString().ToLower() == procedureName.ToLower())
             {

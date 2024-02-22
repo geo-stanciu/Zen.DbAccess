@@ -77,34 +77,23 @@ public static class DBUtils
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(IZenDbConnection conn, string sql, params SqlParam[] parameters)
     {
-        DataTable? dt = null;
+        using DbCommand cmd = conn.Connection.CreateCommand();
 
-        await Task.Run(() =>
-        {
-            using DbCommand cmd = conn.Connection.CreateCommand();
+        if (conn.Transaction != null && cmd.Transaction == null)
+            cmd.Transaction = conn.Transaction;
 
-            if (conn.Transaction != null && cmd.Transaction == null)
-                cmd.Transaction = conn.Transaction;
+        conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
 
-            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
+        AddParameters(conn, cmd, parameters);
 
-            AddParameters(conn, cmd, parameters);
+        using DbDataAdapter da = conn.DatabaseSpeciffic.CreateDataAdapter(conn);
+        da.SelectCommand = cmd;
 
-            using DbDataAdapter da = conn.DatabaseSpeciffic.CreateDataAdapter(conn);
-            da.SelectCommand = cmd;
+        DataSet ds = await conn.DatabaseSpeciffic.ExecuteProcedure2DataSetAsync(conn, da);
 
-            dt = new DataTable();
-            da.Fill(dt);
+        DisposeLobParameters(conn, da.SelectCommand, parameters);
 
-            DisposeLobParameters(conn, da.SelectCommand, parameters);
-        });
-
-        return dt;
-    }
-
-    public static DataTable? ExecuteProcedure2DataTable(IZenDbConnection conn, DbCommand cmd)
-    {
-        return ExecuteProcedure2DataTableAsync(conn, cmd).Result;
+        return ds.Tables[0];
     }
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(IZenDbConnection conn, DbCommand cmd)
@@ -134,24 +123,21 @@ public static class DBUtils
     {
         DataSet? ds = null;
 
-        await Task.Run(async () =>
-        {
-            using DbCommand cmd = conn.Connection.CreateCommand();
+        using DbCommand cmd = conn.Connection.CreateCommand();
 
-            if (conn.Transaction != null && cmd.Transaction == null)
-                cmd.Transaction = conn.Transaction;
+        if (conn.Transaction != null && cmd.Transaction == null)
+            cmd.Transaction = conn.Transaction;
 
-            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: true, isTableReturn: false, parameters);
+        conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: true, isTableReturn: false, parameters);
 
-            AddParameters(conn, cmd, parameters);
+        AddParameters(conn, cmd, parameters);
 
-            using DbDataAdapter da = conn.DatabaseSpeciffic.CreateDataAdapter(conn);
-            da.SelectCommand = cmd;
+        using DbDataAdapter da = conn.DatabaseSpeciffic.CreateDataAdapter(conn);
+        da.SelectCommand = cmd;
 
-            await conn.DatabaseSpeciffic.ExecuteProcedure2DataSetAsync(conn, da);
+        ds = await conn.DatabaseSpeciffic.ExecuteProcedure2DataSetAsync(conn, da);
 
-            DisposeLobParameters(conn, da.SelectCommand, parameters);
-        });
+        DisposeLobParameters(conn, da.SelectCommand, parameters);
 
         return ds;
     }
@@ -165,14 +151,10 @@ public static class DBUtils
     {
         DataSet? ds = null;
 
-        await Task.Run(() =>
-        {
-            using DbDataAdapter da = conn.DatabaseSpeciffic.CreateDataAdapter(conn);
-            da.SelectCommand = cmd;
+        using DbDataAdapter da = conn.DatabaseSpeciffic.CreateDataAdapter(conn);
+        da.SelectCommand = cmd;
 
-            ds = new DataSet();
-            da.Fill(ds);
-        });
+        ds = await conn.DatabaseSpeciffic.ExecuteProcedure2DataSetAsync(conn, da);
 
         return ds;
     }

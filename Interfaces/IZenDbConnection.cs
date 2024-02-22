@@ -19,4 +19,5 @@ public interface IZenDbConnection : IAsyncDisposable
     Task BeginTransactionAsync();
     Task CommitAsync();
     Task RollbackAsync();
+    Task CloseAsync();
 }
