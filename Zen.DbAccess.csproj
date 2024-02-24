@@ -8,12 +8,14 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <VersionPrefix>2.0.9.0</VersionPrefix>
+    <VersionPrefix>2.0.9.1</VersionPrefix>
     <UserSecretsId>b9b0e847-7b4e-4206-9142-ae25cc595b97</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Examples\**" />
     <Compile Remove="Test.Zen.DbAccess\**" />
+    <None Remove="Examples\**" />
     <None Remove="Test.Zen.DbAccess\**" />
     <Compile Remove="Tests.Zen.DbAccess\**" />
     <None Remove="Tests.Zen.DbAccess\**" />
@@ -24,6 +26,7 @@
     <Compile Remove="Zen.DbAccess.Sqlite\**" />
     <None Remove="Zen.DbAccess.Sqlite\**" />
     <Compile Remove="Zen.DbAccess.SqlServer\**" />
+    <EmbeddedResource Remove="Examples\**" />
     <None Remove="Zen.DbAccess.SqlServer\**" />
   </ItemGroup>
 

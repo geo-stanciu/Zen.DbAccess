@@ -70,12 +70,24 @@ public interface IDbSpeciffic
     {
         if (!insertPrimaryKeyColumn && saveType != DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
         {
-            long id = Convert.ToInt64((await cmd.ExecuteScalarAsync())!.ToString());
+            object val = await cmd.ExecuteScalarAsync();
 
             if (model.dbModel_primaryKey_dbColumns != null && model.dbModel_primaryKey_dbColumns.Any())
             {
                 var pkProp = model.dbModel_dbColumn_map![model.dbModel_primaryKey_dbColumns[0]];
-                pkProp.SetValue(model, id, null);
+
+                if (pkProp.PropertyType == typeof(int))
+                {
+                    pkProp.SetValue(model, Convert.ToInt32(val), null);
+                }
+                else if (pkProp.PropertyType == typeof(long))
+                {
+                    pkProp.SetValue(model, Convert.ToInt64(val), null);
+                }
+                else
+                {
+                    pkProp.SetValue(model, val, null);
+                }
             }
         }
         else

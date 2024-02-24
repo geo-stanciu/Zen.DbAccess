@@ -115,11 +115,15 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
             {
                 var pkProp = model.dbModel_dbColumn_map![model.dbModel_primaryKey_dbColumns[0]];
 
-                try
+                if (pkProp.PropertyType == typeof(int))
+                {
+                    pkProp.SetValue(model, Convert.ToInt32(prm.Value), null);
+                }
+                else if (pkProp.PropertyType == typeof(long))
                 {
                     pkProp.SetValue(model, Convert.ToInt64(prm.Value), null);
                 }
-                catch
+                else
                 {
                     pkProp.SetValue(model, prm.Value, null);
                 }
