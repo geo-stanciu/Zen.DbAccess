@@ -1,5 +1,4 @@
 ﻿using DataAccess.Enum;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Collections.Generic;
@@ -14,8 +13,6 @@ public static class DatabaseAccessWebApplicationBuilderExtensions
 {
     public static void SetupDatabaseAccess(this IHostApplicationBuilder builder)
     {
-        IConfigurationSection appSettingsSection = builder.Configuration.GetSection("AppSettings");
-
         // setup zen db access
 
         builder
