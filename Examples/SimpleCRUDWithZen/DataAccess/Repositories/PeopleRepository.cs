@@ -13,20 +13,22 @@ using Zen.DbAccess.Models;
 
 namespace DataAccess.Repositories;
 
-public class SimpleRepository : ISimpleRepository
+public class PeopleRepository : IPeopleRepository
 {
     private readonly IDbConnectionFactory _dbConnectionFactory;
 
-    public SimpleRepository(
+    private const string TABLE_NAME = "person";
+
+    public PeopleRepository(
         [FromKeyedServices(DataSourceNames.Default)] IDbConnectionFactory dbConnectionFactory)
     {
         _dbConnectionFactory = dbConnectionFactory;
     }
 
-    public async Task CreateTableAsync()
+    public async Task CreateTablesAsync()
     {
         string sql = $"""
-            create table if not exists person (
+            create table if not exists {TABLE_NAME} (
                 id serial not null,
                 first_name varchar(128),
                 last_name varchar(128) not null,
@@ -37,29 +39,38 @@ public class SimpleRepository : ISimpleRepository
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory);
     }
 
-    public async Task<int> InsertPersonAsync(Person p)
+    public async Task DropTablesAsync()
     {
-        await p.SaveAsync(_dbConnectionFactory, "person");
+        string sql = $"""
+            drop table if exists {TABLE_NAME}
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory);
+    }
+
+    public async Task<int> CreateAsync(Person p)
+    {
+        await p.SaveAsync(_dbConnectionFactory, TABLE_NAME);
 
         return p.Id;
     }
 
-    public async Task UpdatePersonAsync(Person p)
+    public async Task UpdateAsync(Person p)
     {
-        await p.SaveAsync(_dbConnectionFactory, "person");
+        await p.SaveAsync(_dbConnectionFactory, TABLE_NAME);
     }
 
-    public async Task RemovePersonAsync(int id)
+    public async Task DeleteAsync(int id)
     {
-        var p = await GetPersonByIdAsync(id);
+        var p = await GetByIdAsync(id);
 
-        await p.DeleteAsync(_dbConnectionFactory, "person");
+        await p.DeleteAsync(_dbConnectionFactory, TABLE_NAME);
     }
 
-    public async Task<List<Person>> GetAllPeopleAsync()
+    public async Task<List<Person>> GetAllAsync()
     {
         string sql = $"""
-            select id, first_name, last_name from person order by id
+            select id, first_name, last_name from {TABLE_NAME} order by id
             """;
 
         var people = await sql.QueryAsync<Person>(_dbConnectionFactory);
@@ -70,10 +81,10 @@ public class SimpleRepository : ISimpleRepository
         return people;
     }
 
-    public async Task<Person> GetPersonByIdAsync(int personId)
+    public async Task<Person> GetByIdAsync(int personId)
     {
         string sql = $"""
-            select id, first_name, last_name from person where id = @Id
+            select id, first_name, last_name from {TABLE_NAME} where id = @Id
             """;
 
         var p = await sql.QueryRowAsync<Person>(_dbConnectionFactory, new SqlParam("@Id", personId));

@@ -10,6 +10,7 @@ using Zen.DbAccess.Enums;
 using Zen.DbAccess.Models;
 using Zen.DbAccess.Interfaces;
 using System.Text.Json;
+using Newtonsoft.Json;
 
 namespace Zen.DbAccess.Extensions;
 
@@ -350,7 +351,7 @@ public static class ListExtensions
     
     public static string ToJson<T>(this List<T> list)
     {
-        return JsonSerializer.Serialize(list);
+        return JsonConvert.SerializeObject(list);
     }
 
     public static string ToString<T>(this List<T> list)

@@ -18,47 +18,47 @@ namespace Zen.DbAccess.Extensions;
 
 public static class DbModelExtensions
 {
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tint = typeof(int);
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tintNull = typeof(int?);
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tlong = typeof(long);
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tlongNull = typeof(long?);
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tbool = typeof(bool);
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tboolNull = typeof(bool?);
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tdecimal = typeof(decimal);
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tdecimalNull = typeof(decimal?);
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tdatetime = typeof(DateTime);
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tdatetimeNull = typeof(DateTime?);
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     private static Type dbModel_tString = typeof(string);
 
@@ -69,7 +69,7 @@ public static class DbModelExtensions
 
     public static bool HasDbModelPropertyIgnoreAttribute(this DbModel dbModel, PropertyInfo propertyInfo)
     {
-        return Attribute.IsDefined(propertyInfo, typeof(DbModelPropertyIgnoreAttribute));
+        return Attribute.IsDefined(propertyInfo, typeof(DbIgnoreAttribute));
     }
 
     private static async Task RefreshDbColumnsIfEmptyAsync(this DbModel dbModel, IZenDbConnection conn, string table)

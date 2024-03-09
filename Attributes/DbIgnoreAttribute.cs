@@ -6,6 +6,6 @@ using System.Threading.Tasks;
 
 namespace Zen.DbAccess.Attributes;
 
-public class DbModelPropertyIgnoreAttribute : Attribute
+public class DbIgnoreAttribute : Attribute
 {
 }

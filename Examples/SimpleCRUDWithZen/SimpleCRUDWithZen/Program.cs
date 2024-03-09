@@ -12,7 +12,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.SetupDatabaseAccess();
-builder.Services.AddScoped<ISimpleRepository, SimpleRepository>();
+builder.Services.AddScoped<IPeopleRepository, PeopleRepository>();
 
 var app = builder.Build();
 
@@ -25,28 +25,37 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapPost("/createtables", async (ISimpleRepository repo) =>
+app.MapPost("/createtables", async (IPeopleRepository repo) =>
 {
-    await repo.CreateTableAsync();
+    await repo.CreateTablesAsync();
 
     return Results.NoContent();
 })
 .WithName("CreateTables")
 .WithOpenApi();
 
-
-app.MapGet("/people", async (ISimpleRepository repo) =>
+app.MapDelete("/droptables", async (IPeopleRepository repo) =>
 {
-    var people = await repo.GetAllPeopleAsync();
+    await repo.DropTablesAsync();
+
+    return Results.NoContent();
+})
+.WithName("DropTables")
+.WithOpenApi();
+
+
+app.MapGet("/people", async (IPeopleRepository repo) =>
+{
+    var people = await repo.GetAllAsync();
 
     return Results.Ok(people);
 })
 .WithName("GetPeople")
 .WithOpenApi();
 
-app.MapPost("/people", async ([FromBody] Person p, ISimpleRepository repo) =>
+app.MapPost("/people", async ([FromBody] Person p, IPeopleRepository repo) =>
 {
-    var personId = await repo.InsertPersonAsync(p);
+    var personId = await repo.CreateAsync(p);
     p.Id = personId;
 
     return Results.Created($"/people/{personId}", p);
@@ -54,29 +63,29 @@ app.MapPost("/people", async ([FromBody] Person p, ISimpleRepository repo) =>
 .WithName("CreatePerson")
 .WithOpenApi();
 
-app.MapGet("/people/{id}", async ([FromRoute] int id, ISimpleRepository repo) =>
+app.MapGet("/people/{id}", async ([FromRoute] int id, IPeopleRepository repo) =>
 {
-    var person = await repo.GetPersonByIdAsync(id);
+    var person = await repo.GetByIdAsync(id);
 
     return Results.Ok(person);
 })
 .WithName("GetPerson")
 .WithOpenApi();
 
-app.MapPut("/people/{id}", async ([FromRoute] int id, [FromBody] Person p, ISimpleRepository repo) =>
+app.MapPut("/people/{id}", async ([FromRoute] int id, [FromBody] Person p, IPeopleRepository repo) =>
 {
     p.Id = id;
 
-    await repo.UpdatePersonAsync(p);
+    await repo.UpdateAsync(p);
 
     return Results.NoContent();
 })
 .WithName("UpdatePerson")
 .WithOpenApi();
 
-app.MapDelete("/people/{id}", async ([FromRoute] int id, ISimpleRepository repo) =>
+app.MapDelete("/people/{id}", async ([FromRoute] int id, IPeopleRepository repo) =>
 {
-    await repo.RemovePersonAsync(id);
+    await repo.DeleteAsync(id);
 
     return Results.NoContent();
 })

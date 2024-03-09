@@ -12,31 +12,31 @@ namespace Zen.DbAccess.Models;
 
 public class DbModel : JsonModel
 {
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public DbSqlDeleteModel dbModel_sql_delete { get; set; } = new DbSqlDeleteModel();
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public DbSqlUpdateModel dbModel_sql_update { get; set; } = new DbSqlUpdateModel();
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public DbSqlInsertModel dbModel_sql_insert { get; set; } = new DbSqlInsertModel();
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public HashSet<string>? dbModel_dbColumns { get; set; } = null;
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public List<string>? dbModel_primaryKey_dbColumns { get; set; } = null;
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public Dictionary<string, PropertyInfo>? dbModel_dbColumn_map { get; set; } = null;
 
-    [DbModelPropertyIgnore]
+    [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     public Dictionary<string, string>? dbModel_prop_map { get; set; } = null;
 
