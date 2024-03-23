@@ -183,26 +183,6 @@ public static class DbClientExtensions
         return await DBUtils.QueryDataSetAsync(conn, query, parameters);
     }
 
-    public static async Task<List<T>> FetchAsync<T>(this string tableName, IDbConnectionFactory dbConnectionFactory, string? filter = null, string? orderBy = null, int? skip = null, int? take = null, params SqlParam[] parameters) where T : DbModel
-    {
-        throw new NotImplementedException();
-    }
-
-    public static async Task<T> FetchRowAsync<T>(this string tableName, IDbConnectionFactory dbConnectionFactory, string? filter = null, params SqlParam[] parameters) where T : DbModel
-    {
-        throw new NotImplementedException();
-    }
-
-    public static async Task<List<T>> FetchAsync<T>(this string tableName, IZenDbConnection conn, string? filter = null, string? orderBy = null, int? skip = null, int? take = null, params SqlParam[] parameters) where T : DbModel
-    {
-        throw new NotImplementedException();
-    }
-
-    public static async Task<T> FetchRowAsync<T>(this string tableName, IZenDbConnection conn, string? filter = null, params SqlParam[] parameters) where T : DbModel
-    {
-        throw new NotImplementedException();
-    }
-
     public static void UpdateTable<T>(this string tableName, IDbConnectionFactory dbConnectionFactory, T model)
     {
         DBUtils.UpdateTableAsync(dbConnectionFactory, tableName, model).Wait();

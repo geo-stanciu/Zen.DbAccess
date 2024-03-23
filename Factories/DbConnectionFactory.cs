@@ -12,6 +12,7 @@ using Zen.DbAccess.Enums;
 using Zen.DbAccess.Models;
 using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Utils;
+using System.Diagnostics.Tracing;
 
 namespace Zen.DbAccess.Factories;
 
@@ -23,7 +24,7 @@ public class DbConnectionFactory : IDbConnectionFactory
     private string? _timeZone;
     private IDbSpeciffic? _dbSpeciffic;
 
-    private DbConnectionFactory(DbConnectionType dbType, string conn_str, IDbSpeciffic? dbSpeciffic = null, bool commitNoWait = true, string timeZone = "")
+    public DbConnectionFactory(DbConnectionType dbType, string conn_str, IDbSpeciffic? dbSpeciffic = null, bool commitNoWait = true, string timeZone = "")
     {
         _dbType = dbType;
         _connStr = conn_str;
@@ -68,6 +69,11 @@ public class DbConnectionFactory : IDbConnectionFactory
 
     public static void RegisterDatabaseFactory(string factoryName, DbProviderFactory dbProviderFactory)
     {
+        if (DbProviderFactories.TryGetFactory(factoryName, out _))
+        {
+            return;
+        }
+
         DbProviderFactories.RegisterFactory(factoryName, dbProviderFactory);
     }
 
@@ -167,7 +173,6 @@ public class DbConnectionFactory : IDbConnectionFactory
         bool commitNoWait = true,
         string? timeZone = null)
     {
-        DbConnectionFactory? dbConnectionFactory = null;
         string? connString = configuration.GetConnectionString(connectionStringName);
 
         if (!string.IsNullOrEmpty(connString))

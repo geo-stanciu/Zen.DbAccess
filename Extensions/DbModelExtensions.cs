@@ -20,46 +20,57 @@ public static class DbModelExtensions
 {
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tint = typeof(int);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tintNull = typeof(int?);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tlong = typeof(long);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tlongNull = typeof(long?);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tbool = typeof(bool);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tboolNull = typeof(bool?);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tdecimal = typeof(decimal);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tdecimalNull = typeof(decimal?);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tdatetime = typeof(DateTime);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tdatetimeNull = typeof(DateTime?);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tString = typeof(string);
 
     public static bool HasAuditIgnoreAttribute(this DbModel dbModel,  PropertyInfo propertyInfo)
