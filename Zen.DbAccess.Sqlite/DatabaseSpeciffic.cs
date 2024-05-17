@@ -93,10 +93,11 @@ public class DatabaseSpeciffic : IDbSpeciffic
                     sbInsertValues.Append(", ");
                 }
 
-                string dbCol = firstModel!.dbModel_prop_map![propertyInfo.Name];
+                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
 
                 if (!insertPrimaryKeyColumn
-                    && firstModel.dbModel_primaryKey_dbColumns!.Any(x => x == dbCol))
+                    && !string.IsNullOrEmpty(dbCol)
+                    && firstModel.IsPartOfThePrimaryKey(dbCol))
                 {
                     if (firstRow)
                         sbInsert.Append($" {propertyInfo.Name} ");
@@ -174,7 +175,7 @@ public class DatabaseSpeciffic : IDbSpeciffic
                     sbInsertValues.Append(", ");
                 }
 
-                string dbCol = firstModel!.dbModel_prop_map![propertyInfo.Name];
+                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
 
                 if (firstRow)
                     sbInsert.Append($" {dbCol} ");

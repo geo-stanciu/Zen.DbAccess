@@ -111,9 +111,9 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
             if (prm.Direction != ParameterDirection.Output)
                 continue;
 
-            if (model.dbModel_primaryKey_dbColumns != null && model.dbModel_primaryKey_dbColumns.Any() && prm.Value != null && prm.Value != DBNull.Value)
+            if (model.HasPrimaryKey() && prm.Value != null && prm.Value != DBNull.Value)
             {
-                var pkProp = model.dbModel_dbColumn_map![model.dbModel_primaryKey_dbColumns[0]];
+                var pkProp = model.GetPrimaryKeyProperties().First();
 
                 if (pkProp.PropertyType == typeof(int))
                 {
@@ -162,10 +162,12 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
     {
         string sql;
 
-        if (model.dbModel_primaryKey_dbColumns!.Count == 1)
-            sql = $" returning {model.dbModel_primaryKey_dbColumns[0]} into @p_out_id ";
+        var pkProps = model.GetPrimaryKeyProperties();
+
+        if (pkProps.Count == 1)
+            sql = $" returning {model.GetMappedProperty(pkProps.First().Name)} into @p_out_id ";
         else
-            sql = $" returning {model.dbModel_prop_map![firstPropertyName]} into @p_out_id ";
+            sql = $" returning {model.GetMappedProperty(firstPropertyName)} into @p_out_id ";
 
         SqlParam prm = new SqlParam($"@p_out_id") { paramDirection = ParameterDirection.Output };
 
@@ -193,7 +195,7 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
             return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
-        List<string> primaryKeyColumns = firstModel.dbModel_primaryKey_dbColumns!;
+        List<string>? primaryKeyColumns = firstModel.GetPrimaryKeyColumns();
 
         for (int i = 1; i < list.Count; i++)
         {
@@ -207,10 +209,11 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
 
             foreach (PropertyInfo propertyInfo in propertiesToInsert)
             {
-                string dbCol = firstModel!.dbModel_prop_map![propertyInfo.Name];
+                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
 
                 if (!insertPrimaryKeyColumn
                     && string.IsNullOrEmpty(sequence2UseForPrimaryKey)
+                    && !string.IsNullOrEmpty(dbCol)
                     && primaryKeyColumns.Any(x => x == dbCol))
                 {
                     continue;
@@ -294,7 +297,7 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
                     sbInsertValues.Append(", ");
                 }
 
-                string dbCol = firstModel!.dbModel_prop_map![propertyInfo.Name];
+                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
 
                 sbInsert.Append($" {dbCol} ");
                 sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");

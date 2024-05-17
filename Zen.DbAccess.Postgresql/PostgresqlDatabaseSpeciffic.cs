@@ -152,7 +152,7 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
 
         SqlParam p_serial_id = new SqlParam(
             $"@p_serial_id",
-            model.dbModel_primaryKey_dbColumns.Any() ? model.dbModel_primaryKey_dbColumns![0] : model.dbModel_prop_map![firstPropertyName]);
+            model.HasPrimaryKey() ? model.GetPrimaryKeyProperties().First() : model.GetMappedProperty(firstPropertyName));
 
         return (sql, new[] { p_serial_table, p_serial_id });
     }
@@ -200,10 +200,11 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
                     sbInsertValues.Append(", ");
                 }
 
-                string dbCol = firstModel!.dbModel_prop_map![propertyInfo.Name];
+                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
 
                 if (!insertPrimaryKeyColumn
-                    && firstModel.dbModel_primaryKey_dbColumns!.Any(x => x == dbCol))
+                    && !string.IsNullOrEmpty(dbCol)
+                    && firstModel.IsPartOfThePrimaryKey(dbCol))
                 {
                     if (firstRow)
                         sbInsert.Append($" {dbCol} ");
@@ -287,7 +288,7 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
                     sbInsertValues.Append(", ");
                 }
 
-                string dbCol = firstModel!.dbModel_prop_map![propertyInfo.Name];
+                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
 
                 if (firstRow)
                     sbInsert.Append($" {dbCol} ");

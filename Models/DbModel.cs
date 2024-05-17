@@ -15,37 +15,84 @@ public class DbModel : JsonModel
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
-    public DbSqlDeleteModel dbModel_sql_delete { get; set; } = new DbSqlDeleteModel();
+    internal DbSqlDeleteModel dbModel_sql_delete { get; set; } = new DbSqlDeleteModel();
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
-    public DbSqlUpdateModel dbModel_sql_update { get; set; } = new DbSqlUpdateModel();
+    internal DbSqlUpdateModel dbModel_sql_update { get; set; } = new DbSqlUpdateModel();
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
-    public DbSqlInsertModel dbModel_sql_insert { get; set; } = new DbSqlInsertModel();
+    internal DbSqlInsertModel dbModel_sql_insert { get; set; } = new DbSqlInsertModel();
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
-    public HashSet<string>? dbModel_dbColumns { get; set; } = null;
+    internal HashSet<string>? dbModel_dbColumns { get; set; } = null;
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
-    public List<string>? dbModel_primaryKey_dbColumns { get; set; } = null;
+    internal List<string>? dbModel_primaryKey_dbColumns { get; set; } = null;
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
-    public Dictionary<string, PropertyInfo>? dbModel_dbColumn_map { get; set; } = null;
+    internal Dictionary<string, PropertyInfo>? dbModel_dbColumn_map { get; set; } = null;
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
-    public Dictionary<string, string>? dbModel_prop_map { get; set; } = null;
+    internal Dictionary<string, string>? dbModel_prop_map { get; set; } = null;
+
+    public bool HasPrimaryKey()
+    {
+        if (dbModel_primaryKey_dbColumns == null)
+        {
+            return false;
+        }
+
+        return dbModel_primaryKey_dbColumns.Any();
+    }
+
+    public List<string>? GetPrimaryKeyColumns()
+    {
+        return dbModel_primaryKey_dbColumns;
+    }
+
+    public List<PropertyInfo> GetPrimaryKeyProperties()
+    {
+        if (!HasPrimaryKey() || dbModel_dbColumn_map == null || !dbModel_dbColumn_map.Any())
+        {
+            return new();
+        }
+
+        return dbModel_primaryKey_dbColumns
+            .Select(x => dbModel_dbColumn_map[x])
+            .ToList();
+    }
+
+    public bool IsPartOfThePrimaryKey(string dbColumn)
+    {
+        if (dbModel_primaryKey_dbColumns == null)
+        {
+            return false;
+        }
+
+        return dbModel_primaryKey_dbColumns.Any(x => x == dbColumn);
+    }
+
+    public string? GetMappedProperty(string name)
+    {
+        if (dbModel_prop_map == null || !dbModel_prop_map.TryGetValue(name, out var propName))
+        {
+            return null;
+        }
+
+        return propName;
+    }
 
     public void CopyDbModelPropsFrom(DbModel model)
     {
