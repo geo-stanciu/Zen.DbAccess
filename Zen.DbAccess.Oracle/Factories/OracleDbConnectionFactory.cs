@@ -11,7 +11,11 @@ namespace Zen.DbAccess.Oracle.Factories;
 
 public static class OracleDbConnectionFactory
 {
-    public static DbConnectionFactory Create(string conn_str, bool commitNoWait = true, string timeZone = "")
+    public static DbConnectionFactory Create(
+        string conn_str,
+        bool commitNoWait = true,
+        string timeZone = "",
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.ORACLE, OracleClientFactory.Instance);
 
@@ -20,6 +24,7 @@ public static class OracleDbConnectionFactory
             conn_str,
             new OracleDatabaseSpeciffic(),
             commitNoWait,
-            timeZone);
+            timeZone,
+            dbNamingConvention);
     }
 }

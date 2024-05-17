@@ -18,7 +18,8 @@ public static class SqliteIHostApplicationBuilderExtensions
         T serviceKey,
         string connectionStringName = "",
         bool commitNoWait = true,
-        string? timeZone = null)
+        string? timeZone = null,
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
 
@@ -30,7 +31,8 @@ public static class SqliteIHostApplicationBuilderExtensions
             DbConnectionType.Sqlite,
             new DatabaseSpeciffic(),
             commitNoWait,
-            timeZone);
+            timeZone,
+            dbNamingConvention);
 
         builder.Services.AddKeyedSingleton<IDbConnectionFactory, DbConnectionFactory>(serviceKey, (_ /* serviceProvider */, _ /* object */) => dbConnectionFactory);
 
@@ -43,7 +45,8 @@ public static class SqliteIHostApplicationBuilderExtensions
         T serviceKey,
         string connectionStringName = "",
         bool commitNoWait = true,
-        string? timeZone = null)
+        string? timeZone = null,
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
 
@@ -55,7 +58,8 @@ public static class SqliteIHostApplicationBuilderExtensions
             DbConnectionType.Sqlite,
             new DatabaseSpeciffic(),
             commitNoWait,
-            timeZone);
+            timeZone,
+            dbNamingConvention);
 
         services.AddKeyedSingleton<IDbConnectionFactory, DbConnectionFactory>(serviceKey, (_ /* serviceProvider */, _ /* object */) => dbConnectionFactory);
     }

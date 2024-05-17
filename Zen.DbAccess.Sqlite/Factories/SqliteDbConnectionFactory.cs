@@ -12,7 +12,11 @@ namespace Zen.DbAccess.Sqlite.Factories;
 
 public static class SqliteDbConnectionFactory
 {
-    public static DbConnectionFactory Create(string conn_str, bool commitNoWait = true, string timeZone = "")
+    public static DbConnectionFactory Create(
+        string conn_str,
+        bool commitNoWait = true,
+        string timeZone = "",
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
 
@@ -21,6 +25,7 @@ public static class SqliteDbConnectionFactory
             conn_str,
             new DatabaseSpeciffic(),
             commitNoWait,
-            timeZone);
+            timeZone,
+            dbNamingConvention);
     }
 }

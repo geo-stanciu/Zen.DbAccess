@@ -11,7 +11,11 @@ namespace Zen.DbAccess.Postgresql.Factories;
 
 public static class PostgresqlDbConnectionFactory
 {
-    public static DbConnectionFactory Create(string conn_str, bool commitNoWait = true, string timeZone = "")
+    public static DbConnectionFactory Create(
+        string conn_str,
+        bool commitNoWait = true,
+        string timeZone = "",
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.POSTGRESQL, NpgsqlFactory.Instance);
 
@@ -20,6 +24,7 @@ public static class PostgresqlDbConnectionFactory
             conn_str,
             new PostgresqlDatabaseSpeciffic(),
             commitNoWait,
-            timeZone);
+            timeZone,
+            dbNamingConvention);
     }
 }

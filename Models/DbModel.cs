@@ -47,53 +47,6 @@ public class DbModel : JsonModel
     [Newtonsoft.Json.JsonIgnore]
     internal Dictionary<string, string>? dbModel_prop_map { get; set; } = null;
 
-    public bool HasPrimaryKey()
-    {
-        if (dbModel_primaryKey_dbColumns == null)
-        {
-            return false;
-        }
-
-        return dbModel_primaryKey_dbColumns.Any();
-    }
-
-    public List<string>? GetPrimaryKeyColumns()
-    {
-        return dbModel_primaryKey_dbColumns;
-    }
-
-    public List<PropertyInfo> GetPrimaryKeyProperties()
-    {
-        if (!HasPrimaryKey() || dbModel_dbColumn_map == null || !dbModel_dbColumn_map.Any())
-        {
-            return new();
-        }
-
-        return dbModel_primaryKey_dbColumns
-            .Select(x => dbModel_dbColumn_map[x])
-            .ToList();
-    }
-
-    public bool IsPartOfThePrimaryKey(string dbColumn)
-    {
-        if (dbModel_primaryKey_dbColumns == null)
-        {
-            return false;
-        }
-
-        return dbModel_primaryKey_dbColumns.Any(x => x == dbColumn);
-    }
-
-    public string? GetMappedProperty(string name)
-    {
-        if (dbModel_prop_map == null || !dbModel_prop_map.TryGetValue(name, out var propName))
-        {
-            return null;
-        }
-
-        return propName;
-    }
-
     public void CopyDbModelPropsFrom(DbModel model)
     {
         dbModel_sql_delete = model.dbModel_sql_delete;

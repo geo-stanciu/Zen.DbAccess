@@ -16,21 +16,33 @@ public class ZenDbConnection : IZenDbConnection
     private DbTransaction? _tx = null;
     private DbConnectionType _dbType;
     private IDbSpeciffic? _dbSpeciffic = null;
+    private DbNamingConvention _dbNamingConvention = DbNamingConvention.SnakeCase;
 
-    public ZenDbConnection(DbConnection conn, DbConnectionType dbType, IDbSpeciffic? dbSpeciffic)
+    public ZenDbConnection(
+        DbConnection conn,
+        DbConnectionType dbType,
+        IDbSpeciffic? dbSpeciffic,
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         _conn = conn;
         _tx = null;
         _dbType = dbType;
         _dbSpeciffic = dbSpeciffic;
+        _dbNamingConvention = dbNamingConvention;
     }
 
-    public ZenDbConnection(DbConnection conn, DbTransaction? tx, DbConnectionType dbType, IDbSpeciffic? dbSpeciffic)
+    public ZenDbConnection(
+        DbConnection conn,
+        DbTransaction? tx,
+        DbConnectionType dbType,
+        IDbSpeciffic? dbSpeciffic,
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         _conn = conn;
         _tx = tx;
         _dbType = dbType;
         _dbSpeciffic = dbSpeciffic;
+        _dbNamingConvention = dbNamingConvention;
     }
 
     public DbConnection Connection
@@ -55,6 +67,14 @@ public class ZenDbConnection : IZenDbConnection
                 throw new NullReferenceException(nameof(DatabaseSpeciffic));
 
             return _dbSpeciffic;
+        }
+    }
+
+    public DbNamingConvention NamingConvention 
+    {
+        get
+        {
+            return _dbNamingConvention;
         }
     }
 

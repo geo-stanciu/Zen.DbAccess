@@ -23,14 +23,22 @@ public class DbConnectionFactory : IDbConnectionFactory
     private DbConnectionType? _dbType;
     private string? _timeZone;
     private IDbSpeciffic? _dbSpeciffic;
+    private DbNamingConvention _dbNamingConvention;
 
-    public DbConnectionFactory(DbConnectionType dbType, string conn_str, IDbSpeciffic? dbSpeciffic = null, bool commitNoWait = true, string timeZone = "")
+    public DbConnectionFactory(
+        DbConnectionType dbType,
+        string conn_str,
+        IDbSpeciffic? dbSpeciffic = null,
+        bool commitNoWait = true,
+        string timeZone = "",
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         _dbType = dbType;
         _connStr = conn_str;
         _commitNoWait = commitNoWait;
         _timeZone = timeZone;
         _dbSpeciffic = dbSpeciffic;
+        _dbNamingConvention = dbNamingConvention;
     }
 
     public DbConnectionType DbType
@@ -145,7 +153,8 @@ public class DbConnectionFactory : IDbConnectionFactory
         DbConnectionType dbType,
         IDbSpeciffic? dbSpeciffic = null,
         bool commitNoWait = true,
-        string? timeZone = null)
+        string? timeZone = null,
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         string? connString = configurationManager.GetConnectionString(connectionStringName);
 
@@ -162,7 +171,7 @@ public class DbConnectionFactory : IDbConnectionFactory
         if (connStringModel == null)
             throw new NullReferenceException(nameof(connStringModel));
 
-        return GetDbConnectionFactoryFromConnectionSection(connStringModel, dbSpeciffic, commitNoWait);
+        return GetDbConnectionFactoryFromConnectionSection(connStringModel, dbSpeciffic, commitNoWait, dbNamingConvention);
     }
 
     public static DbConnectionFactory CreateFromConfiguration(
@@ -171,7 +180,8 @@ public class DbConnectionFactory : IDbConnectionFactory
         DbConnectionType dbType,
         IDbSpeciffic? dbSpeciffic = null,
         bool commitNoWait = true,
-        string? timeZone = null)
+        string? timeZone = null,
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         string? connString = configuration.GetConnectionString(connectionStringName);
 
@@ -188,7 +198,7 @@ public class DbConnectionFactory : IDbConnectionFactory
         if (connStringModel == null)
             throw new NullReferenceException(nameof(connStringModel));
 
-        return GetDbConnectionFactoryFromConnectionSection(connStringModel, dbSpeciffic, commitNoWait);
+        return GetDbConnectionFactoryFromConnectionSection(connStringModel, dbSpeciffic, commitNoWait, dbNamingConvention);
     }
 
     private static DbConnectionFactory GetDbConnectionFactoryWithConnectionString(
@@ -196,14 +206,16 @@ public class DbConnectionFactory : IDbConnectionFactory
         DbConnectionType dbType,
         IDbSpeciffic? dbSpeciffic = null,
         bool commitNoWait = true,
-        string? timeZone = null)
+        string? timeZone = null,
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         DbConnectionFactory dbConnectionFactory = new DbConnectionFactory(
                 dbType,
                 connString,
                 dbSpeciffic,
                 commitNoWait,
-                timeZone ?? "UTC"
+                timeZone ?? "UTC",
+                dbNamingConvention
             );
 
         return dbConnectionFactory;
@@ -212,14 +224,16 @@ public class DbConnectionFactory : IDbConnectionFactory
     private static DbConnectionFactory GetDbConnectionFactoryFromConnectionSection(
         ConnectionStringModel connStringModel,
         IDbSpeciffic? dbSpeciffic = null,
-        bool commitNoWait = true)
+        bool commitNoWait = true,
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         DbConnectionFactory dbConnectionFactory = new DbConnectionFactory(
             connStringModel.DbConnectionType,
             connStringModel.ConnectionString,
             dbSpeciffic,
             commitNoWait,
-            connStringModel.TimeZone
+            connStringModel.TimeZone,
+            dbNamingConvention
         );
 
         return dbConnectionFactory;

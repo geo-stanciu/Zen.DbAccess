@@ -12,7 +12,11 @@ namespace Zen.DbAccess.SqlServer.Factories;
 
 public static class ServerDbConnectionFactory
 {
-    public static DbConnectionFactory Create(string conn_str, bool commitNoWait = true, string timeZone = "")
+    public static DbConnectionFactory Create(
+        string conn_str,
+        bool commitNoWait = true,
+        string timeZone = "",
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance);
 
@@ -21,6 +25,7 @@ public static class ServerDbConnectionFactory
             conn_str,
             new SqlServerDatabaseSpeciffic(),
             commitNoWait,
-            timeZone);
+            timeZone,
+            dbNamingConvention);
     }
 }

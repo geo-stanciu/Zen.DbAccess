@@ -18,7 +18,8 @@ public static class SqlServerIHostApplicationBuilderExtensions
         T serviceKey,
         string connectionStringName = "",
         bool commitNoWait = true,
-        string? timeZone = null)
+        string? timeZone = null,
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance);
 
@@ -43,7 +44,8 @@ public static class SqlServerIHostApplicationBuilderExtensions
         T serviceKey,
         string connectionStringName = "",
         bool commitNoWait = true,
-        string? timeZone = null)
+        string? timeZone = null,
+        DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
         DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance);
 
@@ -55,7 +57,8 @@ public static class SqlServerIHostApplicationBuilderExtensions
             DbConnectionType.SqlServer,
             new SqlServerDatabaseSpeciffic(),
             commitNoWait,
-            timeZone);
+            timeZone,
+            dbNamingConvention);
 
         services.AddKeyedSingleton<IDbConnectionFactory, DbConnectionFactory>(serviceKey, (_ /* serviceProvider */, _ /* object */) => dbConnectionFactory);
     }

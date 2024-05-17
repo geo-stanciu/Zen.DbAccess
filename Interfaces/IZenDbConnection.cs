@@ -14,6 +14,7 @@ public interface IZenDbConnection : IAsyncDisposable
     DbTransaction? Transaction { get; }
     DbConnectionType DbType { get; }
     IDbSpeciffic DatabaseSpeciffic { get; }
+    DbNamingConvention NamingConvention { get; }
 
 
     Task BeginTransactionAsync();

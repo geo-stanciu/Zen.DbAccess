@@ -204,7 +204,7 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
 
                 if (!insertPrimaryKeyColumn
                     && !string.IsNullOrEmpty(dbCol)
-                    && firstModel.IsPartOfThePrimaryKey(dbCol))
+                    && firstModel!.IsPartOfThePrimaryKey(dbCol))
                 {
                     if (firstRow)
                         sbInsert.Append($" {dbCol} ");
