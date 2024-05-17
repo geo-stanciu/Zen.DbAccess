@@ -98,7 +98,7 @@ public static class DbModelExtensions
         dbModel.dbModel_dbColumn_map = new Dictionary<string, PropertyInfo>();
         dbModel.dbModel_prop_map = new Dictionary<string, string>();
 
-        var properties = dbModel.GetType().GetProperties(BindingFlags.Public);
+        var properties = dbModel.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
 
         foreach (var property in properties)
         {
@@ -586,6 +586,11 @@ public static class DbModelExtensions
         bool insertPrimaryKeyColumn = false,
         string sequence2UseForPrimaryKey = "")
     {
+        if (string.IsNullOrEmpty(dbModel.dbModel_table) || table != dbModel.dbModel_table)
+        {
+            dbModel.ResetDbModel();
+        }
+
         RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
 
         if (saveType == DbModelSaveType.InsertUpdate && PrimaryKeyFieldsHaveValues(dbModel))

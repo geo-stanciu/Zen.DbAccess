@@ -15,6 +15,11 @@ public class DbModel : JsonModel
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
+    internal string? dbModel_table { get; set; } = null;
+
+    [DbIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    [Newtonsoft.Json.JsonIgnore]
     internal DbSqlDeleteModel dbModel_sql_delete { get; set; } = new DbSqlDeleteModel();
 
     [DbIgnore]
@@ -47,8 +52,21 @@ public class DbModel : JsonModel
     [Newtonsoft.Json.JsonIgnore]
     internal Dictionary<string, string>? dbModel_prop_map { get; set; } = null;
 
+    public void ResetDbModel()
+    {
+        dbModel_table = null;
+        dbModel_sql_delete = new();
+        dbModel_sql_update = new();
+        dbModel_sql_insert = new();
+        dbModel_dbColumns = null;
+        dbModel_primaryKey_dbColumns = null;
+        dbModel_dbColumn_map = null;
+        dbModel_prop_map = null;
+    }
+
     public void CopyDbModelPropsFrom(DbModel model)
     {
+        dbModel_table = model.dbModel_table;
         dbModel_sql_delete = model.dbModel_sql_delete;
         dbModel_sql_update = model.dbModel_sql_update;
         dbModel_sql_insert = model.dbModel_sql_insert;
