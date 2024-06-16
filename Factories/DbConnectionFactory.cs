@@ -156,6 +156,9 @@ public class DbConnectionFactory : IDbConnectionFactory
         string? timeZone = null,
         DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
+        if (string.IsNullOrEmpty(connectionStringName))
+            return GetDbConnectionFactoryFromConnectionSection(new ConnectionStringModel { DbType = $"{dbType}" }, dbSpeciffic, commitNoWait, dbNamingConvention);
+
         string? connString = configurationManager.GetConnectionString(connectionStringName);
 
         if (!string.IsNullOrEmpty(connString))
@@ -183,6 +186,9 @@ public class DbConnectionFactory : IDbConnectionFactory
         string? timeZone = null,
         DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
+        if (string.IsNullOrEmpty(connectionStringName))
+            return GetDbConnectionFactoryFromConnectionSection(new ConnectionStringModel { DbType = $"{dbType}" }, dbSpeciffic, commitNoWait, dbNamingConvention);
+
         string? connString = configuration.GetConnectionString(connectionStringName);
 
         if (!string.IsNullOrEmpty(connString))
