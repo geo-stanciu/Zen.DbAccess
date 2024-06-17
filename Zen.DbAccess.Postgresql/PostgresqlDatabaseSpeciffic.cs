@@ -171,14 +171,12 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn);
-
-        if (list.Count <= 1)
-            return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
+        firstModel.ResetDbModel();
+        await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, table);
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn);
 
-        for (int i = 1; i < list.Count; i++)
+        for (int i = 0; i < list.Count; i++)
         {
             T model = list[i];
 
@@ -259,14 +257,12 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
         sbInsert.AppendLine($"insert into {table} ( ");
 
         T firstModel = list.First();
-        await firstModel.SaveAsync(DbModelSaveType.InsertOnly, conn, table, insertPrimaryKeyColumn: false);
-
-        if (list.Count <= 1)
-            return new Tuple<string, SqlParam[]>("", Array.Empty<SqlParam>());
+        firstModel.ResetDbModel();
+        await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, table);
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false);
 
-        for (int i = 1; i < list.Count; i++)
+        for (int i = 0; i < list.Count; i++)
         {
             T model = list[i];
 

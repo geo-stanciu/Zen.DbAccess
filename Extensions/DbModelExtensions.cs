@@ -98,7 +98,11 @@ public static class DbModelExtensions
         dbModel.dbModel_dbColumn_map = new Dictionary<string, PropertyInfo>();
         dbModel.dbModel_prop_map = new Dictionary<string, string>();
 
-        var properties = dbModel.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
+        var properties = dbModel
+            .GetType()
+            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+            .Where(x => !dbModel.HasDbModelPropertyIgnoreAttribute(x))
+            .ToArray();
 
         foreach (var property in properties)
         {
