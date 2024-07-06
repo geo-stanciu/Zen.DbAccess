@@ -50,7 +50,7 @@ public static class DBUtils
             if (conn.Transaction != null && cmd.Transaction == null)
                 cmd.Transaction = conn.Transaction;
 
-            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
+            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: false, isTableReturn: false, parameters);
 
             AddParameters(conn, cmd, parameters);
 
