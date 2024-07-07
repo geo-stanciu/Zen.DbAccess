@@ -97,7 +97,15 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
     }
 
     public async Task<DataSet> ExecuteProcedure2DataSetAsync(IZenDbConnection conn, DbDataAdapter da)
-    { 
+    {
+        bool isNewTransaction = false;
+
+        if (conn.Transaction == null)
+        {
+            await conn.BeginTransactionAsync();
+            isNewTransaction = true;
+        }
+
         DataSet ds = new DataSet();
         da.Fill(ds);
 
@@ -132,6 +140,11 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
                     }
                 }
             }
+        }
+
+        if (isNewTransaction && conn.Transaction != null)
+        {
+            await conn.CommitAsync();
         }
 
         return ds;
