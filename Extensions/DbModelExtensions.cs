@@ -234,7 +234,10 @@ public static class DbModelExtensions
             throw new NullReferenceException("dbModel_primaryKey_dbColumns");
 
         return dbModel.dbModel_dbColumns
-            .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x) && !dbModel.dbModel_primaryKey_dbColumns.Contains(x))
+            .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x)
+                        && !dbModel.dbModel_primaryKey_dbColumns.Contains(x)
+                        && !x.Equals("is_error", StringComparison.OrdinalIgnoreCase)
+                        && !x.Equals("error_message", StringComparison.OrdinalIgnoreCase))
             .Select(x => dbModel.dbModel_dbColumn_map[x])
             .ToList();
     }
@@ -252,6 +255,8 @@ public static class DbModelExtensions
 
         return dbModel.dbModel_dbColumns
             .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x)
+                        && !x.Equals("is_error", StringComparison.OrdinalIgnoreCase)
+                        && !x.Equals("error_message", StringComparison.OrdinalIgnoreCase)
                         && (insertPrimaryKeyColumn
                             || (!insertPrimaryKeyColumn && conn.DatabaseSpeciffic.UsePrimaryKeyPropertyForInsert() && !string.IsNullOrEmpty(sequence2UseForPrimaryKey))
                             || (!insertPrimaryKeyColumn && !dbModel.dbModel_primaryKey_dbColumns.Contains(x))

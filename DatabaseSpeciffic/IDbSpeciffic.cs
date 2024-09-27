@@ -18,6 +18,9 @@ public interface IDbSpeciffic
     {
         SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", propertyInfo.GetValue(model));
 
+        if (propertyInfo.PropertyType == typeof(byte[]))
+            prm.isBlob = true;
+
         return ($"@p_{propertyInfo.Name}", prm);
     }
 
