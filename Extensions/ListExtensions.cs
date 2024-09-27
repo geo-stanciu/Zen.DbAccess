@@ -70,7 +70,7 @@ public static class ListExtensions
             if (firstModel == null)
                 throw new NullReferenceException(nameof(firstModel));
 
-            await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, table);
+            firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
             int offset = 0;
             int take = Math.Min(list.Count - offset, 1024);
@@ -78,7 +78,7 @@ public static class ListExtensions
             while (offset < list.Count)
             {
                 List<T> batch = list.Skip(offset).Take(take).ToList();
-                Tuple<string, SqlParam[]> preparedQuery = await PrepareBulkInsertBatchAsync(
+                Tuple<string, SqlParam[]> preparedQuery = PrepareBulkInsertBatch(
                     batch,
                     conn,
                     table,
@@ -199,7 +199,7 @@ public static class ListExtensions
             if (firstModel == null)
                 throw new NullReferenceException(nameof(firstModel));
 
-            await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, table);
+            firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
             if (firstModel.dbModel_primaryKey_dbColumns == null || firstModel.dbModel_primaryKey_dbColumns!.Count == 0)
                 throw new NullReferenceException(nameof(firstModel.dbModel_primaryKey_dbColumns));
@@ -333,7 +333,7 @@ public static class ListExtensions
         return (sqlParams, sbDeleteSql.ToString());
     }
 
-    private static Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
+    private static Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(
         List<T> list,
         IZenDbConnection conn,
         string table,
@@ -343,10 +343,10 @@ public static class ListExtensions
     {
         if (!pkNames.Any())
         {
-            return conn.DatabaseSpeciffic.PrepareBulkInsertBatchAsync<T>(list, conn, table);
+            return conn.DatabaseSpeciffic.PrepareBulkInsertBatch<T>(list, conn, table);
         }
 
-        return conn.DatabaseSpeciffic.PrepareBulkInsertBatchWithSequenceAsync<T>(list, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+        return conn.DatabaseSpeciffic.PrepareBulkInsertBatchWithSequence<T>(list, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
     }
     
     public static string ToJson<T>(this List<T> list)

@@ -157,14 +157,14 @@ public interface IDbSpeciffic
 
     (string, IEnumerable<SqlParam>) GetInsertedIdQuery(string table, DbModel model, string firstPropertyName);
 
-    Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchWithSequenceAsync<T>(
+    Tuple<string, SqlParam[]> PrepareBulkInsertBatchWithSequence<T>(
        List<T> list,
        IZenDbConnection conn,
        string table,
        bool insertPrimaryKeyColumn,
        string sequence2UseForPrimaryKey) where T : DbModel;
 
-    Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
+    Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(
         List<T> list,
         IZenDbConnection conn,
         string table) where T : DbModel;

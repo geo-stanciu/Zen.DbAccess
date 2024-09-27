@@ -282,7 +282,7 @@ public static class DbModelExtensions
             .ToList();
     }
 
-    private static async Task ConstructUpdateQueryAsync(this DbModel dbModel, IZenDbConnection conn, string table)
+    private static void ConstructUpdateQuery(this DbModel dbModel, IZenDbConnection conn, string table)
     {
         RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
 
@@ -398,13 +398,13 @@ public static class DbModelExtensions
             throw new Exception("There must be a property with the [PrimaryKey] attribute.");
     }
 
-    public static async Task RefreshDbColumnsAndModelPropertiesAsync(this DbModel dbModel, IZenDbConnection conn, string table)
+    public static void RefreshDbColumnsAndModelProperties(this DbModel dbModel, IZenDbConnection conn, string table)
     {
         RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
         DeterminePrimaryKey(dbModel);
     }
 
-    private static async Task ConstructInsertQueryAsync(
+    private static void ConstructInsertQuery(
         this DbModel dbModel,
         DbModelSaveType saveType,
         IZenDbConnection conn,
@@ -606,7 +606,7 @@ public static class DbModelExtensions
         {
             // we need to try tp update first since we have a value for the primary key field
             if (string.IsNullOrEmpty(dbModel.dbModel_sql_update.sql_query))
-                await ConstructUpdateQueryAsync(dbModel, conn, table);
+                ConstructUpdateQuery(dbModel, conn, table);
             else
                 RefreshParameterValuesForUpdate(dbModel);
 
@@ -626,7 +626,7 @@ public static class DbModelExtensions
         }
 
         if (string.IsNullOrEmpty(dbModel.dbModel_sql_insert.sql_query))
-            await ConstructInsertQueryAsync(dbModel, saveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+            ConstructInsertQuery(dbModel, saveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
         else
             RefreshParameterValuesForInsert(dbModel, conn, insertPrimaryKeyColumn);
 
@@ -651,14 +651,14 @@ public static class DbModelExtensions
     public static async Task DeleteAsync(this DbModel dbModel, IZenDbConnection conn, string table)
     {
         if (string.IsNullOrEmpty(dbModel.dbModel_sql_delete.sql_query))
-            await ConstructDeleteQueryAsync(dbModel, conn, table);
+            ConstructDeleteQuery(dbModel, conn, table);
         
         string sql = dbModel.dbModel_sql_delete.sql_query;
         
         _ = await sql.ExecuteNonQueryAsync(conn, dbModel.dbModel_sql_delete.sql_parameters.ToArray());
     }
 
-    private static async Task ConstructDeleteQueryAsync(DbModel dbModel, IZenDbConnection conn, string table)
+    private static void ConstructDeleteQuery(DbModel dbModel, IZenDbConnection conn, string table)
     {
         RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
         DeterminePrimaryKey(dbModel);

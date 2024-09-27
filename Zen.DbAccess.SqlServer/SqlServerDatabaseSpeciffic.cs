@@ -38,7 +38,7 @@ public class SqlServerDatabaseSpeciffic : IDbSpeciffic
         return (sql, Array.Empty<SqlParam>());
     }
 
-    public async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchWithSequenceAsync<T>(
+    public Tuple<string, SqlParam[]> PrepareBulkInsertBatchWithSequence<T>(
        List<T> list,
        IZenDbConnection conn,
        string table,
@@ -53,7 +53,7 @@ public class SqlServerDatabaseSpeciffic : IDbSpeciffic
 
         T firstModel = list.First();
         firstModel.ResetDbModel();
-        await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, table);
+        firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn);
 
@@ -118,7 +118,7 @@ public class SqlServerDatabaseSpeciffic : IDbSpeciffic
         return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
     }
 
-    public async Task<Tuple<string, SqlParam[]>> PrepareBulkInsertBatchAsync<T>(
+    public Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(
         List<T> list,
         IZenDbConnection conn,
         string table) where T : DbModel
@@ -131,7 +131,7 @@ public class SqlServerDatabaseSpeciffic : IDbSpeciffic
 
         T firstModel = list.First();
         firstModel.ResetDbModel();
-        await firstModel.RefreshDbColumnsAndModelPropertiesAsync(conn, table);
+        firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
         List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false);
 
