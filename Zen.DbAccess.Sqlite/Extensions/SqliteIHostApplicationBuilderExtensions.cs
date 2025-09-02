@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Text;
 using Zen.DbAccess.Constants;
 using Zen.DbAccess.Factories;
-using System.Data.SQLite;
 using Zen.DbAccess.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,7 +20,7 @@ public static class SqliteIHostApplicationBuilderExtensions
         string? timeZone = null,
         DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, Microsoft.Data.Sqlite.SqliteFactory.Instance);
 
         IConfigurationManager configurationManager = builder.Configuration;
 
@@ -48,7 +47,7 @@ public static class SqliteIHostApplicationBuilderExtensions
         string? timeZone = null,
         DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, Microsoft.Data.Sqlite.SqliteFactory.Instance);
 
         IConfiguration configuration = hostingContext.Configuration;
 

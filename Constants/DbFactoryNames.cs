@@ -9,5 +9,5 @@ public static class DbFactoryNames
     public const string SQL_SERVER = "Microsoft.Data.SqlClient";
     public const string ORACLE = "Oracle.ManagedDataAccess.Client";
     public const string POSTGRESQL = "Npgsql";
-    public const string SQLITE = "System.Data.SQLite";
+    public const string SQLITE = "Microsoft.Data.Sqlite";
 }

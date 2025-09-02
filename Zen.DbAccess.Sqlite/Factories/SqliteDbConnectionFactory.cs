@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
-using System.Data.SQLite;
 using System.Reflection;
 using System.Text;
 using Zen.DbAccess.Constants;
@@ -18,7 +17,7 @@ public static class SqliteDbConnectionFactory
         string timeZone = "",
         DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, SQLiteFactory.Instance);
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQLITE, Microsoft.Data.Sqlite.SqliteFactory.Instance);
 
         return new DbConnectionFactory(
             DbConnectionType.Sqlite,
