@@ -8,7 +8,7 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <VersionPrefix>2.0.12.10</VersionPrefix>
+    <VersionPrefix>2.0.12.11</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="System.Data.SQLite" Version="1.0.119" />
+    <PackageReference Include="System.Data.SQLite" Version="2.0.1" />
   </ItemGroup>
 
   <ItemGroup>
