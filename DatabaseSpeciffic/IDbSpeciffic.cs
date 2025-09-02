@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.Constants;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Models;
@@ -14,6 +15,19 @@ namespace Zen.DbAccess.DatabaseSpeciffic;
 
 public interface IDbSpeciffic
 {
+    DbProviderFactory BuildDbProviderFactory(DbConnectionType dbType)
+    {
+        DbProviderFactory dbProviderFactory = dbType switch
+        {
+            DbConnectionType.SqlServer => DbProviderFactories.GetFactory(DbFactoryNames.SQL_SERVER),
+            DbConnectionType.Oracle => DbProviderFactories.GetFactory(DbFactoryNames.ORACLE),
+            DbConnectionType.Postgresql => DbProviderFactories.GetFactory(DbFactoryNames.POSTGRESQL),
+            _ => throw new NotImplementedException($"Not implemented {dbType}")
+        };
+
+        return dbProviderFactory;
+    }
+
     (string, SqlParam) CommonPrepareParameter(DbModel model, PropertyInfo propertyInfo)
     {
         SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", propertyInfo.GetValue(model));

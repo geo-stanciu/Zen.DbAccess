@@ -94,16 +94,7 @@ public class DbConnectionFactory : IDbConnectionFactory
     {
         DbConnection conn;
 
-        string driverClass = _dbType switch
-        {
-            DbConnectionType.SqlServer => DbFactoryNames.SQL_SERVER,
-            DbConnectionType.Oracle => DbFactoryNames.ORACLE,
-            DbConnectionType.Postgresql => DbFactoryNames.POSTGRESQL,
-            DbConnectionType.Sqlite => DbFactoryNames.SQLITE,
-            _ => throw new NotImplementedException($"Not implemented {_dbType}")
-        };
-
-        DbProviderFactory dbProviderFactory = DbProviderFactories.GetFactory(driverClass);
+        DbProviderFactory dbProviderFactory = _dbSpeciffic!.BuildDbProviderFactory(_dbType!.Value);
         conn = dbProviderFactory.CreateConnection();
         conn.ConnectionString = _connStr;
 

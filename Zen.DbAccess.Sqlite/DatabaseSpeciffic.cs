@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Data.Sqlite;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -16,6 +17,12 @@ namespace Zen.DbAccess.Sqlite;
 
 public class DatabaseSpeciffic : IDbSpeciffic
 {
+    public DbProviderFactory BuildDbProviderFactory(DbConnectionType dbType)
+    {
+        var factory = SqliteFactory.Instance;
+        return factory;
+    }
+
     public DbParameter CreateDbParameter(DbCommand cmd, SqlParam prm)
     {
         DbParameter param = cmd.CreateParameter();
