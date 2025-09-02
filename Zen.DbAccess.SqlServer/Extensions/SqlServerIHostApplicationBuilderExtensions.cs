@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Text;
 using Zen.DbAccess.Constants;
 using Zen.DbAccess.Factories;
-using System.Data.SqlClient;
 using Zen.DbAccess.Enums;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,7 +20,7 @@ public static class SqlServerIHostApplicationBuilderExtensions
         string? timeZone = null,
         DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance);
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, Microsoft.Data.SqlClient.SqlClientFactory.Instance);
 
         IConfigurationManager configurationManager = builder.Configuration;
 
@@ -47,7 +46,7 @@ public static class SqlServerIHostApplicationBuilderExtensions
         string? timeZone = null,
         DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance);
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, Microsoft.Data.SqlClient.SqlClientFactory.Instance);
 
         IConfiguration configuration = hostingContext.Configuration;
 

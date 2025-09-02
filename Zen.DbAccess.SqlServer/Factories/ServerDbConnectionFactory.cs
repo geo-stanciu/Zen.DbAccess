@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Reflection;
 using System.Text;
 using Zen.DbAccess.Constants;
@@ -18,7 +17,7 @@ public static class ServerDbConnectionFactory
         string timeZone = "",
         DbNamingConvention dbNamingConvention = DbNamingConvention.SnakeCase)
     {
-        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, SqlClientFactory.Instance);
+        DbConnectionFactory.RegisterDatabaseFactory(DbFactoryNames.SQL_SERVER, Microsoft.Data.SqlClient.SqlClientFactory.Instance);
 
         return new DbConnectionFactory(
             DbConnectionType.SqlServer,
