@@ -594,28 +594,6 @@ public static class DBUtils
         foreach (SqlParam prm in parameters)
         {
             DbParameter param = conn.DatabaseSpeciffic.CreateDbParameter(cmd, prm);
-
-            if (prm.value != null && prm.value != DBNull.Value && prm.value is bool)
-            {
-                param.Value = Convert.ToBoolean(prm.value) ? 1 : 0;
-            }
-            else if (prm.isClob && prm.value != null && prm.value != DBNull.Value)
-            {
-                param.Value = conn.DatabaseSpeciffic.GetValueAsClob(conn, prm.value);
-            }
-            else if (prm.isBlob && prm.value != null && prm.value != DBNull.Value)
-            {
-                param.Value = conn.DatabaseSpeciffic.GetValueAsBlob(conn, prm.value);
-            }
-            else if (prm.value is Enum)
-            {
-                param.Value = Convert.ToInt32(prm.value);
-            }
-            else
-            {
-                param.Value = prm.value ?? DBNull.Value;
-            }
-
             param.Direction = prm.paramDirection;
 
             if (prm.size > 0)
@@ -627,6 +605,37 @@ public static class DBUtils
                 || prm.paramDirection == ParameterDirection.Output)
             {
                 param.Size = 1024;
+            }
+
+            if (prm.value == null || prm.value == DBNull.Value)
+            {
+                param.Value = prm.value ?? DBNull.Value;
+
+                cmd.Parameters.Add(param);
+
+                continue;
+            }
+
+            if (prm.value is bool)
+            {
+                param.Value = Convert.ToBoolean(prm.value) ? 1 : 0;
+            }
+            else if (prm.isClob)
+            {
+                param.Value = conn.DatabaseSpeciffic.GetValueAsClob(conn, prm.value);
+            }
+            else if (prm.isBlob || conn.DatabaseSpeciffic.IsBlob(prm.value))
+            {
+                prm.isBlob = true;
+                param.Value = conn.DatabaseSpeciffic.GetValueAsBlob(conn, prm.value);
+            }
+            else if (prm.value is Enum)
+            {
+                param.Value = Convert.ToInt32(prm.value);
+            }
+            else
+            {
+                param.Value = prm.value ?? DBNull.Value;
             }
 
             cmd.Parameters.Add(param);

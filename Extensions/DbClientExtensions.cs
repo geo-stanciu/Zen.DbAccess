@@ -17,15 +17,10 @@ namespace Zen.DbAccess.Extensions;
 public static class DbClientExtensions
 {
     private static Type tint = typeof(int);
-    private static Type tintNull = typeof(int?);
     private static Type tlong = typeof(long);
-    private static Type tlongNull = typeof(long?);
     private static Type tbool = typeof(bool);
-    private static Type tboolNull = typeof(bool?);
     private static Type tdecimal = typeof(decimal);
-    private static Type tdecimalNull = typeof(decimal?);
     private static Type tdatetime = typeof(DateTime);
-    private static Type tdatetimeNull = typeof(DateTime?);
     private static Type tEnum = typeof(Enum);
 
     public static List<SqlParam> ExecuteProcedure(this string query, IZenDbConnection conn, params SqlParam[] parameters)
@@ -354,18 +349,19 @@ public static class DbClientExtensions
                 continue;
 
             var t = p.PropertyType;
+            Type u = Nullable.GetUnderlyingType(t);
 
-            if (t == tint || t == tintNull)
+            if (t == tint || (u != null && u == tint))
                 p.SetValue(rez, Convert.ToInt32(val), null);
-            else if (t == tlong || t == tlongNull)
+            else if (t == tlong || (u != null && u == tlong))
                 p.SetValue(rez, Convert.ToInt64(val), null);
-            else if (t == tbool || t == tboolNull)
+            else if (t == tbool || (u != null && u == tbool))
                 p.SetValue(rez, Convert.ToInt32(val) == 1, null);
-            else if (t == tdecimal || t == tdecimalNull)
+            else if (t == tdecimal || (u != null && u == tdecimal))
                 p.SetValue(rez, Convert.ToDecimal(val), null);
-            else if (t == tdatetime || t == tdatetimeNull)
+            else if (t == tdatetime || (u != null && u == tdatetime))
                 p.SetValue(rez, Convert.ToDateTime(val), null);
-            else if (t.IsSubclassOf(tEnum))
+            else if (t.IsEnum || t.IsSubclassOf(tEnum) || (u != null && (u.IsEnum || u.IsSubclassOf(tEnum))))
                 p.SetValue(rez, Enum.ToObject(t, Convert.ToInt32(val)), null);
             else
                 p.SetValue(rez, val, null);

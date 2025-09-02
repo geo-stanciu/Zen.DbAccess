@@ -16,4 +16,12 @@ public static class OracleDbModelExtensions
         return Attribute.IsDefined(propertyInfo, typeof(ClobDbTypeAttribute))
             || Attribute.IsDefined(propertyInfo, typeof(JsonDbTypeAttribute));
     }
+
+    public static bool IsBlobDataType(this DbModel dbModel, PropertyInfo propertyInfo)
+    {
+        Type t = propertyInfo.PropertyType;
+        Type u = Nullable.GetUnderlyingType(t);
+
+        return t == typeof(byte[]) || (u != null && u == typeof(byte[]));
+    }
 }

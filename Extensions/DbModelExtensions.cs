@@ -1,19 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data.Common;
 using System.Data;
+using System.Data.Common;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
-using Zen.DbAccess.Models;
 using Zen.DbAccess.Attributes;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Factories;
-using Zen.DbAccess.Utils;
-using System.Security.AccessControl;
 using Zen.DbAccess.Interfaces;
-using System.Globalization;
+using Zen.DbAccess.Models;
+using Zen.DbAccess.Utils;
 
 namespace Zen.DbAccess.Extensions;
 
@@ -27,17 +28,7 @@ public static class DbModelExtensions
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tintNull = typeof(int?);
-
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tlong = typeof(long);
-
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tlongNull = typeof(long?);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
@@ -47,27 +38,12 @@ public static class DbModelExtensions
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tboolNull = typeof(bool?);
-
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tdecimal = typeof(decimal);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
     [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tdecimalNull = typeof(decimal?);
-
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
     private static Type dbModel_tdatetime = typeof(DateTime);
-
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tdatetimeNull = typeof(DateTime?);
 
     [DbIgnore]
     [System.Text.Json.Serialization.JsonIgnore]
@@ -702,6 +678,7 @@ public static class DbModelExtensions
         {
             object primaryKeyVal = primaryKeyProp.GetValue(dbModel) ?? DBNull.Value;
             Type primaryKeyValType = primaryKeyProp.PropertyType;
+            Type underlyingNllableType = Nullable.GetUnderlyingType(primaryKeyValType);
             object? defaultValue = primaryKeyValType.IsValueType ? Activator.CreateInstance(primaryKeyValType) : null;
 
             if (primaryKeyVal == null)
@@ -712,7 +689,7 @@ public static class DbModelExtensions
 
             if (primaryKeyValType.IsValueType)
             {
-                if (primaryKeyValType == dbModel_tint || primaryKeyValType == dbModel_tintNull)
+                if (primaryKeyValType == dbModel_tint || (underlyingNllableType != null && underlyingNllableType == dbModel_tint))
                 {
                     int val = Convert.ToInt32(primaryKeyVal);
 
@@ -721,7 +698,7 @@ public static class DbModelExtensions
                     else
                         return true;
                 }
-                else if (primaryKeyValType == dbModel_tlong || primaryKeyValType == dbModel_tlongNull)
+                else if (primaryKeyValType == dbModel_tlong || (underlyingNllableType != null && underlyingNllableType == dbModel_tlong))
                 {
                     long val = Convert.ToInt64(primaryKeyVal);
 
@@ -730,14 +707,14 @@ public static class DbModelExtensions
                     else
                         return true;
                 }
-                else if (primaryKeyValType == dbModel_tbool || primaryKeyValType == dbModel_tboolNull)
+                else if (primaryKeyValType == dbModel_tbool || (underlyingNllableType != null && underlyingNllableType == dbModel_tbool))
                 {
                     if (Convert.ToBoolean(primaryKeyVal) == Convert.ToBoolean(defaultValue))
                         return false;
                     else
                         return true;
                 }
-                else if (primaryKeyValType == dbModel_tdecimal || primaryKeyValType == dbModel_tdecimalNull)
+                else if (primaryKeyValType == dbModel_tdecimal || (underlyingNllableType != null && underlyingNllableType == dbModel_tdecimal))
                 {
                     decimal val = Convert.ToDecimal(primaryKeyVal);
 
@@ -746,14 +723,14 @@ public static class DbModelExtensions
                     else
                         return true;
                 }
-                else if (primaryKeyValType == dbModel_tdatetime || primaryKeyValType == dbModel_tdatetimeNull)
+                else if (primaryKeyValType == dbModel_tdatetime || (underlyingNllableType != null && underlyingNllableType == dbModel_tdatetime))
                 {
                     if (Convert.ToDateTime(primaryKeyVal) == Convert.ToDateTime(defaultValue))
                         return false;
                     else
                         return true;
                 }
-                else if (primaryKeyValType == dbModel_tString)
+                else if (primaryKeyValType == dbModel_tString || (underlyingNllableType != null && underlyingNllableType == dbModel_tString))
                 {
                     if (Convert.ToString(primaryKeyVal) == Convert.ToString(defaultValue))
                         return false;

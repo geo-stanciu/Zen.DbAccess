@@ -25,6 +25,8 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
 
         if (model.IsClobDataType(propertyInfo))
             prm.isClob = true;
+        else if (!prm.isBlob && model.IsBlobDataType(propertyInfo))
+            prm.isBlob = true;
 
         return (prmName, prm);
     }
@@ -239,8 +241,13 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (firstModel != null && firstModel.IsClobDataType(propertyInfo))
-                    prm.isClob = true;
+                if (firstModel != null)
+                {
+                    if (firstModel.IsClobDataType(propertyInfo))
+                        prm.isClob = true;
+                    else if (firstModel.IsBlobDataType(propertyInfo))
+                        prm.isBlob = true;
+                }
 
                 insertParams.Add(prm);
             }
@@ -299,9 +306,14 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
 
                 SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
 
-                if (firstModel != null && firstModel.IsClobDataType(propertyInfo))
-                    prm.isClob = true;
-
+                if (firstModel != null)
+                {
+                    if (firstModel.IsClobDataType(propertyInfo))
+                        prm.isClob = true;
+                    else if (firstModel.IsBlobDataType(propertyInfo))
+                        prm.isBlob = true;
+                }
+                
                 insertParams.Add(prm);
             }
 

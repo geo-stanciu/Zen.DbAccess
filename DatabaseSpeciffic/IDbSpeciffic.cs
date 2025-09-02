@@ -18,7 +18,10 @@ public interface IDbSpeciffic
     {
         SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", propertyInfo.GetValue(model));
 
-        if (propertyInfo.PropertyType == typeof(byte[]))
+        Type t = propertyInfo.PropertyType;
+        Type u = Nullable.GetUnderlyingType(t);
+
+        if (t == typeof(byte[]) || (u != null && u == typeof(byte[])))
             prm.isBlob = true;
 
         return ($"@p_{propertyInfo.Name}", prm);
@@ -40,6 +43,14 @@ public interface IDbSpeciffic
     object GetValueAsBlob(IZenDbConnection conn, object value)
     {
         return value ?? DBNull.Value;
+    }
+
+    bool IsBlob(object value)
+    {
+        Type t = value.GetType();
+        Type u = Nullable.GetUnderlyingType(t);
+
+        return t == typeof(byte[]) || (u != null && u == typeof(byte[]));
     }
 
     object GetValueAsClob(IZenDbConnection conn, object value)
