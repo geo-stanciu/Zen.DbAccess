@@ -1,7 +1,6 @@
 using DataAccess.Extensions;
 using DataAccess.Models;
 using DataAccess.Repositories;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -31,8 +30,7 @@ app.MapPost("/createtables", async (IPeopleRepository repo) =>
 
     return Results.NoContent();
 })
-.WithName("CreateTables")
-.WithOpenApi();
+.WithName("CreateTables");
 
 app.MapDelete("/droptables", async (IPeopleRepository repo) =>
 {
@@ -40,8 +38,7 @@ app.MapDelete("/droptables", async (IPeopleRepository repo) =>
 
     return Results.NoContent();
 })
-.WithName("DropTables")
-.WithOpenApi();
+.WithName("DropTables");
 
 
 app.MapGet("/people", async (IPeopleRepository repo) =>
@@ -50,8 +47,7 @@ app.MapGet("/people", async (IPeopleRepository repo) =>
 
     return Results.Ok(people);
 })
-.WithName("GetPeople")
-.WithOpenApi();
+.WithName("GetPeople");
 
 app.MapPost("/people", async ([FromBody] Person p, IPeopleRepository repo) =>
 {
@@ -60,8 +56,7 @@ app.MapPost("/people", async ([FromBody] Person p, IPeopleRepository repo) =>
 
     return Results.Created($"/people/{personId}", p);
 })
-.WithName("CreatePerson")
-.WithOpenApi();
+.WithName("CreatePerson");
 
 app.MapGet("/people/{id}", async ([FromRoute] int id, IPeopleRepository repo) =>
 {
@@ -69,8 +64,7 @@ app.MapGet("/people/{id}", async ([FromRoute] int id, IPeopleRepository repo) =>
 
     return Results.Ok(person);
 })
-.WithName("GetPerson")
-.WithOpenApi();
+.WithName("GetPerson");
 
 app.MapPut("/people/{id}", async ([FromRoute] int id, [FromBody] Person p, IPeopleRepository repo) =>
 {
@@ -80,8 +74,7 @@ app.MapPut("/people/{id}", async ([FromRoute] int id, [FromBody] Person p, IPeop
 
     return Results.NoContent();
 })
-.WithName("UpdatePerson")
-.WithOpenApi();
+.WithName("UpdatePerson");
 
 app.MapDelete("/people/{id}", async ([FromRoute] int id, IPeopleRepository repo) =>
 {
@@ -89,7 +82,6 @@ app.MapDelete("/people/{id}", async ([FromRoute] int id, IPeopleRepository repo)
 
     return Results.NoContent();
 })
-.WithName("DeletePerson")
-.WithOpenApi();
+.WithName("DeletePerson");
 
 app.Run();
