@@ -8,7 +8,7 @@
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <VersionPrefix>2.0.12.15</VersionPrefix>
+    <VersionPrefix>2.0.12.17</VersionPrefix>
   </PropertyGroup>
 
   <ItemGroup>

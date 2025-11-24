@@ -49,12 +49,13 @@ app.MapGet("/people", async (IPeopleRepository repo) =>
 })
 .WithName("GetPeople");
 
-app.MapPost("/people", async ([FromBody] Person p, IPeopleRepository repo) =>
+app.MapPost("/people", async ([FromBody] CreateOrUpdatePersonModel p, IPeopleRepository repo) =>
 {
-    var personId = await repo.CreateAsync(p);
-    p.Id = personId;
+    var person = p.ToPerson();
+    var personId = await repo.CreateAsync(person);
+    person.Id = personId;
 
-    return Results.Created($"/people/{personId}", p);
+    return Results.Created($"/people/{personId}", person);
 })
 .WithName("CreatePerson");
 
@@ -66,11 +67,12 @@ app.MapGet("/people/{id}", async ([FromRoute] int id, IPeopleRepository repo) =>
 })
 .WithName("GetPerson");
 
-app.MapPut("/people/{id}", async ([FromRoute] int id, [FromBody] Person p, IPeopleRepository repo) =>
+app.MapPut("/people/{id}", async ([FromRoute] int id, [FromBody] CreateOrUpdatePersonModel p, IPeopleRepository repo) =>
 {
-    p.Id = id;
+    var person = p.ToPerson();
+    person.Id = id;
 
-    await repo.UpdateAsync(p);
+    await repo.UpdateAsync(person);
 
     return Results.NoContent();
 })

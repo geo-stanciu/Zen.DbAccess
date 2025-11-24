@@ -361,8 +361,10 @@ public static class DbClientExtensions
                 p.SetValue(rez, Convert.ToDecimal(val), null);
             else if (t == tdatetime || (u != null && u == tdatetime))
                 p.SetValue(rez, Convert.ToDateTime(val), null);
-            else if (t.IsEnum || t.IsSubclassOf(tEnum) || (u != null && (u.IsEnum || u.IsSubclassOf(tEnum))))
+            else if (t.IsEnum || t.IsSubclassOf(tEnum))
                 p.SetValue(rez, Enum.ToObject(t, Convert.ToInt32(val)), null);
+            else if (u != null && (u.IsEnum || u.IsSubclassOf(tEnum)))
+                p.SetValue(rez, Enum.ToObject(u, Convert.ToInt32(val)), null);
             else
                 p.SetValue(rez, val, null);
         }
