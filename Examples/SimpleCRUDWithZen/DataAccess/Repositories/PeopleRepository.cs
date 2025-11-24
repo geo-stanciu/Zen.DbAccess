@@ -32,6 +32,7 @@ public class PeopleRepository : IPeopleRepository
                 id serial not null,
                 first_name varchar(128),
                 last_name varchar(128) not null,
+                type int,
                 constraint person_pk primary key (Id)
             )
             """;
@@ -70,7 +71,7 @@ public class PeopleRepository : IPeopleRepository
     public async Task<List<Person>> GetAllAsync()
     {
         string sql = $"""
-            select id, first_name, last_name from {TABLE_NAME} order by id
+            select id, first_name, last_name, type from {TABLE_NAME} order by id
             """;
 
         var people = await sql.QueryAsync<Person>(_dbConnectionFactory);
@@ -84,7 +85,7 @@ public class PeopleRepository : IPeopleRepository
     public async Task<Person> GetByIdAsync(int personId)
     {
         string sql = $"""
-            select id, first_name, last_name from {TABLE_NAME} where id = @Id
+            select id, first_name, last_name, type from {TABLE_NAME} where id = @Id
             """;
 
         var p = await sql.QueryRowAsync<Person>(_dbConnectionFactory, new SqlParam("@Id", personId));

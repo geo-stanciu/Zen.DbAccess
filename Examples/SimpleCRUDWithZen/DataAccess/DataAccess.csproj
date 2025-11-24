@@ -9,8 +9,8 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.0" />
     <PackageReference Include="Npgsql" Version="10.0.0" />
-    <PackageReference Include="Zen.DbAccess" Version="2.0.12.14" />
-    <PackageReference Include="Zen.DbAccess.Postgresql" Version="2.0.12.14" />
+    <PackageReference Include="Zen.DbAccess" Version="2.0.12.17" />
+    <PackageReference Include="Zen.DbAccess.Postgresql" Version="2.0.12.17" />
   </ItemGroup>
 
 </Project>

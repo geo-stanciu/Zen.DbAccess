@@ -163,9 +163,11 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
 
         SqlParam p_serial_table = new SqlParam($"@p_serial_table", table);
 
+        var pkProps = model.GetPrimaryKeyProperties();
+
         SqlParam p_serial_id = new SqlParam(
             $"@p_serial_id",
-            model.HasPrimaryKey() ? model.GetPrimaryKeyProperties().First().Name : model.GetMappedProperty(firstPropertyName));
+            model.HasPrimaryKey() ? model.GetMappedProperty(pkProps.First().Name) : model.GetMappedProperty(firstPropertyName));
 
         return (sql, new[] { p_serial_table, p_serial_id });
     }
