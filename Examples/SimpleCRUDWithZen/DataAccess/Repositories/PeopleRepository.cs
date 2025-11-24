@@ -15,9 +15,9 @@ namespace DataAccess.Repositories;
 
 public class PeopleRepository : IPeopleRepository
 {
-    private readonly IDbConnectionFactory _dbConnectionFactory;
+    protected readonly IDbConnectionFactory _dbConnectionFactory;
 
-    private const string TABLE_NAME = "person";
+    protected virtual string TABLE_NAME { get; set; } = "person";
 
     public PeopleRepository(
         [FromKeyedServices(DataSourceNames.Default)] IDbConnectionFactory dbConnectionFactory)
@@ -25,7 +25,7 @@ public class PeopleRepository : IPeopleRepository
         _dbConnectionFactory = dbConnectionFactory;
     }
 
-    public async Task CreateTablesAsync()
+    public virtual async Task CreateTablesAsync()
     {
         string sql = $"""
             create table if not exists {TABLE_NAME} (
@@ -33,14 +33,15 @@ public class PeopleRepository : IPeopleRepository
                 first_name varchar(128),
                 last_name varchar(128) not null,
                 type int,
-                constraint person_pk primary key (Id)
+                image bytea,
+                constraint person_pk primary key (id)
             )
             """;
 
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory);
     }
 
-    public async Task DropTablesAsync()
+    public virtual async Task DropTablesAsync()
     {
         string sql = $"""
             drop table if exists {TABLE_NAME}
@@ -49,29 +50,29 @@ public class PeopleRepository : IPeopleRepository
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory);
     }
 
-    public async Task<int> CreateAsync(Person p)
+    public virtual async Task<int> CreateAsync(Person p)
     {
         await p.SaveAsync(_dbConnectionFactory, TABLE_NAME);
 
         return p.Id;
     }
 
-    public async Task UpdateAsync(Person p)
+    public virtual async Task UpdateAsync(Person p)
     {
         await p.SaveAsync(_dbConnectionFactory, TABLE_NAME);
     }
 
-    public async Task DeleteAsync(int id)
+    public virtual async Task DeleteAsync(int id)
     {
         var p = await GetByIdAsync(id);
 
         await p.DeleteAsync(_dbConnectionFactory, TABLE_NAME);
     }
 
-    public async Task<List<Person>> GetAllAsync()
+    public virtual async Task<List<Person>> GetAllAsync()
     {
         string sql = $"""
-            select id, first_name, last_name, type from {TABLE_NAME} order by id
+            select id, first_name, last_name, type, image from {TABLE_NAME} order by id
             """;
 
         var people = await sql.QueryAsync<Person>(_dbConnectionFactory);
@@ -82,10 +83,10 @@ public class PeopleRepository : IPeopleRepository
         return people;
     }
 
-    public async Task<Person> GetByIdAsync(int personId)
+    public virtual async Task<Person> GetByIdAsync(int personId)
     {
         string sql = $"""
-            select id, first_name, last_name, type from {TABLE_NAME} where id = @Id
+            select id, first_name, last_name, type, image from {TABLE_NAME} where id = @Id
             """;
 
         var p = await sql.QueryRowAsync<Person>(_dbConnectionFactory, new SqlParam("@Id", personId));

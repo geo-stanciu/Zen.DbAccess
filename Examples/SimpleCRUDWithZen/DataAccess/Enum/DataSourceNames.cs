@@ -8,5 +8,6 @@ namespace DataAccess.Enum;
 
 public enum DataSourceNames
 {
-    Default = 0
+    Default = 0,
+    Oracle = 1,
 }

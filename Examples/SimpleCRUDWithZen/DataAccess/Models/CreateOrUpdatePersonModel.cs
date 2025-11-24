@@ -10,6 +10,7 @@ public class CreateOrUpdatePersonModel
     public string? FirstName { get; set; }
     public string LastName { get; set; }
     public PersonTypes? Type { get; set; }
+    public byte[]? Image { get; set; }
 
     public Person ToPerson()
     {
@@ -17,7 +18,8 @@ public class CreateOrUpdatePersonModel
         {
             FirstName = this.FirstName,
             LastName = this.LastName,
-            Type = this.Type
+            Type = this.Type,
+            Image = this.Image
         };
     }
 }
