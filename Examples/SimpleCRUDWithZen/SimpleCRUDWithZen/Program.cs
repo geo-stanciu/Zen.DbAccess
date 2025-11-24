@@ -1,7 +1,10 @@
+using DataAccess.Enum;
 using DataAccess.Extensions;
 using DataAccess.Models;
 using DataAccess.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
+using SimpleCRUDWithZen;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,7 +14,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.SetupDatabaseAccess();
-builder.Services.AddScoped<IPeopleRepository, PeopleRepository>();
+builder.SetupOracleDatabaseAccess();
+
+builder.Services.AddKeyedScoped<IPeopleRepository, PeopleRepository>(DataSourceNames.Default);
+builder.Services.AddKeyedScoped<IPeopleRepository, OraclePeopleRepository>(DataSourceNames.Oracle);
 
 var app = builder.Build();
 
@@ -24,66 +30,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapPost("/createtables", async (IPeopleRepository repo) =>
-{
-    await repo.CreateTablesAsync();
-
-    return Results.NoContent();
-})
-.WithName("CreateTables");
-
-app.MapDelete("/droptables", async (IPeopleRepository repo) =>
-{
-    await repo.DropTablesAsync();
-
-    return Results.NoContent();
-})
-.WithName("DropTables");
-
-
-app.MapGet("/people", async (IPeopleRepository repo) =>
-{
-    var people = await repo.GetAllAsync();
-
-    return Results.Ok(people);
-})
-.WithName("GetPeople");
-
-app.MapPost("/people", async ([FromBody] CreateOrUpdatePersonModel p, IPeopleRepository repo) =>
-{
-    var person = p.ToPerson();
-    var personId = await repo.CreateAsync(person);
-    person.Id = personId;
-
-    return Results.Created($"/people/{personId}", person);
-})
-.WithName("CreatePerson");
-
-app.MapGet("/people/{id}", async ([FromRoute] int id, IPeopleRepository repo) =>
-{
-    var person = await repo.GetByIdAsync(id);
-
-    return Results.Ok(person);
-})
-.WithName("GetPerson");
-
-app.MapPut("/people/{id}", async ([FromRoute] int id, [FromBody] CreateOrUpdatePersonModel p, IPeopleRepository repo) =>
-{
-    var person = p.ToPerson();
-    person.Id = id;
-
-    await repo.UpdateAsync(person);
-
-    return Results.NoContent();
-})
-.WithName("UpdatePerson");
-
-app.MapDelete("/people/{id}", async ([FromRoute] int id, IPeopleRepository repo) =>
-{
-    await repo.DeleteAsync(id);
-
-    return Results.NoContent();
-})
-.WithName("DeletePerson");
+app.RegisterDefaultEndpoints();
+app.RegisterOracleEndpoints();
 
 app.Run();

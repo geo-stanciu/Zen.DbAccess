@@ -16,4 +16,5 @@ public class Person : DbModel
     public string? FirstName { get; set; }
     public string LastName { get; set; }
     public PersonTypes? Type { get; set; }
+    public byte[]? Image { get; set; }
 }
