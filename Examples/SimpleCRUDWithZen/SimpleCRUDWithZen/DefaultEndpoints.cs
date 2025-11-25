@@ -7,9 +7,9 @@ namespace SimpleCRUDWithZen;
 
 public static class DefaultEndpoints
 {
-    public static void RegisterDefaultEndpoints(this IEndpointRouteBuilder app)
+    public static void RegisterPostgresqlEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapPost("/createtables", async ([FromKeyedServices(DataSourceNames.Default)] IPeopleRepository repo) =>
+        app.MapPost("/createtables", async ([FromKeyedServices(DataSourceNames.Postgresql)] IPeopleRepository repo) =>
         {
             await repo.CreateTablesAsync();
 
@@ -17,7 +17,7 @@ public static class DefaultEndpoints
         })
         .WithName("CreateTables");
 
-        app.MapDelete("/droptables", async ([FromKeyedServices(DataSourceNames.Default)] IPeopleRepository repo) =>
+        app.MapDelete("/droptables", async ([FromKeyedServices(DataSourceNames.Postgresql)] IPeopleRepository repo) =>
         {
             await repo.DropTablesAsync();
 
@@ -26,7 +26,7 @@ public static class DefaultEndpoints
         .WithName("DropTables");
 
 
-        app.MapGet("/people", async ([FromKeyedServices(DataSourceNames.Default)] IPeopleRepository repo) =>
+        app.MapGet("/people", async ([FromKeyedServices(DataSourceNames.Postgresql)] IPeopleRepository repo) =>
         {
             var people = await repo.GetAllAsync();
 
@@ -34,7 +34,7 @@ public static class DefaultEndpoints
         })
         .WithName("GetPeople");
 
-        app.MapPost("/people", async ([FromBody] CreateOrUpdatePersonModel p, [FromKeyedServices(DataSourceNames.Default)] IPeopleRepository repo) =>
+        app.MapPost("/people", async ([FromBody] CreateOrUpdatePersonModel p, [FromKeyedServices(DataSourceNames.Postgresql)] IPeopleRepository repo) =>
         {
             var person = p.ToPerson();
             var personId = await repo.CreateAsync(person);
@@ -44,7 +44,7 @@ public static class DefaultEndpoints
         })
         .WithName("CreatePerson");
 
-        app.MapGet("/people/{id}", async ([FromRoute] int id, [FromKeyedServices(DataSourceNames.Default)] IPeopleRepository repo) =>
+        app.MapGet("/people/{id}", async ([FromRoute] int id, [FromKeyedServices(DataSourceNames.Postgresql)] IPeopleRepository repo) =>
         {
             var person = await repo.GetByIdAsync(id);
 
@@ -52,7 +52,7 @@ public static class DefaultEndpoints
         })
         .WithName("GetPerson");
 
-        app.MapPut("/people/{id}", async ([FromRoute] int id, [FromBody] CreateOrUpdatePersonModel p, [FromKeyedServices(DataSourceNames.Default)] IPeopleRepository repo) =>
+        app.MapPut("/people/{id}", async ([FromRoute] int id, [FromBody] CreateOrUpdatePersonModel p, [FromKeyedServices(DataSourceNames.Postgresql)] IPeopleRepository repo) =>
         {
             var person = p.ToPerson();
             person.Id = id;
@@ -63,7 +63,7 @@ public static class DefaultEndpoints
         })
         .WithName("UpdatePerson");
 
-        app.MapDelete("/people/{id}", async ([FromRoute] int id, [FromKeyedServices(DataSourceNames.Default)] IPeopleRepository repo) =>
+        app.MapDelete("/people/{id}", async ([FromRoute] int id, [FromKeyedServices(DataSourceNames.Postgresql)] IPeopleRepository repo) =>
         {
             await repo.DeleteAsync(id);
 

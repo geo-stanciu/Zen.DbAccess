@@ -12,12 +12,12 @@ namespace DataAccess.Extensions;
 
 public static class DatabaseAccessWebApplicationBuilderExtensions
 {
-    public static void SetupDatabaseAccess(this IHostApplicationBuilder builder)
+    public static void SetupPostgresqlDatabaseAccess(this IHostApplicationBuilder builder)
     {
         // setup zen db access
 
         builder
-            .AddPostgresqlZenDbAccessConnection(DataSourceNames.Default, nameof(DataSourceNames.Default));
+            .AddPostgresqlZenDbAccessConnection(DataSourceNames.Postgresql, nameof(DataSourceNames.Postgresql));
     }
 
     public static void SetupOracleDatabaseAccess(this IHostApplicationBuilder builder)

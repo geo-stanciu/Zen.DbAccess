@@ -20,7 +20,7 @@ public class PeopleRepository : IPeopleRepository
     protected virtual string TABLE_NAME { get; set; } = "person";
 
     public PeopleRepository(
-        [FromKeyedServices(DataSourceNames.Default)] IDbConnectionFactory dbConnectionFactory)
+        [FromKeyedServices(DataSourceNames.Postgresql)] IDbConnectionFactory dbConnectionFactory)
     {
         _dbConnectionFactory = dbConnectionFactory;
     }

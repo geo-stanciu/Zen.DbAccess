@@ -13,10 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.SetupDatabaseAccess();
+builder.SetupPostgresqlDatabaseAccess();
 builder.SetupOracleDatabaseAccess();
 
-builder.Services.AddKeyedScoped<IPeopleRepository, PeopleRepository>(DataSourceNames.Default);
+builder.Services.AddKeyedScoped<IPeopleRepository, PeopleRepository>(DataSourceNames.Postgresql);
 builder.Services.AddKeyedScoped<IPeopleRepository, OraclePeopleRepository>(DataSourceNames.Oracle);
 
 var app = builder.Build();
@@ -30,7 +30,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.RegisterDefaultEndpoints();
+app.RegisterPostgresqlEndpoints();
 app.RegisterOracleEndpoints();
 
 app.Run();

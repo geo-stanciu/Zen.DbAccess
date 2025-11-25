@@ -8,6 +8,6 @@ namespace DataAccess.Enum;
 
 public enum DataSourceNames
 {
-    Default = 0,
+    Postgresql = 0,
     Oracle = 1,
 }
