@@ -13,13 +13,13 @@ using Zen.DbAccess.Models;
 
 namespace DataAccess.Repositories;
 
-public class PeopleRepository : IPeopleRepository
+public class PostgresqlPeopleRepository : IPeopleRepository
 {
     protected readonly IDbConnectionFactory _dbConnectionFactory;
 
     protected virtual string TABLE_NAME { get; set; } = "person";
 
-    public PeopleRepository(
+    public PostgresqlPeopleRepository(
         [FromKeyedServices(DataSourceNames.Postgresql)] IDbConnectionFactory dbConnectionFactory)
     {
         _dbConnectionFactory = dbConnectionFactory;

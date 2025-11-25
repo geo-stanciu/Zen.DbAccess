@@ -1,22 +1,24 @@
 using DataAccess.Enum;
 using DataAccess.Extensions;
-using DataAccess.Models;
 using DataAccess.Repositories;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.OpenApi;
 using SimpleCRUDWithZen;
+using Swashbuckle.AspNetCore.SwaggerUI;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Zen.DbAccess Examples V1", Version = "v1" });
+});
 
 builder.SetupPostgresqlDatabaseAccess();
 builder.SetupOracleDatabaseAccess();
 
-builder.Services.AddKeyedScoped<IPeopleRepository, PeopleRepository>(DataSourceNames.Postgresql);
+builder.Services.AddKeyedScoped<IPeopleRepository, PostgresqlPeopleRepository>(DataSourceNames.Postgresql);
 builder.Services.AddKeyedScoped<IPeopleRepository, OraclePeopleRepository>(DataSourceNames.Oracle);
 
 var app = builder.Build();
@@ -25,7 +27,11 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Zen.DbAccess Examples V1");
+        c.DocExpansion(DocExpansion.None);
+    });
 }
 
 app.UseHttpsRedirection();

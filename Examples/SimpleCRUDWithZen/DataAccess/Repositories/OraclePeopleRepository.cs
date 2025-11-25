@@ -13,7 +13,7 @@ using Zen.DbAccess.Models;
 
 namespace DataAccess.Repositories;
 
-public class OraclePeopleRepository : PeopleRepository, IPeopleRepository
+public class OraclePeopleRepository : PostgresqlPeopleRepository, IPeopleRepository
 {
     public OraclePeopleRepository(
         [FromKeyedServices(DataSourceNames.Oracle)] IDbConnectionFactory dbConnectionFactory)
