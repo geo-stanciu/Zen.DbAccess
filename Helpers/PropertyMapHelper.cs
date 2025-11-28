@@ -63,7 +63,7 @@ internal static class PropertyMapHelper
 
             if (realValType == typeof(DateOnly))
                 p.SetValue(rez, ((DateOnly)val).ToDateTime(TimeOnly.MinValue), null);
-            if (realValType == typeof(TimeOnly))
+            else if (realValType == typeof(TimeOnly))
                 p.SetValue(rez, DateTime.MinValue.Date.Add(((TimeOnly)val).ToTimeSpan()), null);
             else
                 p.SetValue(rez, Convert.ToDateTime(val), null);

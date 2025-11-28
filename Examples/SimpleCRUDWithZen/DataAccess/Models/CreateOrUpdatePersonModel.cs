@@ -9,7 +9,7 @@ public class CreateOrUpdatePersonModel
 {
     public string? FirstName { get; set; }
     public required string LastName { get; set; } = null!;
-    public DateTime? BirthDate { get; set; }
+    public DateOnly? BirthDate { get; set; }
     public PersonTypes? Type { get; set; }
     public byte[]? Image { get; set; }
 

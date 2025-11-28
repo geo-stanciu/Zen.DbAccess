@@ -15,7 +15,7 @@ public class Person : DbModel
     public int Id { get; set; }
     public string? FirstName { get; set; }
     public string LastName { get; set; } = null!;
-    public DateTime? BirthDate { get; set; }
+    public DateOnly? BirthDate { get; set; }
     public PersonTypes? Type { get; set; }
     public byte[]? Image { get; set; }
     public DateTime? CreatedAt { get; set; }
