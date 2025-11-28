@@ -32,10 +32,9 @@ public interface IDbSpeciffic
     {
         SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", propertyInfo.GetValue(model));
 
-        Type t = propertyInfo.PropertyType;
-        Type u = Nullable.GetUnderlyingType(t);
+        Type t = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
 
-        if (t == typeof(byte[]) || (u != null && u == typeof(byte[])))
+        if (t == typeof(byte[]))
             prm.isBlob = true;
 
         return ($"@p_{propertyInfo.Name}", prm);
@@ -61,10 +60,10 @@ public interface IDbSpeciffic
 
     bool IsBlob(object value)
     {
-        Type t = value.GetType();
-        Type u = Nullable.GetUnderlyingType(t);
+        Type valType = value.GetType();
+        Type t = Nullable.GetUnderlyingType(valType) ?? valType;
 
-        return t == typeof(byte[]) || (u != null && u == typeof(byte[]));
+        return t == typeof(byte[]);
     }
 
     object GetValueAsClob(IZenDbConnection conn, object value)
@@ -98,7 +97,10 @@ public interface IDbSpeciffic
     {
         if (!insertPrimaryKeyColumn && saveType != DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
         {
-            object val = await cmd.ExecuteScalarAsync();
+            object? val = await cmd.ExecuteScalarAsync();
+
+            if (val == null || val == DBNull.Value)
+                return;
 
             if (model.dbModel_primaryKey_dbColumns != null && model.dbModel_primaryKey_dbColumns.Any())
             {

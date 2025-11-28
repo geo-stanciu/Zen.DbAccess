@@ -5,19 +5,14 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.DatabaseSpeciffic;
+using Zen.DbAccess.Models;
 using Zen.DbAccess.Utils;
 
 namespace Zen.DbAccess.Extensions;
 
 public static class DataRowExtensions
 {
-    private static Type tint = typeof(int);
-    private static Type tlong = typeof(long);
-    private static Type tbool = typeof(bool);
-    private static Type tdecimal = typeof(decimal);
-    private static Type tdatetime = typeof(DateTime);
-    private static Type tEnum = typeof(Enum);
-
     public static T ToModel<T>(this DataRow row, ref Dictionary<string, PropertyInfo>? properties, ref bool propertiesAlreadyDetermined)
     {
         Type classType = typeof(T);
@@ -54,23 +49,32 @@ public static class DataRowExtensions
             if (val == null || val == DBNull.Value)
                 continue;
 
-            Type t = p.PropertyType;
-            Type u = Nullable.GetUnderlyingType(t);
+            Type t = Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType;
 
-            if (t == tint || (u != null && u == tint))
+            if (t == typeof(int))
                 p.SetValue(rez, Convert.ToInt32(val), null);
-            else if (t == tlong || (u != null && u == tlong))
+            else if (t == typeof(long))
                 p.SetValue(rez, Convert.ToInt64(val), null);
-            else if (t == tbool || (u != null && u == tbool))
+            else if (t == typeof(bool))
                 p.SetValue(rez, Convert.ToInt32(val) == 1, null);
-            else if (t == tdecimal || (u != null && u == tdecimal))
+            else if (t == typeof(decimal))
                 p.SetValue(rez, Convert.ToDecimal(val), null);
-            else if (t == tdatetime || (u != null && u == tdatetime))
-                p.SetValue(rez, Convert.ToDateTime(val), null);
-            else if (t.IsEnum || t.IsSubclassOf(tEnum))
+            else if (t == typeof(DateOnly))
+            {
+                if (val.GetType() == typeof(DateTime))
+                    p.SetValue(rez, DateOnly.FromDateTime(Convert.ToDateTime(val)), null);
+                else
+                    p.SetValue(rez, (DateOnly)val, null);
+            }
+            else if (t == typeof(DateTime))
+            {
+                if (val.GetType() == typeof(DateOnly))
+                    p.SetValue(rez, ((DateOnly)val).ToDateTime(TimeOnly.MinValue), null);
+                else
+                    p.SetValue(rez, Convert.ToDateTime(val), null);
+            }
+            else if (t.IsEnum || t.IsSubclassOf(typeof(Enum)))
                 p.SetValue(rez, Enum.ToObject(t, Convert.ToInt32(val)), null);
-            else if (u != null && (u.IsEnum || u.IsSubclassOf(tEnum)))
-                p.SetValue(rez, Enum.ToObject(u, Convert.ToInt32(val)), null);
             else
                 p.SetValue(rez, val, null);
         }

@@ -20,36 +20,6 @@ namespace Zen.DbAccess.Extensions;
 
 public static class DbModelExtensions
 {
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tint = typeof(int);
-
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tlong = typeof(long);
-
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tbool = typeof(bool);
-
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tdecimal = typeof(decimal);
-
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tdatetime = typeof(DateTime);
-
-    [DbIgnore]
-    [System.Text.Json.Serialization.JsonIgnore]
-    [Newtonsoft.Json.JsonIgnore]
-    private static Type dbModel_tString = typeof(string);
-
     public static bool HasAuditIgnoreAttribute(this DbModel dbModel,  PropertyInfo propertyInfo)
     {
         return Attribute.IsDefined(propertyInfo, typeof(AuditIgnoreAttribute));
@@ -677,8 +647,7 @@ public static class DbModelExtensions
         foreach (PropertyInfo primaryKeyProp in primaryKeyProps)
         {
             object primaryKeyVal = primaryKeyProp.GetValue(dbModel) ?? DBNull.Value;
-            Type primaryKeyValType = primaryKeyProp.PropertyType;
-            Type underlyingNllableType = Nullable.GetUnderlyingType(primaryKeyValType);
+            Type primaryKeyValType = Nullable.GetUnderlyingType(primaryKeyProp.PropertyType) ?? primaryKeyProp.PropertyType;
             object? defaultValue = primaryKeyValType.IsValueType ? Activator.CreateInstance(primaryKeyValType) : null;
 
             if (primaryKeyVal == null)
@@ -689,7 +658,7 @@ public static class DbModelExtensions
 
             if (primaryKeyValType.IsValueType)
             {
-                if (primaryKeyValType == dbModel_tint || (underlyingNllableType != null && underlyingNllableType == dbModel_tint))
+                if (primaryKeyValType == typeof(int))
                 {
                     int val = Convert.ToInt32(primaryKeyVal);
 
@@ -698,7 +667,7 @@ public static class DbModelExtensions
                     else
                         return true;
                 }
-                else if (primaryKeyValType == dbModel_tlong || (underlyingNllableType != null && underlyingNllableType == dbModel_tlong))
+                else if (primaryKeyValType == typeof(long))
                 {
                     long val = Convert.ToInt64(primaryKeyVal);
 
@@ -707,14 +676,14 @@ public static class DbModelExtensions
                     else
                         return true;
                 }
-                else if (primaryKeyValType == dbModel_tbool || (underlyingNllableType != null && underlyingNllableType == dbModel_tbool))
+                else if (primaryKeyValType == typeof(bool))
                 {
                     if (Convert.ToBoolean(primaryKeyVal) == Convert.ToBoolean(defaultValue))
                         return false;
                     else
                         return true;
                 }
-                else if (primaryKeyValType == dbModel_tdecimal || (underlyingNllableType != null && underlyingNllableType == dbModel_tdecimal))
+                else if (primaryKeyValType == typeof(decimal))
                 {
                     decimal val = Convert.ToDecimal(primaryKeyVal);
 
@@ -723,14 +692,21 @@ public static class DbModelExtensions
                     else
                         return true;
                 }
-                else if (primaryKeyValType == dbModel_tdatetime || (underlyingNllableType != null && underlyingNllableType == dbModel_tdatetime))
+                else if (primaryKeyValType == typeof(DateOnly))
+                {
+                    if ((DateOnly)primaryKeyVal! == (DateOnly)defaultValue!)
+                        return false;
+                    else
+                        return true;
+                }
+                else if (primaryKeyValType == typeof(DateTime))
                 {
                     if (Convert.ToDateTime(primaryKeyVal) == Convert.ToDateTime(defaultValue))
                         return false;
                     else
                         return true;
                 }
-                else if (primaryKeyValType == dbModel_tString || (underlyingNllableType != null && underlyingNllableType == dbModel_tString))
+                else if (primaryKeyValType == typeof(string))
                 {
                     if (Convert.ToString(primaryKeyVal) == Convert.ToString(defaultValue))
                         return false;

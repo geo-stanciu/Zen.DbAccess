@@ -109,6 +109,9 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
         DataSet ds = new DataSet();
         da.Fill(ds);
 
+        if (da.SelectCommand == null)
+            throw new NullReferenceException("SelectCommand is null.");
+
         if (ds.Tables.Count == 1 && ds.Tables[0].Columns.Count == 1)
         {
             string sql = da.SelectCommand.CommandText;

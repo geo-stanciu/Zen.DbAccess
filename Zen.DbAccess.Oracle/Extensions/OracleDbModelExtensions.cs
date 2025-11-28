@@ -19,9 +19,8 @@ public static class OracleDbModelExtensions
 
     public static bool IsBlobDataType(this DbModel dbModel, PropertyInfo propertyInfo)
     {
-        Type t = propertyInfo.PropertyType;
-        Type u = Nullable.GetUnderlyingType(t);
+        Type t = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
 
-        return t == typeof(byte[]) || (u != null && u == typeof(byte[]));
+        return t == typeof(byte[]);
     }
 }

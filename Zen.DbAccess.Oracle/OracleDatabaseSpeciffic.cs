@@ -213,6 +213,7 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
                 if (!insertPrimaryKeyColumn
                     && string.IsNullOrEmpty(sequence2UseForPrimaryKey)
                     && !string.IsNullOrEmpty(dbCol)
+                    && primaryKeyColumns != null
                     && primaryKeyColumns.Any(x => x == dbCol))
                 {
                     continue;
@@ -228,6 +229,7 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
 
                 if (!insertPrimaryKeyColumn
                     && !string.IsNullOrEmpty(sequence2UseForPrimaryKey)
+                    && primaryKeyColumns != null
                     && primaryKeyColumns.Any(x => x == dbCol))
                 {
                     sbInsert.Append($" {dbCol} ");

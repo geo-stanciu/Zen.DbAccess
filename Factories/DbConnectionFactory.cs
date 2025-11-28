@@ -92,10 +92,14 @@ public class DbConnectionFactory : IDbConnectionFactory
     /// <exception cref="NotImplementedException"></exception>
     public async Task<IZenDbConnection> BuildAsync()
     {
-        DbConnection conn;
+        DbConnection? conn;
 
         DbProviderFactory dbProviderFactory = _dbSpeciffic!.BuildDbProviderFactory(_dbType!.Value);
         conn = dbProviderFactory.CreateConnection();
+
+        if (conn == null)
+            throw new Exception($"Connection object is null for {_dbType} type");
+
         conn.ConnectionString = _connStr;
 
         ZenDbConnection connection = new ZenDbConnection(conn, _dbType!.Value, _dbSpeciffic);
