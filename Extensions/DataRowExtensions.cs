@@ -59,6 +59,13 @@ public static class DataRowExtensions
                 p.SetValue(rez, Convert.ToInt32(val) == 1, null);
             else if (t == typeof(decimal))
                 p.SetValue(rez, Convert.ToDecimal(val), null);
+            else if (t == typeof(TimeOnly))
+            {
+                if (val.GetType() == typeof(DateTime))
+                    p.SetValue(rez, TimeOnly.FromDateTime(Convert.ToDateTime(val)), null);
+                else
+                    p.SetValue(rez, (TimeOnly)val, null);
+            }
             else if (t == typeof(DateOnly))
             {
                 if (val.GetType() == typeof(DateTime))
@@ -70,6 +77,8 @@ public static class DataRowExtensions
             {
                 if (val.GetType() == typeof(DateOnly))
                     p.SetValue(rez, ((DateOnly)val).ToDateTime(TimeOnly.MinValue), null);
+                if (val.GetType() == typeof(TimeOnly))
+                    p.SetValue(rez, DateTime.MinValue.Date.Add(((TimeOnly)val).ToTimeSpan()), null);
                 else
                     p.SetValue(rez, Convert.ToDateTime(val), null);
             }

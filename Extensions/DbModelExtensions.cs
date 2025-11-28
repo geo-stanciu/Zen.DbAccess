@@ -692,6 +692,13 @@ public static class DbModelExtensions
                     else
                         return true;
                 }
+                else if (primaryKeyValType == typeof(TimeOnly))
+                {
+                    if ((TimeOnly)primaryKeyVal! == (TimeOnly)defaultValue!)
+                        return false;
+                    else
+                        return true;
+                }
                 else if (primaryKeyValType == typeof(DateOnly))
                 {
                     if ((DateOnly)primaryKeyVal! == (DateOnly)defaultValue!)
