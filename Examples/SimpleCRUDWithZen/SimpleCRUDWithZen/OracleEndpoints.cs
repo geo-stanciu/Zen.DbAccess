@@ -36,6 +36,8 @@ public static class OracleEndpoints
         group.MapPost("/people", async ([FromBody] CreateOrUpdatePersonModel p, [FromKeyedServices(DataSourceNames.Oracle)] IPeopleRepository repo) =>
         {
             var person = p.ToPerson();
+            person.CreatedAt = DateTime.UtcNow;
+
             var personId = await repo.CreateAsync(person);
             person.Id = personId;
 
@@ -51,8 +53,13 @@ public static class OracleEndpoints
 
         group.MapPut("/people/{id}", async ([FromRoute] int id, [FromBody] CreateOrUpdatePersonModel p, [FromKeyedServices(DataSourceNames.Oracle)] IPeopleRepository repo) =>
         {
-            var person = p.ToPerson();
-            person.Id = id;
+            var person = await repo.GetByIdAsync(id);
+            person.FirstName = p.FirstName;
+            person.LastName = p.LastName;
+            person.BirthDate = p.BirthDate;
+            person.Type = p.Type;
+            person.Image = p.Image;
+            person.UpdatedAt = DateTime.UtcNow;
 
             await repo.UpdateAsync(person);
 

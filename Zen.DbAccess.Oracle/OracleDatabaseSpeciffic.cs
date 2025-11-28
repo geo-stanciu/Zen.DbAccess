@@ -24,9 +24,26 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
         (string prmName, SqlParam prm) = ((IDbSpeciffic)this).CommonPrepareParameter(model, propertyInfo);
 
         if (model.IsClobDataType(propertyInfo))
+        {
             prm.isClob = true;
+        }
         else if (!prm.isBlob && model.IsBlobDataType(propertyInfo))
+        {
             prm.isBlob = true;
+        }
+        else if (prm.value != null && prm.value != DBNull.Value)
+        {
+            Type t = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
+
+            if (t == typeof(DateOnly))
+            {
+                prm.value = ((DateOnly)prm.value).ToDateTime(TimeOnly.MinValue);
+            }
+            else if (t == typeof(TimeOnly))
+            {
+                prm.value = DateTime.MinValue.Date.Add(((TimeOnly)prm.value).ToTimeSpan());
+            }
+        }
 
         return (prmName, prm);
     }

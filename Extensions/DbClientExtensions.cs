@@ -354,23 +354,32 @@ public static class DbClientExtensions
                 p.SetValue(rez, Convert.ToDecimal(val), null);
             else if (t == typeof(TimeOnly))
             {
-                if (val.GetType() == typeof(DateTime))
+                Type tVal = val.GetType();
+                Type realValType = Nullable.GetUnderlyingType(tVal) ?? tVal;
+
+                if (realValType == typeof(DateTime))
                     p.SetValue(rez, TimeOnly.FromDateTime(Convert.ToDateTime(val)), null);
                 else
                     p.SetValue(rez, (TimeOnly)val, null);
             }
             else if (t == typeof(DateOnly))
             {
-                if (val.GetType() == typeof(DateTime))
+                Type tVal = val.GetType();
+                Type realValType = Nullable.GetUnderlyingType(tVal) ?? tVal;
+
+                if (realValType == typeof(DateTime))
                     p.SetValue(rez, DateOnly.FromDateTime(Convert.ToDateTime(val)), null);
                 else
                     p.SetValue(rez, (DateOnly)val, null);
             }
             else if (t == typeof(DateTime))
             {
-                if (val.GetType() == typeof(DateOnly))
+                Type tVal = val.GetType();
+                Type realValType = Nullable.GetUnderlyingType(tVal) ?? tVal;
+
+                if (realValType == typeof(DateOnly))
                     p.SetValue(rez, ((DateOnly)val).ToDateTime(TimeOnly.MinValue), null);
-                if (val.GetType() == typeof(TimeOnly))
+                if (realValType == typeof(TimeOnly))
                     p.SetValue(rez, DateTime.MinValue.Date.Add(((TimeOnly)val).ToTimeSpan()), null);
                 else
                     p.SetValue(rez, Convert.ToDateTime(val), null);

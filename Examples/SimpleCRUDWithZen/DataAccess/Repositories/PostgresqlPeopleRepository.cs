@@ -32,8 +32,11 @@ public class PostgresqlPeopleRepository : IPeopleRepository
                 id serial not null,
                 first_name varchar(128),
                 last_name varchar(128) not null,
+                birth_date date,
                 type int,
                 image bytea,
+                created_at timestamp,
+                updated_at timestamp,
                 constraint person_pk primary key (id)
             )
             """;
@@ -64,7 +67,7 @@ public class PostgresqlPeopleRepository : IPeopleRepository
 
     public virtual async Task DeleteAsync(int id)
     {
-        var p = await GetByIdAsync(id);
+        var p = new Person { Id = id };
 
         await p.DeleteAsync(_dbConnectionFactory, TABLE_NAME);
     }
@@ -72,7 +75,7 @@ public class PostgresqlPeopleRepository : IPeopleRepository
     public virtual async Task<List<Person>> GetAllAsync()
     {
         string sql = $"""
-            select id, first_name, last_name, type, image from {TABLE_NAME} order by id
+            select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {TABLE_NAME} order by id
             """;
 
         var people = await sql.QueryAsync<Person>(_dbConnectionFactory);
@@ -86,7 +89,7 @@ public class PostgresqlPeopleRepository : IPeopleRepository
     public virtual async Task<Person> GetByIdAsync(int personId)
     {
         string sql = $"""
-            select id, first_name, last_name, type, image from {TABLE_NAME} where id = @Id
+            select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {TABLE_NAME} where id = @Id
             """;
 
         var p = await sql.QueryRowAsync<Person>(_dbConnectionFactory, new SqlParam("@Id", personId));
