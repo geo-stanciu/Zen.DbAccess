@@ -28,6 +28,18 @@ public interface IDbSpeciffic
         return dbProviderFactory;
     }
 
+    (string, SqlParam) CommonPrepareEmptyParameter(PropertyInfo propertyInfo)
+    {
+        SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", DBNull.Value);
+
+        Type t = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
+
+        if (t == typeof(byte[]))
+            prm.isBlob = true;
+
+        return ($"@p_{propertyInfo.Name}", prm);
+    }
+
     (string, SqlParam) CommonPrepareParameter(DbModel model, PropertyInfo propertyInfo)
     {
         SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", propertyInfo.GetValue(model));
@@ -38,6 +50,11 @@ public interface IDbSpeciffic
             prm.isBlob = true;
 
         return ($"@p_{propertyInfo.Name}", prm);
+    }
+
+    (string, SqlParam) PrepareEmptyParameter(DbModel model, PropertyInfo propertyInfo)
+    {
+        return CommonPrepareEmptyParameter(propertyInfo);
     }
 
     (string, SqlParam) PrepareParameter(DbModel model, PropertyInfo propertyInfo)
@@ -195,4 +212,19 @@ public interface IDbSpeciffic
         List<T> list,
         IZenDbConnection conn,
         string table) where T : DbModel;
+
+    object? GetValueAsDateOnly(IZenDbConnection conn, DateOnly dtoValue)
+    {
+        return dtoValue;
+    }
+
+    object? GetValueAsTimeOnly(IZenDbConnection conn, TimeOnly toValue)
+    {
+        return toValue;
+    }
+
+    object GetValueForPreparedParameter(DbModel dbModel, PropertyInfo propertyInfo)
+    {
+        return propertyInfo.GetValue(dbModel) ?? DBNull.Value;
+    }
 }

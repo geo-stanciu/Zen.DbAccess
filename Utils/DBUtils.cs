@@ -633,6 +633,14 @@ public static class DBUtils
             {
                 param.Value = Convert.ToInt32(prm.value);
             }
+            else if (prm.value is DateOnly dtoValue)
+            {
+                param.Value = conn.DatabaseSpeciffic.GetValueAsDateOnly(conn, dtoValue);
+            }
+            else if (prm.value is TimeOnly toValue)
+            {
+                param.Value = conn.DatabaseSpeciffic.GetValueAsTimeOnly(conn, toValue);
+            }
             else
             {
                 param.Value = prm.value ?? DBNull.Value;

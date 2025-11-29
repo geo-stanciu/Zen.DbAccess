@@ -140,6 +140,8 @@ public static class ListExtensions
             if (firstModel == null)
                 throw new NullReferenceException(nameof(firstModel));
 
+            firstModel.RefreshDbColumnsAndModelProperties(conn, table);
+
             await firstModel.SaveAsync(dbModelSaveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
 
             for (int i = 1; i < list.Count; i++)

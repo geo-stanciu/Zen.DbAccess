@@ -19,6 +19,22 @@ namespace Zen.DbAccess.Oracle;
 
 public class OracleDatabaseSpeciffic : IDbSpeciffic
 {
+    public (string, SqlParam) PrepareEmptyParameter(DbModel model, PropertyInfo propertyInfo)
+    {
+        (string prmName, SqlParam prm) = ((IDbSpeciffic)this).CommonPrepareEmptyParameter(propertyInfo);
+
+        if (model.IsClobDataType(propertyInfo))
+        {
+            prm.isClob = true;
+        }
+        else if (!prm.isBlob && model.IsBlobDataType(propertyInfo))
+        {
+            prm.isBlob = true;
+        }
+
+        return (prmName, prm);
+    }
+
     public (string, SqlParam) PrepareParameter(DbModel model, PropertyInfo propertyInfo)
     {
         (string prmName, SqlParam prm) = ((IDbSpeciffic)this).CommonPrepareParameter(model, propertyInfo);
@@ -46,6 +62,27 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
         }
 
         return (prmName, prm);
+    }
+
+    public object GetValueForPreparedParameter(DbModel dbModel, PropertyInfo propertyInfo)
+    {
+        var val = propertyInfo.GetValue(dbModel) ?? DBNull.Value;
+
+        if (val != null && val != DBNull.Value)
+        {
+            Type t = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
+
+            if (t == typeof(DateOnly))
+            {
+                return ((DateOnly)val).ToDateTime(TimeOnly.MinValue);
+            }
+            else if (t == typeof(TimeOnly))
+            {
+                return DateTime.MinValue.Date.Add(((TimeOnly)val).ToTimeSpan());
+            }
+        }
+
+        return val;
     }
 
     public void DisposeBlob(DbCommand cmd, SqlParam prm)
@@ -296,7 +333,7 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
         firstModel.ResetDbModel();
         firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false, table: table);
 
         for (int i = 0; i < list.Count; i++)
         {
@@ -342,5 +379,15 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
         sbInsert.AppendLine("SELECT 1 FROM dual");
 
         return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
+    }
+
+    public object? GetValueAsDateOnly(IZenDbConnection conn, DateOnly dtoValue)
+    {
+        return dtoValue.ToDateTime(TimeOnly.MinValue);
+    }
+
+    public object? GetValueAsTimeOnly(IZenDbConnection conn, TimeOnly toValue)
+    {
+        return DateTime.MinValue.Date.Add(toValue.ToTimeSpan());
     }
 }

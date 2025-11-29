@@ -60,6 +60,11 @@ public class PostgresqlPeopleRepository : IPeopleRepository
         return p.Id;
     }
 
+    public virtual async Task CreateBatchAsync(List<Person> people)
+    {
+        await people.SaveAllAsync(_dbConnectionFactory, TABLE_NAME);
+    }
+
     public virtual async Task UpdateAsync(Person p)
     {
         await p.SaveAsync(_dbConnectionFactory, TABLE_NAME);

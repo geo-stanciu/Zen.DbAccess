@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -18,6 +19,8 @@ namespace Zen.DbAccess.Extensions;
 
 public static class DbClientExtensions
 {
+    private static ConcurrentDictionary<string, Dictionary<string, PropertyInfo>?> _propertiesCache = new();
+
     public static List<SqlParam> ExecuteProcedure(this string query, IZenDbConnection conn, params SqlParam[] parameters)
     {
         return DBUtils.ExecuteProcedure(conn, query, parameters);
@@ -207,13 +210,20 @@ public static class DbClientExtensions
 
         using (var dRead = cmd.ExecuteReader())
         {
-            Dictionary<string, PropertyInfo>? properties = null;
-            bool propertiesAlreadyDetermined = false;
+            string cachekey = $"{typeof(T).FullName}_{Sha256Helper.Sha256(cmd.CommandText)}";
+
+            Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+            bool propertiesAlreadyDetermined = properties != null;
+            bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
             while (dRead.Read())
             {
                 found = true;
                 var rez = dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined);
+
+                if (shoudCacheProperties)
+                    _propertiesCache.TryAdd(cachekey, properties);
+
                 return rez;
             }
         }
@@ -238,13 +248,19 @@ public static class DbClientExtensions
 
         using (var dRead = cmd.ExecuteReader())
         {
-            Dictionary<string, PropertyInfo>? properties = null;
-            bool propertiesAlreadyDetermined = false;
+            string cachekey = $"{typeof(T).FullName}_{Sha256Helper.Sha256(cmd.CommandText)}";
+
+            Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+            bool propertiesAlreadyDetermined = properties != null;
+            bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
             while (dRead.Read())
             {
                 rez.Add(dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined));
             }
+
+            if (shoudCacheProperties)
+                _propertiesCache.TryAdd(cachekey, properties);
         }
 
         return rez;
@@ -264,13 +280,20 @@ public static class DbClientExtensions
 
         using (var dRead = await cmd.ExecuteReaderAsync())
         {
-            Dictionary<string, PropertyInfo>? properties = null;
-            bool propertiesAlreadyDetermined = false;
+            string cachekey = $"{typeof(T).FullName}_{Sha256Helper.Sha256(cmd.CommandText)}";
+
+            Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+            bool propertiesAlreadyDetermined = properties != null;
+            bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
             while (await dRead.ReadAsync())
             {
                 found = true;
                 var rez = dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined);
+
+                if (shoudCacheProperties)
+                    _propertiesCache.TryAdd(cachekey, properties);
+
                 return rez;
             }
         }
@@ -295,13 +318,20 @@ public static class DbClientExtensions
 
         using (var dRead = await cmd.ExecuteReaderAsync())
         {
-            Dictionary<string, PropertyInfo>? properties = null;
-            bool propertiesAlreadyDetermined = false;
+            string cachekey = $"{typeof(T).FullName}_{Sha256Helper.Sha256(cmd.CommandText)}";
+
+            Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+            bool propertiesAlreadyDetermined = properties != null;
+            bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
             while (await dRead.ReadAsync())
             {
                 rez.Add(dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined));
             }
+
+
+            if (shoudCacheProperties)
+                _propertiesCache.TryAdd(cachekey, properties);
         }
 
         return rez;

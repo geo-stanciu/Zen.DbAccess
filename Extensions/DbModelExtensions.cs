@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Security.AccessControl;
 using System.Text;
@@ -12,6 +14,7 @@ using System.Threading.Tasks;
 using Zen.DbAccess.Attributes;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Factories;
+using Zen.DbAccess.Helpers;
 using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Models;
 using Zen.DbAccess.Utils;
@@ -20,6 +23,8 @@ namespace Zen.DbAccess.Extensions;
 
 public static class DbModelExtensions
 {
+    private static ConcurrentDictionary<string, DbPropertiesCacheModel> _propertiesCache = new();
+
     public static bool HasAuditIgnoreAttribute(this DbModel dbModel,  PropertyInfo propertyInfo)
     {
         return Attribute.IsDefined(propertyInfo, typeof(AuditIgnoreAttribute));
@@ -40,30 +45,48 @@ public static class DbModelExtensions
         if (dbModel.dbModel_dbColumns != null && dbModel.dbModel_dbColumns.Count > 0)
             return;
 
-        dbModel.dbModel_dbColumns = new HashSet<string>();
-        dbModel.dbModel_dbColumn_map = new Dictionary<string, PropertyInfo>();
-        dbModel.dbModel_prop_map = new Dictionary<string, string>();
-
-        var properties = dbModel
-            .GetType()
-            .GetProperties(BindingFlags.Instance | BindingFlags.Public)
-            .Where(x => !dbModel.HasDbModelPropertyIgnoreAttribute(x))
-            .ToArray();
-
-        foreach (var property in properties)
+        string cachekey = $"{dbModel.GetType().FullName}_{table}";
+        
+        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
         {
-            string dbColumnName = dbNamingConvention switch
-            {
-                DbNamingConvention.SnakeCase => GetSnakeCaseColumnName(property.Name),
-                DbNamingConvention.CamelCase => GetCamelCaseColumnName(property.Name),
-                DbNamingConvention.UseQuoteMarkes => GetUseQuoteMarkesColumnName(property.Name, startQuoteMark, endQuoteMark),
-                _ => throw new NotImplementedException($"{dbNamingConvention}")
-            };
+            var dbColumns = new HashSet<string>();
+            var dbColumnMap = new Dictionary<string, PropertyInfo>();
+            var propMap = new Dictionary<string, string>();
 
-            dbModel.dbModel_dbColumns.Add(dbColumnName);
-            dbModel.dbModel_dbColumn_map[dbColumnName] = property;
-            dbModel.dbModel_prop_map[property.Name] = dbColumnName;
-        }
+            var properties = dbModel
+                .GetType()
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(x => !dbModel.HasDbModelPropertyIgnoreAttribute(x))
+                .ToArray();
+
+            foreach (var property in properties)
+            {
+                string dbColumnName = dbNamingConvention switch
+                {
+                    DbNamingConvention.SnakeCase => GetSnakeCaseColumnName(property.Name),
+                    DbNamingConvention.CamelCase => GetCamelCaseColumnName(property.Name),
+                    DbNamingConvention.UseQuoteMarkes => GetUseQuoteMarkesColumnName(property.Name, startQuoteMark, endQuoteMark),
+                    _ => throw new NotImplementedException($"{dbNamingConvention}")
+                };
+
+                dbColumns.Add(dbColumnName);
+                dbColumnMap[dbColumnName] = property;
+                propMap[property.Name] = dbColumnName;
+            }
+
+            return new DbPropertiesCacheModel
+            {
+                Table = table,
+                DbColumns = dbColumns,
+                DbColumnMap = dbColumnMap,
+                PropMap = propMap,
+            };
+        });
+
+        dbModel.dbModel_table = cachedProps?.Table;
+        dbModel.dbModel_dbColumns = cachedProps?.DbColumns;
+        dbModel.dbModel_dbColumn_map = cachedProps?.DbColumnMap;
+        dbModel.dbModel_prop_map = cachedProps?.PropMap;
     }
 
     private static string GetSnakeCaseColumnName(string propName)
@@ -168,7 +191,7 @@ public static class DbModelExtensions
         return propName;
     }
 
-    public static List<PropertyInfo> GetPropertiesToUpdate(this DbModel dbModel)
+    public static List<PropertyInfo> GetPropertiesToUpdate(this DbModel dbModel, string table)
     {
         if (dbModel.dbModel_dbColumns == null)
             throw new NullReferenceException("dbModel_dbColumns");
@@ -179,16 +202,28 @@ public static class DbModelExtensions
         if (dbModel.dbModel_primaryKey_dbColumns == null)
             throw new NullReferenceException("dbModel_primaryKey_dbColumns");
 
-        return dbModel.dbModel_dbColumns
-            .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x)
-                        && !dbModel.dbModel_primaryKey_dbColumns.Contains(x)
-                        && !x.Equals("is_error", StringComparison.OrdinalIgnoreCase)
-                        && !x.Equals("error_message", StringComparison.OrdinalIgnoreCase))
-            .Select(x => dbModel.dbModel_dbColumn_map[x])
-            .ToList();
+        string cachekey = $"{dbModel.GetType().FullName}_{table}_PropertiesToUpdate";
+
+        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
+        {
+            List<PropertyInfo> props = dbModel.dbModel_dbColumns
+                .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x)
+                            && !dbModel.dbModel_primaryKey_dbColumns.Contains(x)
+                            && !x.Equals("is_error", StringComparison.OrdinalIgnoreCase)
+                            && !x.Equals("error_message", StringComparison.OrdinalIgnoreCase))
+                .Select(x => dbModel.dbModel_dbColumn_map[x])
+                .ToList();
+
+            return new DbPropertiesCacheModel
+            {
+                PropertiesToUpdate = props,
+            };
+        });
+
+        return cachedProps.PropertiesToUpdate;
     }
 
-    public static List<PropertyInfo> GetPropertiesToInsert(this DbModel dbModel, IZenDbConnection conn, bool insertPrimaryKeyColumn, string sequence2UseForPrimaryKey = "")
+    public static List<PropertyInfo> GetPropertiesToInsert(this DbModel dbModel, IZenDbConnection conn, bool insertPrimaryKeyColumn, string table, string sequence2UseForPrimaryKey = "")
     {
         if (dbModel.dbModel_dbColumns == null)
             throw new NullReferenceException("dbModel_dbColumns");
@@ -199,17 +234,29 @@ public static class DbModelExtensions
         if (dbModel.dbModel_primaryKey_dbColumns == null)
             throw new NullReferenceException("dbModel_primaryKey_dbColumns");
 
-        return dbModel.dbModel_dbColumns
-            .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x)
-                        && !x.Equals("is_error", StringComparison.OrdinalIgnoreCase)
-                        && !x.Equals("error_message", StringComparison.OrdinalIgnoreCase)
-                        && (insertPrimaryKeyColumn
-                            || (!insertPrimaryKeyColumn && conn.DatabaseSpeciffic.UsePrimaryKeyPropertyForInsert() && !string.IsNullOrEmpty(sequence2UseForPrimaryKey))
-                            || (!insertPrimaryKeyColumn && !dbModel.dbModel_primaryKey_dbColumns.Contains(x))
+        string cachekey = $"{dbModel.GetType().FullName}_{table}_{insertPrimaryKeyColumn}_{sequence2UseForPrimaryKey}_PropertiesToInsert";
+
+        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
+        {
+            List<PropertyInfo> props = dbModel.dbModel_dbColumns
+                .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x)
+                            && !x.Equals("is_error", StringComparison.OrdinalIgnoreCase)
+                            && !x.Equals("error_message", StringComparison.OrdinalIgnoreCase)
+                            && (insertPrimaryKeyColumn
+                                || (!insertPrimaryKeyColumn && conn.DatabaseSpeciffic.UsePrimaryKeyPropertyForInsert() && !string.IsNullOrEmpty(sequence2UseForPrimaryKey))
+                                || (!insertPrimaryKeyColumn && !dbModel.dbModel_primaryKey_dbColumns.Contains(x))
+                            )
                         )
-                    )
-            .Select(x => dbModel.dbModel_dbColumn_map[x])
-            .ToList();
+                .Select(x => dbModel.dbModel_dbColumn_map[x])
+                .ToList();
+
+            return new DbPropertiesCacheModel
+            {
+                PropertiesToInsert = props,
+            };
+        });
+
+        return cachedProps.PropertiesToInsert;
     }
 
     public static List<PropertyInfo> GetPrimaryKeyProperties(this DbModel dbModel)
@@ -232,62 +279,77 @@ public static class DbModelExtensions
     {
         RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
 
-        StringBuilder sbUpdate = new StringBuilder();
-        sbUpdate.Append($"update {table} set ");
-
-        bool firstParam = true;
-
         DeterminePrimaryKey(dbModel);
 
         if (dbModel.dbModel_prop_map == null)
             throw new NullReferenceException("dbModel_prop_map");
 
-        List<PropertyInfo> propertiesToUpdate = GetPropertiesToUpdate(dbModel);
+        string cachekey = $"{dbModel.GetType().FullName}_{table}_UpdateQuery";
 
-        for (int i = 0; i < propertiesToUpdate.Count; i++)
+        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
         {
-            PropertyInfo propertyInfo = propertiesToUpdate[i];
+            StringBuilder sbUpdate = new StringBuilder();
+            sbUpdate.Append($"update {table} set ");
 
-            if (firstParam)
-                firstParam = false;
-            else
-                sbUpdate.Append(", ");
+            bool firstParam = true;
 
-            (string preparedParameterName, SqlParam prm) = conn.DatabaseSpeciffic.PrepareParameter(dbModel, propertyInfo);
+            List<PropertyInfo> propertiesToUpdate = GetPropertiesToUpdate(dbModel, table);
+            var sqlUpdateParams = new List<SqlParam>();
 
-            sbUpdate.Append($" {dbModel.dbModel_prop_map[propertyInfo.Name]} = {preparedParameterName} ");
-
-            dbModel.dbModel_sql_update.sql_parameters.Add(prm);
-        }
-
-        bool isFirstPkCol = true;
-
-        foreach (var pkDbCol in dbModel.dbModel_primaryKey_dbColumns!)
-        {
-            if (isFirstPkCol)
+            for (int i = 0; i < propertiesToUpdate.Count; i++)
             {
-                sbUpdate.Append(" where ");
-                isFirstPkCol = false;
-            }
-            else
-            {
-                sbUpdate.Append(" and ");
+                PropertyInfo propertyInfo = propertiesToUpdate[i];
+
+                if (firstParam)
+                    firstParam = false;
+                else
+                    sbUpdate.Append(", ");
+
+                (string preparedParameterName, SqlParam prm) = conn.DatabaseSpeciffic.PrepareEmptyParameter(dbModel, propertyInfo);
+
+                sbUpdate.Append($" {dbModel.dbModel_prop_map[propertyInfo.Name]} = {preparedParameterName} ");
+
+                sqlUpdateParams.Add(prm);
             }
 
-            var prop = dbModel.dbModel_dbColumn_map![pkDbCol];
+            bool isFirstPkCol = true;
 
-            var pkPrm = new SqlParam($"@p_{prop.Name}", prop.GetValue(dbModel));
-            dbModel.dbModel_sql_update.sql_parameters.Add(pkPrm);
+            foreach (var pkDbCol in dbModel.dbModel_primaryKey_dbColumns!)
+            {
+                if (isFirstPkCol)
+                {
+                    sbUpdate.Append(" where ");
+                    isFirstPkCol = false;
+                }
+                else
+                {
+                    sbUpdate.Append(" and ");
+                }
 
-            sbUpdate.Append($" {pkDbCol} = @p_{prop.Name}");
-        }
+                var prop = dbModel.dbModel_dbColumn_map![pkDbCol];
 
-        dbModel.dbModel_sql_update.sql_query = sbUpdate.ToString();
+                var pkPrm = new SqlParam($"@p_{prop.Name}", DBNull.Value);
+                sqlUpdateParams.Add(pkPrm);
+
+                sbUpdate.Append($" {pkDbCol} = @p_{prop.Name}");
+            }
+
+            return new DbPropertiesCacheModel
+            {
+                SqlUpdate = sbUpdate.ToString(),
+                SqlUpdateParams = sqlUpdateParams,
+            };
+        });
+
+        dbModel.dbModel_sql_update.sql_query = cachedProps.SqlUpdate;
+        dbModel.dbModel_sql_update.sql_parameters = cachedProps.SqlUpdateParams;
+
+        RefreshParameterValuesForUpdate(dbModel, conn, table);
     }
 
-    private static void RefreshParameterValuesForUpdate(this DbModel dbModel)
+    private static void RefreshParameterValuesForUpdate(this DbModel dbModel, IZenDbConnection conn, string table)
     {
-        List<PropertyInfo> propertiesToUpdate = GetPropertiesToUpdate(dbModel);
+        List<PropertyInfo> propertiesToUpdate = GetPropertiesToUpdate(dbModel, table);
 
         for (int i = 0; i < propertiesToUpdate.Count; i++)
         {
@@ -298,7 +360,7 @@ public static class DbModelExtensions
             SqlParam? prm = dbModel.dbModel_sql_update.sql_parameters.FirstOrDefault(x => x.name == $"@p_{propertyInfo.Name}");
 
             if (prm != null)
-                prm.value = propertyInfo.GetValue(dbModel) ?? DBNull.Value;
+                prm.value = conn.DatabaseSpeciffic.GetValueForPreparedParameter(dbModel, propertyInfo);
         }
 
         List<PropertyInfo> primaryKeys = GetPrimaryKeyProperties(dbModel);
@@ -311,7 +373,7 @@ public static class DbModelExtensions
             SqlParam? prm = dbModel.dbModel_sql_update.sql_parameters.FirstOrDefault(x => x.name == $"@p_{propertyInfo.Name}");
 
             if (prm != null)
-                prm.value = propertyInfo.GetValue(dbModel) ?? DBNull.Value;
+                prm.value = conn.DatabaseSpeciffic.GetValueForPreparedParameter(dbModel, propertyInfo);
         }
     }
 
@@ -326,22 +388,34 @@ public static class DbModelExtensions
         if (dbModel.dbModel_dbColumn_map == null)
             throw new NullReferenceException("dbModel_dbColumn_map");
 
-        dbModel.dbModel_primaryKey_dbColumns = new List<string>();
+        string cachekey = $"{dbModel.GetType().FullName}_PrimaryKeyDbColumns";
 
-        foreach (var dbCol in dbModel.dbModel_dbColumns)
+        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
         {
-            if (!dbModel.dbModel_dbColumn_map.TryGetValue(dbCol, out PropertyInfo? prop))
-                continue;
+            var primaryKeyDbColumns = new List<string>();
 
-            if (prop == null)
-                continue;
+            foreach (var dbCol in dbModel.dbModel_dbColumns)
+            {
+                if (!dbModel.dbModel_dbColumn_map.TryGetValue(dbCol, out PropertyInfo? prop))
+                    continue;
 
-            if (Attribute.IsDefined(prop, typeof(PrimaryKeyAttribute)))
-                dbModel.dbModel_primaryKey_dbColumns.Add(dbCol);
-        }
+                if (prop == null)
+                    continue;
 
-        if (dbModel.dbModel_primaryKey_dbColumns.Count == 0)
-            throw new Exception("There must be a property with the [PrimaryKey] attribute.");
+                if (Attribute.IsDefined(prop, typeof(PrimaryKeyAttribute)))
+                    primaryKeyDbColumns.Add(dbCol);
+            }
+
+            if (primaryKeyDbColumns.Count == 0)
+                throw new Exception("There must be a property with the [PrimaryKey] attribute.");
+
+            return new DbPropertiesCacheModel
+            {
+                PrimaryKeyDbColumns = primaryKeyDbColumns,
+            };
+        });
+
+        dbModel.dbModel_primaryKey_dbColumns = cachedProps.PrimaryKeyDbColumns;
     }
 
     public static void RefreshDbColumnsAndModelProperties(this DbModel dbModel, IZenDbConnection conn, string table)
@@ -360,11 +434,6 @@ public static class DbModelExtensions
     {
         RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
 
-        StringBuilder sbInsertValues = new StringBuilder();
-        StringBuilder sbInsert = new StringBuilder();
-
-        sbInsert.Append($"insert into {table} (");
-
         DeterminePrimaryKey(dbModel);
 
         if (dbModel.dbModel_dbColumns == null)
@@ -379,62 +448,82 @@ public static class DbModelExtensions
         if (dbModel.dbModel_prop_map == null)
             throw new NullReferenceException("dbModel_prop_map");
 
-        bool firstParam = true;
+        string cachekey = $"{dbModel.GetType().FullName}_{table}_InsertQuery";
 
-        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, conn, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
-
-        for (int i = 0; i < propertiesToInsert.Count; i++)
+        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
         {
-            PropertyInfo propertyInfo = propertiesToInsert[i];
+            StringBuilder sbInsertValues = new StringBuilder();
+            StringBuilder sbInsert = new StringBuilder();
+            var sqlInsertParams = new List<SqlParam>();
 
-            if (firstParam)
-                firstParam = false;
-            else
+            sbInsert.Append($"insert into {table} (");
+
+            bool firstParam = true;
+
+            List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, conn, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
+
+            for (int i = 0; i < propertiesToInsert.Count; i++)
             {
-                sbInsert.Append(", ");
-                sbInsertValues.Append(", ");
-            }
+                PropertyInfo propertyInfo = propertiesToInsert[i];
 
-            var dbCol = dbModel.dbModel_prop_map[propertyInfo.Name];
+                if (firstParam)
+                    firstParam = false;
+                else
+                {
+                    sbInsert.Append(", ");
+                    sbInsertValues.Append(", ");
+                }
 
-            if (!insertPrimaryKeyColumn
-                && conn.DatabaseSpeciffic.UsePrimaryKeyPropertyForInsert()
-                && !string.IsNullOrEmpty(sequence2UseForPrimaryKey)
-                && dbModel.dbModel_primaryKey_dbColumns.Any(x => x == dbCol))
-            {
+                var dbCol = dbModel.dbModel_prop_map[propertyInfo.Name];
+
+                if (!insertPrimaryKeyColumn
+                    && conn.DatabaseSpeciffic.UsePrimaryKeyPropertyForInsert()
+                    && !string.IsNullOrEmpty(sequence2UseForPrimaryKey)
+                    && dbModel.dbModel_primaryKey_dbColumns.Any(x => x == dbCol))
+                {
+                    sbInsert.Append($" {dbCol} ");
+                    sbInsertValues.Append($"{sequence2UseForPrimaryKey}.nextval");
+
+                    continue;
+                }
+
+                (string preparedParameterName, SqlParam prm) = conn.DatabaseSpeciffic.PrepareEmptyParameter(dbModel, propertyInfo);
+
                 sbInsert.Append($" {dbCol} ");
-                sbInsertValues.Append($"{sequence2UseForPrimaryKey}.nextval");
+                sbInsertValues.Append($" {preparedParameterName} ");
 
-                continue;
+                sqlInsertParams.Add(prm);
             }
 
-            (string preparedParameterName, SqlParam prm) = conn.DatabaseSpeciffic.PrepareParameter(dbModel, propertyInfo);
+            sbInsert.Append(") values (").Append(sbInsertValues).Append(")");
 
-            sbInsert.Append($" {dbCol} ");
-            sbInsertValues.Append($" {preparedParameterName} ");
+            if (!insertPrimaryKeyColumn && saveType != DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
+            {
+                (string sql, IEnumerable<SqlParam> sqlParams) = conn.DatabaseSpeciffic.GetInsertedIdQuery(table, dbModel, propertiesToInsert.First().Name);
 
-            dbModel.dbModel_sql_insert.sql_parameters.Add(prm);
-        }
+                sbInsert.Append(sql);
+                sqlInsertParams.AddRange(sqlParams);
+            }
 
-        sbInsert.Append(") values (").Append(sbInsertValues).Append(")");
+            return new DbPropertiesCacheModel
+            {
+                SqlInsert = sbInsert.ToString(),
+                SqlInsertParams = sqlInsertParams,
+            };
+        });
 
-        if (!insertPrimaryKeyColumn && saveType != DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
-        {
-            (string sql, IEnumerable<SqlParam> sqlParams) = conn.DatabaseSpeciffic.GetInsertedIdQuery(table, dbModel, propertiesToInsert.First().Name);
+        dbModel.dbModel_sql_insert.sql_query = cachedProps.SqlInsert;
+        dbModel.dbModel_sql_insert.sql_parameters = cachedProps.SqlInsertParams;
 
-            sbInsert.Append(sql);
-            dbModel.dbModel_sql_insert.sql_parameters.AddRange(sqlParams);
-        }
-
-        dbModel.dbModel_sql_insert.sql_query = sbInsert.ToString();
+        RefreshParameterValuesForInsert(dbModel, conn, insertPrimaryKeyColumn, table);
     }
 
-    private static void RefreshParameterValuesForInsert(this DbModel dbModel, IZenDbConnection conn, bool insertPrimaryKeyColumn)
+    private static void RefreshParameterValuesForInsert(this DbModel dbModel, IZenDbConnection conn, bool insertPrimaryKeyColumn, string table)
     {
         if (dbModel.dbModel_sql_insert == null)
             throw new NullReferenceException("dbModel_sql_insert");
 
-        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, conn, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = GetPropertiesToInsert(dbModel, conn, insertPrimaryKeyColumn, table);
 
         for (int i = 0; i < propertiesToInsert.Count; i++)
         {
@@ -446,7 +535,7 @@ public static class DbModelExtensions
                 prm = dbModel.dbModel_sql_insert.sql_parameters.FirstOrDefault(x => x.name == $"@p_{propertyInfo.Name}");
 
             if (prm != null)
-                prm.value = propertyInfo.GetValue(dbModel) ?? DBNull.Value;
+                prm.value = conn.DatabaseSpeciffic.GetValueForPreparedParameter(dbModel, propertyInfo);
         }
     }
 
@@ -544,6 +633,7 @@ public static class DbModelExtensions
         if (string.IsNullOrEmpty(dbModel.dbModel_table) || table != dbModel.dbModel_table)
         {
             dbModel.ResetDbModel();
+            dbModel.dbModel_table = table;
         }
 
         RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
@@ -554,7 +644,7 @@ public static class DbModelExtensions
             if (string.IsNullOrEmpty(dbModel.dbModel_sql_update.sql_query))
                 ConstructUpdateQuery(dbModel, conn, table);
             else
-                RefreshParameterValuesForUpdate(dbModel);
+                RefreshParameterValuesForUpdate(dbModel, conn, table);
 
             // try to update
             int affected = await RunQueryAsync(
@@ -574,7 +664,7 @@ public static class DbModelExtensions
         if (string.IsNullOrEmpty(dbModel.dbModel_sql_insert.sql_query))
             ConstructInsertQuery(dbModel, saveType, conn, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
         else
-            RefreshParameterValuesForInsert(dbModel, conn, insertPrimaryKeyColumn);
+            RefreshParameterValuesForInsert(dbModel, conn, insertPrimaryKeyColumn, table);
 
         // try to insert
         _ = await RunQueryAsync(

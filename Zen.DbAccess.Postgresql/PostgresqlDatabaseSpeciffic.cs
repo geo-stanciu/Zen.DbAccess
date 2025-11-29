@@ -19,6 +19,16 @@ namespace Zen.DbAccess.Postgresql;
 
 public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
 {
+    public (string, SqlParam) PrepareEmptyParameter(DbModel model, PropertyInfo propertyInfo)
+    {
+        (string prmName, SqlParam prm) = ((IDbSpeciffic)this).CommonPrepareEmptyParameter(propertyInfo);
+
+        if (model.IsJsonDataType(propertyInfo))
+            prmName += "::jsonb";
+
+        return (prmName, prm);
+    }
+
     public (string, SqlParam) PrepareParameter(DbModel model, PropertyInfo propertyInfo)
     {
         (string prmName, SqlParam prm) = ((IDbSpeciffic)this).CommonPrepareParameter(model, propertyInfo);
@@ -192,7 +202,7 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
         firstModel.ResetDbModel();
         firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, table);
 
         for (int i = 0; i < list.Count; i++)
         {
@@ -278,7 +288,7 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
         firstModel.ResetDbModel();
         firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false, table: table);
 
         for (int i = 0; i < list.Count; i++)
         {

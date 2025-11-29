@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -10,28 +11,46 @@ namespace Zen.DbAccess.Extensions;
 
 public static class DataTableExtensions
 {
+    private static ConcurrentDictionary<string, Dictionary<string, PropertyInfo>?> _propertiesCache = new();
+
     public static T FirstRowToModel<T>(this DataTable dt)
     {
         if (dt.Rows.Count == 0)
             throw new ArgumentException("DataTable contains 0 rows");
 
-        Dictionary<string, PropertyInfo>? properties = null;
-        bool propertiesAlreadyDetermined = false;
+        string cachekey = $"{typeof(T).FullName}_{dt.Columns.Count}_{(dt.Columns.Count > 0 ? dt.Columns[0].ColumnName : "")}";
 
-        return dt.Rows[0].ToModel<T>(ref properties, ref propertiesAlreadyDetermined);
+        Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+        bool propertiesAlreadyDetermined = properties != null;
+        bool shoudCacheProperties = !propertiesAlreadyDetermined;
+
+        var result = dt.Rows[0].ToModel<T>(ref properties, ref propertiesAlreadyDetermined);
+
+        if (shoudCacheProperties)
+            _propertiesCache.TryAdd(cachekey, properties);
+
+        return result;
     }
 
     public static List<T> ToList<T>(this DataTable dt)
     {
         List<T> data = new List<T>();
-        Dictionary<string, PropertyInfo>? properties = null;
-        bool propertiesAlreadyDetermined = false;
+
+        string cachekey = $"{typeof(T).FullName}_{dt.Columns.Count}_{(dt.Columns.Count > 0 ? dt.Columns[0].ColumnName : "")}";
+
+        Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+        bool propertiesAlreadyDetermined = properties != null;
+        bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
         foreach (DataRow row in dt.Rows)
         {
             T item = row.ToModel<T>(ref properties, ref propertiesAlreadyDetermined);
             data.Add(item);
         }
+
+        if (shoudCacheProperties)
+            _propertiesCache.TryAdd(cachekey, properties);
+
         return data;
     }
 

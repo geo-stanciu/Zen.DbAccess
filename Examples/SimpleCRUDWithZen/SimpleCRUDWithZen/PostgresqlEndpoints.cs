@@ -44,6 +44,18 @@ public static class PostgresqlEndpoints
             return Results.Created($"/people/{personId}", person);
         });
 
+        group.MapPost("/people/batch", async ([FromBody] List<CreateOrUpdatePersonModel> p, [FromKeyedServices(DataSourceNames.Postgresql)] IPeopleRepository repo) =>
+        {
+            var utcNow = DateTime.UtcNow;
+
+            var people = p.Select(x => x.ToPerson()).ToList();
+            people.ForEach(x => x.CreatedAt = utcNow);
+
+            await repo.CreateBatchAsync(people);
+
+            return Results.Created($"/people", people);
+        });
+
         group.MapGet("/people/{id}", async ([FromRoute] int id, [FromKeyedServices(DataSourceNames.Postgresql)] IPeopleRepository repo) =>
         {
             var person = await repo.GetByIdAsync(id);
