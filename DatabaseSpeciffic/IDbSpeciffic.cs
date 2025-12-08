@@ -194,6 +194,16 @@ public interface IDbSpeciffic
         cmd.CommandText = sql;
     }
 
+    bool ShouldFetchProcedureAsCursorsAsync()
+    {
+        return false;
+    }
+
+    Task<List<T>> QueryCursorAsync<T>(IZenDbConnection conn, string procedureName, string cursorName)
+    {
+        throw new NotImplementedException($"QueryCursorAsync not available for {conn.DbType}");
+    }
+
     Task<DataSet> ExecuteProcedure2DataSetAsync(IZenDbConnection conn, DbDataAdapter da)
     {
         DataSet ds = new DataSet();

@@ -36,7 +36,7 @@ public class MariaDbPeopleRepository : PostgresqlPeopleRepository, IPeopleReposi
             ) character set utf8mb4 collate utf8mb4_unicode_ci
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory);
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
     }
 
     public override async Task DropTablesAsync()
@@ -45,6 +45,6 @@ public class MariaDbPeopleRepository : PostgresqlPeopleRepository, IPeopleReposi
             drop table if exists {TABLE_NAME}
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory);
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
     }
 }

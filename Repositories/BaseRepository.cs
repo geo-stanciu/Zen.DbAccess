@@ -40,6 +40,32 @@ public abstract class BaseRepository
         return rez;
     }
 
+    protected Task<(List<T>, List<T2>, List<T3>)> RunProcedureAsync<T, T2, T3>(
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where T3 : ResponseModel
+    {
+        return RunProcedureAsync<T, T2, T3, DbModel>(
+            table: null,
+            models: null,
+            insertPrimaryKeyColumn: false,
+            procedure2Execute: procedure2Execute,
+            CreateTempTableCallBack: null,
+            parameters);
+    }
+
+    protected Task<(List<T>, List<T2>)> RunProcedureAsync<T, T2>(
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel
+    {
+        return RunProcedureAsync<T, T2, DbModel>(
+            table: null,
+            models: null,
+            insertPrimaryKeyColumn: false,
+            procedure2Execute: procedure2Execute,
+            CreateTempTableCallBack: null,
+            parameters);
+    }
+
     protected Task<List<T>> RunProcedureAsync<T>(
         string procedure2Execute,
         params SqlParam[] parameters) where T : ResponseModel
@@ -51,6 +77,44 @@ public abstract class BaseRepository
             procedure2Execute: procedure2Execute,
             CreateTempTableCallBack: null,
             parameters);
+    }
+
+    protected Task<(List<T>, List<T2>, List<T3>)> RunProcedureAsync<T, T2, T3, TDBModel>(
+        string? table,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where T3 : ResponseModel where TDBModel : DbModel
+    {
+        return RunProcedureAsync<T, T2, T3, TDBModel>(
+            table,
+            models,
+            insertPrimaryKeyColumn,
+            false,
+            sequence2UseForPrimaryKey: "",
+            procedure2Execute,
+            CreateTempTableCallBack: null,
+            parameters);
+
+    }
+
+    protected Task<(List<T>, List<T2>)> RunProcedureAsync<T, T2, TDBModel>(
+        string? table,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where TDBModel : DbModel
+    {
+        return RunProcedureAsync<T, T2, TDBModel>(
+            table,
+            models,
+            insertPrimaryKeyColumn,
+            false,
+            sequence2UseForPrimaryKey: "",
+            procedure2Execute,
+            CreateTempTableCallBack: null,
+            parameters);
+
     }
 
     protected Task<List<T>> RunProcedureAsync<T, TDBModel>(
@@ -70,6 +134,46 @@ public abstract class BaseRepository
             CreateTempTableCallBack: null,
             parameters);
 
+    }
+
+    protected async Task<(List<T>, List<T2>, List<T3>)> RunProcedureAsync<T, T2, T3, TDBModel>(
+        string? table,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        string procedure2Execute,
+        Func<IZenDbConnection, Task>? CreateTempTableCallBack,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where T3 : ResponseModel where TDBModel : DbModel
+    {
+        return await (RunProcedureAsync<T, T2, T3, TDBModel>(
+            table,
+            models,
+            insertPrimaryKeyColumn,
+            false,
+            sequence2UseForPrimaryKey: "",
+            procedure2Execute,
+            CreateTempTableCallBack,
+            parameters)
+        );
+    }
+
+    protected async Task<(List<T>, List<T2>)> RunProcedureAsync<T, T2, TDBModel>(
+        string? table,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        string procedure2Execute,
+        Func<IZenDbConnection, Task>? CreateTempTableCallBack,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where TDBModel : DbModel
+    {
+        return await (RunProcedureAsync<T, T2, TDBModel>(
+            table,
+            models,
+            insertPrimaryKeyColumn,
+            false,
+            sequence2UseForPrimaryKey: "",
+            procedure2Execute,
+            CreateTempTableCallBack,
+            parameters)
+        );
     }
 
     protected async Task<List<T>> RunProcedureAsync<T, TDBModel>(
@@ -90,7 +194,46 @@ public abstract class BaseRepository
             CreateTempTableCallBack,
             parameters)
         );
+    }
 
+    protected Task<(List<T>, List<T2>, List<T3>)> RunProcedureAsync<T, T2, T3, TDBModel>(
+        string? table,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        bool? bulkInsert,
+        string? sequence2UseForPrimaryKey,
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where T3 : ResponseModel where TDBModel : DbModel
+    {
+        return RunProcedureAsync<T, T2, T3, TDBModel>(
+            table,
+            models,
+            insertPrimaryKeyColumn,
+            bulkInsert,
+            sequence2UseForPrimaryKey,
+            procedure2Execute,
+            CreateTempTableCallBack: null,
+            parameters);
+    }
+
+    protected Task<(List<T>, List<T2>)> RunProcedureAsync<T, T2, TDBModel>(
+        string? table,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        bool? bulkInsert,
+        string? sequence2UseForPrimaryKey,
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where TDBModel : DbModel
+    {
+        return RunProcedureAsync<T, T2, TDBModel>(
+            table,
+            models,
+            insertPrimaryKeyColumn,
+            bulkInsert,
+            sequence2UseForPrimaryKey,
+            procedure2Execute,
+            CreateTempTableCallBack: null,
+            parameters);
     }
 
     protected Task<List<T>> RunProcedureAsync<T, TDBModel>(
@@ -111,6 +254,134 @@ public abstract class BaseRepository
             procedure2Execute,
             CreateTempTableCallBack: null,
             parameters);
+    }
+
+    protected async Task<(List<T>, List<T2>, List<T3>)> RunProcedureAsync<T, T2, T3, TDBModel>(
+        string? table,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        bool? bulkInsert,
+        string? sequence2UseForPrimaryKey,
+        string procedure2Execute,
+        Func<IZenDbConnection, Task>? CreateTempTableCallBack,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where T3 : ResponseModel where TDBModel : DbModel
+    {
+        if (_dbConnectionFactory == null)
+            throw new NullReferenceException(nameof(_dbConnectionFactory));
+
+        await using IZenDbConnection conn = await _dbConnectionFactory.BuildAsync();
+        await conn.BeginTransactionAsync();
+
+        try
+        {
+            if (CreateTempTableCallBack != null)
+            {
+                await CreateTempTableCallBack(conn);
+            }
+
+            if (!string.IsNullOrEmpty(table))
+            {
+                await ClearTempTableAsync(conn, table);
+            }
+
+            if (models != null && !string.IsNullOrEmpty(table))
+            {
+                if (bulkInsert ?? false)
+                {
+                    await models.BulkInsertAsync(
+                        conn,
+                        table,
+                        runAllInTheSameTransaction: false,
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false,
+                        sequence2UseForPrimaryKey ?? ""
+                    );
+                }
+                else
+                {
+                    await models.SaveAllAsync(
+                        DbModelSaveType.InsertOnly,
+                        conn,
+                        table,
+                        runAllInTheSameTransaction: false,
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
+                    );
+                }
+            }
+
+            var rez = await RunProcedureAsync<T, T2, T3>(conn, procedure2Execute, parameters);
+            await conn.CommitAsync();
+
+            return rez;
+        }
+        catch
+        {
+            await conn.RollbackAsync();
+            throw;
+        }
+    }
+
+    protected async Task<(List<T>, List<T2>)> RunProcedureAsync<T, T2, TDBModel>(
+        string? table,
+        List<TDBModel>? models,
+        bool? insertPrimaryKeyColumn,
+        bool? bulkInsert,
+        string? sequence2UseForPrimaryKey,
+        string procedure2Execute,
+        Func<IZenDbConnection, Task>? CreateTempTableCallBack,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where TDBModel : DbModel
+    {
+        if (_dbConnectionFactory == null)
+            throw new NullReferenceException(nameof(_dbConnectionFactory));
+
+        await using IZenDbConnection conn = await _dbConnectionFactory.BuildAsync();
+        await conn.BeginTransactionAsync();
+
+        try
+        {
+            if (CreateTempTableCallBack != null)
+            {
+                await CreateTempTableCallBack(conn);
+            }
+
+            if (!string.IsNullOrEmpty(table))
+            {
+                await ClearTempTableAsync(conn, table);
+            }
+
+            if (models != null && !string.IsNullOrEmpty(table))
+            {
+                if (bulkInsert ?? false)
+                {
+                    await models.BulkInsertAsync(
+                        conn,
+                        table,
+                        runAllInTheSameTransaction: false,
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false,
+                        sequence2UseForPrimaryKey ?? ""
+                    );
+                }
+                else
+                {
+                    await models.SaveAllAsync(
+                        DbModelSaveType.InsertOnly,
+                        conn,
+                        table,
+                        runAllInTheSameTransaction: false,
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
+                    );
+                }
+            }
+
+            var rez = await RunProcedureAsync<T, T2>(conn, procedure2Execute, parameters);
+            await conn.CommitAsync();
+
+            return rez;
+        }
+        catch
+        {
+            await conn.RollbackAsync();
+            throw;
+        }
     }
 
     protected async Task<List<T>> RunProcedureAsync<T, TDBModel>(
@@ -177,12 +448,32 @@ public abstract class BaseRepository
         }
     }
 
+    protected async Task<(List<T>, List<T2>, List<T3>)> RunProcedureAsync<T, T2, T3>(
+        IZenDbConnection conn,
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where T3 : ResponseModel
+    {
+        var result = await procedure2Execute.QueryProcedureAsync<T, T2, T3>(conn, parameters);
+
+        return result;
+    }
+
+    protected async Task<(List<T>, List<T2>)> RunProcedureAsync<T, T2>(
+        IZenDbConnection conn,
+        string procedure2Execute,
+        params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel
+    {
+        var result = await procedure2Execute.QueryProcedureAsync<T, T2>(conn, parameters);
+
+        return result;
+    }
+
     protected async Task<List<T>> RunProcedureAsync<T>(
         IZenDbConnection conn,
         string procedure2Execute, 
         params SqlParam[] parameters) where T : ResponseModel
     {
-        DataTable? result = await procedure2Execute.ExecuteProcedure2DataTableAsync(conn, parameters);
+        var result = await procedure2Execute.QueryProcedureAsync<T>(conn, parameters);
 
         if (result == null)
             throw new Exception("empty query response");

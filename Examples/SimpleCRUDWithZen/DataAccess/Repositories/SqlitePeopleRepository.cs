@@ -31,13 +31,13 @@ public class SqlitePeopleRepository : PostgresqlPeopleRepository, IPeopleReposit
                 last_name varchar(128) not null,
                 birth_date date,
                 type integer,
-                image BLOB,
+                image blob,
                 created_at timestamp,
                 updated_at timestamp
             );
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory);
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
     }
 
     public override async Task DropTablesAsync()
@@ -46,6 +46,6 @@ public class SqlitePeopleRepository : PostgresqlPeopleRepository, IPeopleReposit
             drop table if exists {TABLE_NAME}
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory);
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
     }
 }

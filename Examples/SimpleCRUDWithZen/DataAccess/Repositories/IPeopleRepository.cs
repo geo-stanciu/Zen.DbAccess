@@ -1,17 +1,29 @@
 ﻿using DataAccess.Models;
 
-namespace DataAccess.Repositories
+namespace DataAccess.Repositories;
+
+public interface IPeopleRepository
 {
-    public interface IPeopleRepository
+    Task CreateTablesAsync();
+    
+    Task DropTablesAsync();
+    
+    Task<List<Person>> GetAllByProcedureAsync()
     {
-        Task CreateTablesAsync();
-        Task DropTablesAsync();
-        Task<List<Person>> GetAllAsync();
-        Task<Person> GetByIdAsync(int personId);
-        Task<int> CreateAsync(Person p);
-        Task CreateBatchAsync(List<Person> people);
-        Task BulkInsertAsync(List<Person> people);
-        Task DeleteAsync(int id);
-        Task UpdateAsync(Person p);
+        throw new NotImplementedException();
     }
+
+    Task<List<Person>> GetAllAsync();
+    
+    Task<Person> GetByIdAsync(int personId);
+    
+    Task<int> CreateAsync(Person p);
+    
+    Task CreateBatchAsync(List<Person> people);
+    
+    Task BulkInsertAsync(List<Person> people);
+    
+    Task DeleteAsync(int id);
+    
+    Task UpdateAsync(Person p);
 }

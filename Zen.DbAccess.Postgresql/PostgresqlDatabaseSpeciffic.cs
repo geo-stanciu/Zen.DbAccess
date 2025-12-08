@@ -14,6 +14,7 @@ using Zen.DbAccess.Extensions;
 using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Models;
 using Zen.DbAccess.Postgresql.Extensions;
+using Zen.DbAccess.Utils;
 
 namespace Zen.DbAccess.Postgresql;
 
@@ -106,61 +107,18 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
         cmd.CommandText = sbSql.ToString();
     }
 
-    public async Task<DataSet> ExecuteProcedure2DataSetAsync(IZenDbConnection conn, DbDataAdapter da)
+    public bool ShouldFetchProcedureAsCursorsAsync()
     {
-        bool isNewTransaction = false;
+        return true;
+    }
 
-        if (conn.Transaction == null)
-        {
-            await conn.BeginTransactionAsync();
-            isNewTransaction = true;
-        }
+    public async Task<List<T>> QueryCursorAsync<T>(IZenDbConnection conn, string procedureName, string cursorName)
+    {
+        string sql = $"FETCH ALL IN \"{cursorName}\"";
 
-        DataSet ds = new DataSet();
-        da.Fill(ds);
+        var result = await sql.FetchCursorAsync<T>(conn, procedureName);
 
-        if (da.SelectCommand == null)
-            throw new NullReferenceException("SelectCommand is null.");
-
-        if (ds.Tables.Count == 1 && ds.Tables[0].Columns.Count == 1)
-        {
-            string sql = da.SelectCommand.CommandText;
-            string procedureName = sql.IndexOf(".") > 0 ? sql.Substring(sql.IndexOf(".") + 1) : sql;
-            int endIdx = procedureName.IndexOf("(");
-
-            if (endIdx > 0)
-            {
-                procedureName = procedureName.Substring(0, endIdx);
-            }
-
-            if (ds.Tables[0].Columns[0].ToString().ToLower() == procedureName.ToLower())
-            {
-                string[] openCursors = ds.Tables[0].AsEnumerable()
-                    .Select(x => x[0]!.ToString()!)
-                    .Where(x => x.StartsWith("<unnamed") && x.EndsWith(">") && !x.Contains(";"))
-                    .ToArray();
-
-                if (openCursors.Any())
-                {
-                    ds = new DataSet();
-                    int k = 1;
-
-                    foreach (string openCursor in openCursors)
-                    {
-                        DataTable dt = await conn.ExecuteCursorToTableAsync(openCursor);
-                        dt.TableName = $"TABLE{k++}";
-                        ds.Tables.Add(dt);
-                    }
-                }
-            }
-        }
-
-        if (isNewTransaction && conn.Transaction != null)
-        {
-            await conn.CommitAsync();
-        }
-
-        return ds;
+        return result ?? new List<T>();
     }
 
     public string GetGetServerDateTimeQuery()

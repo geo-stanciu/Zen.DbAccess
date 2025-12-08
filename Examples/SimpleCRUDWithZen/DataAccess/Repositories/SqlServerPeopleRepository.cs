@@ -39,7 +39,7 @@ public class SqlServerPeopleRepository : PostgresqlPeopleRepository, IPeopleRepo
                 END;
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory, new SqlParam("@sTableName", TABLE_NAME));
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sTableName", TABLE_NAME));
     }
 
     public override async Task DropTablesAsync()
@@ -51,6 +51,6 @@ public class SqlServerPeopleRepository : PostgresqlPeopleRepository, IPeopleRepo
             END;
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory, new SqlParam("@sTableName", TABLE_NAME));
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sTableName", TABLE_NAME));
     }
 }

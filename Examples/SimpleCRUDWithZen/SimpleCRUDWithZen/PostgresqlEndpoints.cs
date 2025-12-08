@@ -35,6 +35,13 @@ public static class PostgresqlEndpoints
             return Results.Ok(people);
         });
 
+        group.MapGet("/people/ByProcedure", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>
+        {
+            var people = await repo.GetAllByProcedureAsync();
+
+            return Results.Ok(people);
+        });
+
         group.MapPost("/people", async ([FromBody] CreateOrUpdatePersonModel p, [FromKeyedServices(dataSource)] IPeopleRepository repo) =>
         {
             var person = p.ToPerson();

@@ -280,7 +280,7 @@ public static class DbModelExtensions
     {
         RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
 
-        DeterminePrimaryKey(dbModel);
+        DeterminePrimaryKey(dbModel, conn);
 
         if (dbModel.dbModel_prop_map == null)
             throw new NullReferenceException("dbModel_prop_map");
@@ -378,7 +378,7 @@ public static class DbModelExtensions
         }
     }
 
-    private static void DeterminePrimaryKey(this DbModel dbModel)
+    private static void DeterminePrimaryKey(this DbModel dbModel, IZenDbConnection conn)
     {
         if (dbModel.dbModel_primaryKey_dbColumns != null && dbModel.dbModel_primaryKey_dbColumns.Count > 0)
             return;
@@ -389,7 +389,7 @@ public static class DbModelExtensions
         if (dbModel.dbModel_dbColumn_map == null)
             throw new NullReferenceException("dbModel_dbColumn_map");
 
-        string cachekey = $"{dbModel.GetType().FullName}_PrimaryKeyDbColumns";
+        string cachekey = $"{dbModel.GetType().FullName}_{conn.DbType}_PrimaryKeyDbColumns";
 
         var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
         {
@@ -422,7 +422,7 @@ public static class DbModelExtensions
     public static void RefreshDbColumnsAndModelProperties(this DbModel dbModel, IZenDbConnection conn, string table)
     {
         RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
-        DeterminePrimaryKey(dbModel);
+        DeterminePrimaryKey(dbModel, conn);
     }
 
     private static void ConstructInsertQuery(
@@ -435,7 +435,7 @@ public static class DbModelExtensions
     {
         RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
 
-        DeterminePrimaryKey(dbModel);
+        DeterminePrimaryKey(dbModel, conn);
 
         if (dbModel.dbModel_dbColumns == null)
             throw new NullReferenceException("dbModel_dbColumns");
@@ -551,7 +551,7 @@ public static class DbModelExtensions
     {
         int affected = 0;
 
-        DeterminePrimaryKey(dbModel);
+        DeterminePrimaryKey(dbModel, conn);
 
         using DbCommand cmd = conn.Connection.CreateCommand();
 
@@ -639,7 +639,7 @@ public static class DbModelExtensions
 
         RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
 
-        if (saveType == DbModelSaveType.InsertUpdate && PrimaryKeyFieldsHaveValues(dbModel))
+        if (saveType == DbModelSaveType.InsertUpdate && PrimaryKeyFieldsHaveValues(dbModel, conn))
         {
             // we need to try tp update first since we have a value for the primary key field
             if (string.IsNullOrEmpty(dbModel.dbModel_sql_update.sql_query))
@@ -698,7 +698,7 @@ public static class DbModelExtensions
     private static void ConstructDeleteQuery(DbModel dbModel, IZenDbConnection conn, string table)
     {
         RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
-        DeterminePrimaryKey(dbModel);
+        DeterminePrimaryKey(dbModel, conn);
 
         StringBuilder sbSql = new StringBuilder();
         sbSql.Append($"delete from {table} where ");
@@ -724,9 +724,9 @@ public static class DbModelExtensions
         dbModel.dbModel_sql_delete.sql_query = sbSql.ToString();
     }
 
-    private static bool PrimaryKeyFieldsHaveValues(this DbModel dbModel)
+    private static bool PrimaryKeyFieldsHaveValues(this DbModel dbModel, IZenDbConnection conn)
     {
-        DeterminePrimaryKey(dbModel);
+        DeterminePrimaryKey(dbModel, conn);
 
         List<PropertyInfo> primaryKeyProps = dbModel.dbModel_primaryKey_dbColumns!
             .Select(x => dbModel.dbModel_dbColumn_map![x])

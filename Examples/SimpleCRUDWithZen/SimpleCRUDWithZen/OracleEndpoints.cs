@@ -27,10 +27,16 @@ public static class OracleEndpoints
             return Results.NoContent();
         });
 
-
         group.MapGet("/people", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>
         {
             var people = await repo.GetAllAsync();
+
+            return Results.Ok(people);
+        });
+
+        group.MapGet("/people/ByProcedure", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>
+        {
+            var people = await repo.GetAllByProcedureAsync();
 
             return Results.Ok(people);
         });

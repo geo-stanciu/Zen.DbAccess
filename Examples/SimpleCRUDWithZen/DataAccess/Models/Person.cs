@@ -9,7 +9,7 @@ using Zen.DbAccess.Models;
 
 namespace DataAccess.Models;
 
-public class Person : DbModel
+public class Person : ResponseModel
 {
     [PrimaryKey]
     public int Id { get; set; }

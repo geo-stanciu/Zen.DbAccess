@@ -10,13 +10,12 @@ using System.Threading.Tasks;
 using Zen.DbAccess.Extensions;
 using Zen.DbAccess.Factories;
 using Zen.DbAccess.Models;
+using Zen.DbAccess.Repositories;
 
 namespace DataAccess.Repositories;
 
-public class PostgresqlPeopleRepository : IPeopleRepository
+public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
 {
-    protected readonly IDbConnectionFactory _dbConnectionFactory;
-
     protected virtual string TABLE_NAME { get; set; } = "person";
 
     public PostgresqlPeopleRepository(
@@ -41,7 +40,51 @@ public class PostgresqlPeopleRepository : IPeopleRepository
             )
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory);
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
+        sql = $"""
+            create or replace function svm.p_get_all_people()
+             RETURNS SETOF refcursor
+             LANGUAGE plpgsql
+             SECURITY DEFINER
+            AS $function$
+            DECLARE
+              lError   int := 0;
+              sError   varchar(512) := '';
+              v_cursor refcursor;
+            begin
+               	OPEN v_cursor FOR
+               	select
+            	    id
+            	    , first_name
+            	    , last_name
+            	    , type
+            	    , birth_date
+            	    , image
+            	    , created_at
+            	    , updated_at
+            	    from svm.person 
+            	   order by id;
+
+               	RETURN NEXT v_cursor;
+            END
+            $function$
+            ;
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+    }
+
+    public async Task<List<Person>> GetAllByProcedureAsync()
+    {
+        string sql = "svm.p_get_all_people";
+
+        var people = await RunProcedureAsync<Person>(sql);
+
+        if (people == null)
+            throw new NullReferenceException(nameof(people));
+
+        return people;
     }
 
     public virtual async Task DropTablesAsync()
@@ -50,38 +93,38 @@ public class PostgresqlPeopleRepository : IPeopleRepository
             drop table if exists {TABLE_NAME}
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory);
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
     }
 
     public virtual async Task<int> CreateAsync(Person p)
     {
-        await p.SaveAsync(_dbConnectionFactory, TABLE_NAME);
+        await p.SaveAsync(_dbConnectionFactory!, TABLE_NAME);
 
         return p.Id;
     }
 
     public virtual async Task CreateBatchAsync(List<Person> people)
     {
-        await people.SaveAllAsync(_dbConnectionFactory, TABLE_NAME);
+        await people.SaveAllAsync(_dbConnectionFactory!, TABLE_NAME);
     }
 
     public virtual async Task BulkInsertAsync(List<Person> people)
     {
-        await using var conn = await _dbConnectionFactory.BuildAsync();
+        await using var conn = await _dbConnectionFactory!.BuildAsync();
 
         await people.BulkInsertAsync(conn, TABLE_NAME);
     }
 
     public virtual async Task UpdateAsync(Person p)
     {
-        await p.SaveAsync(_dbConnectionFactory, TABLE_NAME);
+        await p.SaveAsync(_dbConnectionFactory!, TABLE_NAME);
     }
 
     public virtual async Task DeleteAsync(int id)
     {
         var p = new Person { Id = id };
 
-        await p.DeleteAsync(_dbConnectionFactory, TABLE_NAME);
+        await p.DeleteAsync(_dbConnectionFactory!, TABLE_NAME);
     }
 
     public virtual async Task<List<Person>> GetAllAsync()
@@ -90,7 +133,7 @@ public class PostgresqlPeopleRepository : IPeopleRepository
             select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {TABLE_NAME} order by id
             """;
 
-        var people = await sql.QueryAsync<Person>(_dbConnectionFactory);
+        var people = await sql.QueryAsync<Person>(_dbConnectionFactory!);
 
         if (people == null)
             throw new NullReferenceException(nameof(people));
@@ -104,7 +147,7 @@ public class PostgresqlPeopleRepository : IPeopleRepository
             select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {TABLE_NAME} where id = @Id
             """;
 
-        var p = await sql.QueryRowAsync<Person>(_dbConnectionFactory, new SqlParam("@Id", personId));
+        var p = await sql.QueryRowAsync<Person>(_dbConnectionFactory!, new SqlParam("@Id", personId));
 
         if (p == null)
             throw new NullReferenceException(nameof(p));
