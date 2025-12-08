@@ -122,12 +122,12 @@ public class DbConnectionFactory : IDbConnectionFactory
         }
         else if (_dbType == DbConnectionType.Postgresql)
         {
-            await conn.OpenAsync();
-
             if (!string.IsNullOrEmpty(_timeZone) && !_connStr!.Contains(";Timezone=", StringComparison.OrdinalIgnoreCase))
             {
                 _connStr += $"Timezone={_timeZone};";
             }
+
+            await conn.OpenAsync();
 
             if (_commitNoWait!.Value)
             {

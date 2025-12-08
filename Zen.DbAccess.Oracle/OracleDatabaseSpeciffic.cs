@@ -82,7 +82,7 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
             }
         }
 
-        return val;
+        return val!;
     }
 
     public void DisposeBlob(DbCommand cmd, SqlParam prm)

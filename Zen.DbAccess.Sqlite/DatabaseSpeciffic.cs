@@ -74,7 +74,7 @@ public class DatabaseSpeciffic : IDbSpeciffic
         firstModel.ResetDbModel();
         firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, table);
 
         for (int i = 0; i < list.Count; i++)
         {
@@ -154,7 +154,7 @@ public class DatabaseSpeciffic : IDbSpeciffic
         firstModel.ResetDbModel();
         firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false);
+        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false, table);
 
         for (int i = 0; i < list.Count; i++)
         {
