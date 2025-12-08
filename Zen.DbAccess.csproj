@@ -28,6 +28,8 @@
     <Compile Remove="Zen.DbAccess.SqlServer\**" />
     <EmbeddedResource Remove="Examples\**" />
     <None Remove="Zen.DbAccess.SqlServer\**" />
+    <Compile Remove="Zen.DbAccess.MariaDb\**" />
+    <None Remove="Zen.DbAccess.MariaDb\**" />
   </ItemGroup>
 
   <ItemGroup>
