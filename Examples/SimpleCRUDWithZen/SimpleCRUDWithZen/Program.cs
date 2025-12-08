@@ -19,11 +19,13 @@ builder.SetupPostgresqlDatabaseAccess();
 builder.SetupOracleDatabaseAccess();
 builder.SetupMariaDbDatabaseAccess();
 builder.SetupSqlServerDatabaseAccess();
+builder.SetupSqliteDatabaseAccess();
 
 builder.Services.AddKeyedScoped<IPeopleRepository, PostgresqlPeopleRepository>(DataSourceNames.Postgresql);
 builder.Services.AddKeyedScoped<IPeopleRepository, OraclePeopleRepository>(DataSourceNames.Oracle);
 builder.Services.AddKeyedScoped<IPeopleRepository, MariaDbPeopleRepository>(DataSourceNames.MariaDb);
 builder.Services.AddKeyedScoped<IPeopleRepository, SqlServerPeopleRepository>(DataSourceNames.SqlServer);
+builder.Services.AddKeyedScoped<IPeopleRepository, SqlitePeopleRepository>(DataSourceNames.Sqlite);
 
 var app = builder.Build();
 
@@ -44,5 +46,6 @@ app.RegisterPostgresqlEndpoints();
 app.RegisterOracleEndpoints();
 app.RegisterMariaDbEndpoints();
 app.RegisterSqlServerEndpoints();
+app.RegisterSqliteEndpoints();
 
 app.Run();

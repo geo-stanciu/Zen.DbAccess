@@ -28,7 +28,7 @@ public static class SqliteIHostApplicationBuilderExtensions
             configurationManager,
             connectionStringName,
             DbConnectionType.Sqlite,
-            new DatabaseSpeciffic(),
+            new SqliteDatabaseSpeciffic(),
             commitNoWait,
             timeZone,
             dbNamingConvention);
@@ -55,7 +55,7 @@ public static class SqliteIHostApplicationBuilderExtensions
             configuration,
             connectionStringName,
             DbConnectionType.Sqlite,
-            new DatabaseSpeciffic(),
+            new SqliteDatabaseSpeciffic(),
             commitNoWait,
             timeZone,
             dbNamingConvention);

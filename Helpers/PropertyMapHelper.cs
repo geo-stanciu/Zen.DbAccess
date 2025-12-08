@@ -43,6 +43,8 @@ internal static class PropertyMapHelper
 
             if (realValType == typeof(DateTime))
                 p.SetValue(rez, TimeOnly.FromDateTime(Convert.ToDateTime(val)), null);
+            else if (realValType == typeof(string))
+                p.SetValue(rez, TimeOnly.FromDateTime(DateTime.Parse((val as string)!)), null);
             else
                 p.SetValue(rez, (TimeOnly)val, null);
         }
@@ -53,6 +55,8 @@ internal static class PropertyMapHelper
 
             if (realValType == typeof(DateTime))
                 p.SetValue(rez, DateOnly.FromDateTime(Convert.ToDateTime(val)), null);
+            else if (realValType == typeof(string))
+                p.SetValue(rez, DateOnly.FromDateTime(DateTime.Parse((val as string)!)), null);
             else
                 p.SetValue(rez, (DateOnly)val, null);
         }
@@ -65,6 +69,8 @@ internal static class PropertyMapHelper
                 p.SetValue(rez, ((DateOnly)val).ToDateTime(TimeOnly.MinValue), null);
             else if (realValType == typeof(TimeOnly))
                 p.SetValue(rez, DateTime.MinValue.Date.Add(((TimeOnly)val).ToTimeSpan()), null);
+            else if (realValType == typeof(string))
+                p.SetValue(rez, DateTime.Parse((val as string)!), null);
             else
                 p.SetValue(rez, Convert.ToDateTime(val), null);
         }

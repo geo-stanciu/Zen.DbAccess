@@ -12,4 +12,5 @@ public enum DataSourceNames
     Oracle = 1,
     MariaDb = 2,
     SqlServer = 3,
+    Sqlite = 4,
 }

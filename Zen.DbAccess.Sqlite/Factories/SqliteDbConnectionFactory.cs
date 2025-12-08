@@ -22,7 +22,7 @@ public static class SqliteDbConnectionFactory
         return new DbConnectionFactory(
             DbConnectionType.Sqlite,
             conn_str,
-            new DatabaseSpeciffic(),
+            new SqliteDatabaseSpeciffic(),
             commitNoWait,
             timeZone,
             dbNamingConvention);

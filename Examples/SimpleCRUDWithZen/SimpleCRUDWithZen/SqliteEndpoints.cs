@@ -5,13 +5,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace SimpleCRUDWithZen;
 
-public static class SqlServerEndpoints
+public static class SqliteEndpoints
 {
-    private const DataSourceNames dataSource = DataSourceNames.SqlServer;
+    private const DataSourceNames dataSource = DataSourceNames.Sqlite;
 
-    public static void RegisterSqlServerEndpoints(this IEndpointRouteBuilder app)
+    public static void RegisterSqliteEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/sqlserver").WithTags("Sql Server Examples");
+        var group = app.MapGroup("/sqlite").WithTags("Sqlite Examples");
 
         group.MapPost("/createtables", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>
         {

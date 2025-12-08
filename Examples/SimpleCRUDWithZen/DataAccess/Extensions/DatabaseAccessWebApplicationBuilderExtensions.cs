@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Zen.DbAccess.MariaDb.Extensions;
 using Zen.DbAccess.Oracle.Extensions;
 using Zen.DbAccess.Postgresql.Extensions;
+using Zen.DbAccess.Sqlite.Extensions;
 using Zen.DbAccess.SqlServer.Extensions;
 
 namespace DataAccess.Extensions;
@@ -44,5 +45,13 @@ public static class DatabaseAccessWebApplicationBuilderExtensions
 
         builder
             .AddSqlServerZenDbAccessConnection(DataSourceNames.SqlServer, nameof(DataSourceNames.SqlServer));
+    }
+
+    public static void SetupSqliteDatabaseAccess(this IHostApplicationBuilder builder)
+    {
+        // setup zen db access
+
+        builder
+            .AddSqliteZenDbAccessConnection(DataSourceNames.Sqlite, nameof(DataSourceNames.Sqlite));
     }
 }

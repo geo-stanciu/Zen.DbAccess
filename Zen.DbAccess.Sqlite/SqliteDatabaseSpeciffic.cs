@@ -15,12 +15,54 @@ using Zen.DbAccess.Models;
 
 namespace Zen.DbAccess.Sqlite;
 
-public class DatabaseSpeciffic : IDbSpeciffic
+public class SqliteDatabaseSpeciffic : IDbSpeciffic
 {
     public DbProviderFactory BuildDbProviderFactory(DbConnectionType dbType)
     {
         var factory = SqliteFactory.Instance;
         return factory;
+    }
+
+    public (string, SqlParam) PrepareParameter(DbModel model, PropertyInfo propertyInfo)
+    {
+        (string prmName, SqlParam prm) = ((IDbSpeciffic)this).CommonPrepareParameter(model, propertyInfo);
+        
+        if (prm.value != null && prm.value != DBNull.Value)
+        {
+            Type t = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
+
+            if (t == typeof(DateOnly))
+            {
+                prm.value = ((DateOnly)prm.value).ToDateTime(TimeOnly.MinValue);
+            }
+            else if (t == typeof(TimeOnly))
+            {
+                prm.value = DateTime.MinValue.Date.Add(((TimeOnly)prm.value).ToTimeSpan());
+            }
+        }
+
+        return (prmName, prm);
+    }
+
+    public object GetValueForPreparedParameter(DbModel dbModel, PropertyInfo propertyInfo)
+    {
+        var val = propertyInfo.GetValue(dbModel) ?? DBNull.Value;
+
+        if (val != null && val != DBNull.Value)
+        {
+            Type t = Nullable.GetUnderlyingType(propertyInfo.PropertyType) ?? propertyInfo.PropertyType;
+
+            if (t == typeof(DateOnly))
+            {
+                return ((DateOnly)val).ToDateTime(TimeOnly.MinValue);
+            }
+            else if (t == typeof(TimeOnly))
+            {
+                return DateTime.MinValue.Date.Add(((TimeOnly)val).ToTimeSpan());
+            }
+        }
+
+        return val!;
     }
 
     public DbParameter CreateDbParameter(DbCommand cmd, SqlParam prm)
