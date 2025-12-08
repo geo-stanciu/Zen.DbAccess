@@ -135,6 +135,13 @@ public class DbConnectionFactory : IDbConnectionFactory
                 await sql.ExecuteNonQueryAsync(connection);
             }
         }
+        else if (_dbType == DbConnectionType.MariaDb)
+        {
+            await conn.OpenAsync();
+
+            string sql = "SET SESSION sql_mode = 'ORACLE' ";
+            await sql.ExecuteNonQueryAsync(connection);
+        }
 
         if (conn.State != ConnectionState.Open)
             await conn.OpenAsync();

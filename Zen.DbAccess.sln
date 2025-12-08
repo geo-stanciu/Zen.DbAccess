@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.4.33122.133
+# Visual Studio Version 18
+VisualStudioVersion = 18.0.11222.15 d18.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zen.DbAccess", "Zen.DbAccess.csproj", "{AC4D3BC5-027F-4AB5-A867-3E9647124E58}"
 EndProject
@@ -12,6 +12,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zen.DbAccess.Postgresql", "Zen.DbAccess.Postgresql\Zen.DbAccess.Postgresql.csproj", "{14AAE696-B754-4CAA-9297-56B1D6151975}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zen.DbAccess.Sqlite", "Zen.DbAccess.Sqlite\Zen.DbAccess.Sqlite.csproj", "{E1298882-412B-4849-B821-997561D069ED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zen.DbAccess.MariaDb", "Zen.DbAccess.MariaDb\Zen.DbAccess.MariaDb.csproj", "{78569287-0992-4BF5-9B0D-6C749412E602}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,6 +41,10 @@ Global
 		{E1298882-412B-4849-B821-997561D069ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E1298882-412B-4849-B821-997561D069ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E1298882-412B-4849-B821-997561D069ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{78569287-0992-4BF5-9B0D-6C749412E602}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{78569287-0992-4BF5-9B0D-6C749412E602}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{78569287-0992-4BF5-9B0D-6C749412E602}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{78569287-0992-4BF5-9B0D-6C749412E602}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

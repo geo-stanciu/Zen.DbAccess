@@ -10,4 +10,6 @@ public enum DataSourceNames
 {
     Postgresql = 0,
     Oracle = 1,
+    MariaDb = 2,
+    SqlServer = 3,
 }

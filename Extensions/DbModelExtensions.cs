@@ -37,6 +37,7 @@ public static class DbModelExtensions
 
     private static void RefreshDbColumnsIfEmpty(
         this DbModel dbModel,
+        IZenDbConnection conn,
         string table,
         DbNamingConvention dbNamingConvention,
         char? startQuoteMark = null,
@@ -45,7 +46,7 @@ public static class DbModelExtensions
         if (dbModel.dbModel_dbColumns != null && dbModel.dbModel_dbColumns.Count > 0)
             return;
 
-        string cachekey = $"{dbModel.GetType().FullName}_{table}";
+        string cachekey = $"{dbModel.GetType().FullName}_{table}_{conn.DbType}";
         
         var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
         {
@@ -191,7 +192,7 @@ public static class DbModelExtensions
         return propName;
     }
 
-    public static List<PropertyInfo> GetPropertiesToUpdate(this DbModel dbModel, string table)
+    public static List<PropertyInfo> GetPropertiesToUpdate(this DbModel dbModel, IZenDbConnection conn, string table)
     {
         if (dbModel.dbModel_dbColumns == null)
             throw new NullReferenceException("dbModel_dbColumns");
@@ -202,7 +203,7 @@ public static class DbModelExtensions
         if (dbModel.dbModel_primaryKey_dbColumns == null)
             throw new NullReferenceException("dbModel_primaryKey_dbColumns");
 
-        string cachekey = $"{dbModel.GetType().FullName}_{table}_PropertiesToUpdate";
+        string cachekey = $"{dbModel.GetType().FullName}_{table}_{conn.DbType}_PropertiesToUpdate";
 
         var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
         {
@@ -234,7 +235,7 @@ public static class DbModelExtensions
         if (dbModel.dbModel_primaryKey_dbColumns == null)
             throw new NullReferenceException("dbModel_primaryKey_dbColumns");
 
-        string cachekey = $"{dbModel.GetType().FullName}_{table}_{insertPrimaryKeyColumn}_{sequence2UseForPrimaryKey}_PropertiesToInsert";
+        string cachekey = $"{dbModel.GetType().FullName}_{table}_{conn.DbType}_{insertPrimaryKeyColumn}_{sequence2UseForPrimaryKey}_PropertiesToInsert";
 
         var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
         {
@@ -277,14 +278,14 @@ public static class DbModelExtensions
 
     private static void ConstructUpdateQuery(this DbModel dbModel, IZenDbConnection conn, string table)
     {
-        RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
+        RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
 
         DeterminePrimaryKey(dbModel);
 
         if (dbModel.dbModel_prop_map == null)
             throw new NullReferenceException("dbModel_prop_map");
 
-        string cachekey = $"{dbModel.GetType().FullName}_{table}_UpdateQuery";
+        string cachekey = $"{dbModel.GetType().FullName}_{table}_{conn.DbType}_UpdateQuery";
 
         var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
         {
@@ -293,7 +294,7 @@ public static class DbModelExtensions
 
             bool firstParam = true;
 
-            List<PropertyInfo> propertiesToUpdate = GetPropertiesToUpdate(dbModel, table);
+            List<PropertyInfo> propertiesToUpdate = GetPropertiesToUpdate(dbModel, conn, table);
             var sqlUpdateParams = new List<SqlParam>();
 
             for (int i = 0; i < propertiesToUpdate.Count; i++)
@@ -349,7 +350,7 @@ public static class DbModelExtensions
 
     private static void RefreshParameterValuesForUpdate(this DbModel dbModel, IZenDbConnection conn, string table)
     {
-        List<PropertyInfo> propertiesToUpdate = GetPropertiesToUpdate(dbModel, table);
+        List<PropertyInfo> propertiesToUpdate = GetPropertiesToUpdate(dbModel, conn, table);
 
         for (int i = 0; i < propertiesToUpdate.Count; i++)
         {
@@ -420,7 +421,7 @@ public static class DbModelExtensions
 
     public static void RefreshDbColumnsAndModelProperties(this DbModel dbModel, IZenDbConnection conn, string table)
     {
-        RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
+        RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
         DeterminePrimaryKey(dbModel);
     }
 
@@ -432,7 +433,7 @@ public static class DbModelExtensions
         bool insertPrimaryKeyColumn,
         string sequence2UseForPrimaryKey = "")
     {
-        RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
+        RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
 
         DeterminePrimaryKey(dbModel);
 
@@ -448,7 +449,7 @@ public static class DbModelExtensions
         if (dbModel.dbModel_prop_map == null)
             throw new NullReferenceException("dbModel_prop_map");
 
-        string cachekey = $"{dbModel.GetType().FullName}_{table}_InsertQuery";
+        string cachekey = $"{dbModel.GetType().FullName}_{table}_{conn.DbType}_InsertQuery";
 
         var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
         {
@@ -636,7 +637,7 @@ public static class DbModelExtensions
             dbModel.dbModel_table = table;
         }
 
-        RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
+        RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
 
         if (saveType == DbModelSaveType.InsertUpdate && PrimaryKeyFieldsHaveValues(dbModel))
         {
@@ -696,7 +697,7 @@ public static class DbModelExtensions
 
     private static void ConstructDeleteQuery(DbModel dbModel, IZenDbConnection conn, string table)
     {
-        RefreshDbColumnsIfEmpty(dbModel, table, conn.NamingConvention);
+        RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
         DeterminePrimaryKey(dbModel);
 
         StringBuilder sbSql = new StringBuilder();

@@ -609,6 +609,9 @@ public static class DBUtils
 
             if (prm.value == null || prm.value == DBNull.Value)
             {
+                if (prm.isBlob && conn.DatabaseSpeciffic.ShouldSetDbTypeBinary())
+                    param.DbType = DbType.Binary;
+
                 param.Value = prm.value ?? DBNull.Value;
 
                 cmd.Parameters.Add(param);
@@ -627,6 +630,10 @@ public static class DBUtils
             else if (prm.isBlob || conn.DatabaseSpeciffic.IsBlob(prm.value))
             {
                 prm.isBlob = true;
+                
+                if (conn.DatabaseSpeciffic.ShouldSetDbTypeBinary())
+                    param.DbType = DbType.Binary;
+
                 param.Value = conn.DatabaseSpeciffic.GetValueAsBlob(conn, prm.value);
             }
             else if (prm.value is Enum)

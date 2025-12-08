@@ -65,6 +65,13 @@ public class PostgresqlPeopleRepository : IPeopleRepository
         await people.SaveAllAsync(_dbConnectionFactory, TABLE_NAME);
     }
 
+    public virtual async Task BulkInsertAsync(List<Person> people)
+    {
+        await using var conn = await _dbConnectionFactory.BuildAsync();
+
+        await people.BulkInsertAsync(conn, TABLE_NAME);
+    }
+
     public virtual async Task UpdateAsync(Person p)
     {
         await p.SaveAsync(_dbConnectionFactory, TABLE_NAME);

@@ -4,61 +4,46 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.Attributes;
 using Zen.DbAccess.DatabaseSpeciffic;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Extensions;
 using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Models;
-using Zen.DbAccess.SqlServer.Extensions;
 
-namespace Zen.DbAccess.SqlServer;
+namespace Zen.DbAccess.MariaDb;
 
-public class SqlServerDatabaseSpeciffic : IDbSpeciffic
+public class MariaDbDatabaseSpeciffic : IDbSpeciffic
 {
-    public (string, SqlParam) PrepareEmptyParameter(DbModel model, PropertyInfo propertyInfo)
-    {
-        (string prmName, SqlParam prm) = ((IDbSpeciffic)this).CommonPrepareEmptyParameter(propertyInfo);
-
-        if (!prm.isBlob && model.IsBlobDataType(propertyInfo))
-        {
-            prm.isBlob = true;
-        }
-
-        return (prmName, prm);
-    }
-
-    public (string, SqlParam) PrepareParameter(DbModel model, PropertyInfo propertyInfo)
-    {
-        (string prmName, SqlParam prm) = ((IDbSpeciffic)this).CommonPrepareParameter(model, propertyInfo);
-
-        if (!prm.isBlob && model.IsBlobDataType(propertyInfo))
-        {
-            prm.isBlob = true;
-        }
-
-        return (prmName, prm);
-    }
-
     public void EnsureTempTable(string table)
     {
-        if (!table.StartsWith("##", StringComparison.OrdinalIgnoreCase))
+        if (!table.StartsWith("temp_", StringComparison.OrdinalIgnoreCase)
+            && !table.StartsWith("tmp_", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException($"{table} must begin with ##.");
+            throw new ArgumentException($"{table} must begin with temp_ or tmp_ .");
         }
+    }
+
+    public void SetupFunctionCall(DbCommand cmd, string sql, params SqlParam[] parameters)
+    {
+        ((IDbSpeciffic)this).CommonSetupFunctionCall(cmd, sql, parameters);
+
+        cmd.CommandType = CommandType.StoredProcedure;
     }
 
     public string GetGetServerDateTimeQuery()
     {
-        string sql = "SELECT GETDATE()";
+        string sql = "SELECT now(3)";
 
         return sql;
     }
 
     public (string, IEnumerable<SqlParam>) GetInsertedIdQuery(string table, DbModel model, string firstPropertyName)
     {
-        string sql = "; select SCOPE_IDENTITY() as ROW_ID;";
+        string sql = "; select LAST_INSERT_ID() as ROW_ID;";
 
         return (sql, Array.Empty<SqlParam>());
     }
@@ -68,7 +53,7 @@ public class SqlServerDatabaseSpeciffic : IDbSpeciffic
        IZenDbConnection conn,
        string table,
        bool insertPrimaryKeyColumn,
-        string sequence2UseForPrimaryKey) where T : DbModel
+       string sequence2UseForPrimaryKey) where T : DbModel
     {
         int k = -1;
         bool firstRow = true;
@@ -108,10 +93,12 @@ public class SqlServerDatabaseSpeciffic : IDbSpeciffic
 
                 if (!insertPrimaryKeyColumn
                     && !string.IsNullOrEmpty(dbCol)
-                    && firstModel.IsPartOfThePrimaryKey(dbCol))
+                    && firstModel!.IsPartOfThePrimaryKey(dbCol))
                 {
-                    if (i == 0)
-                        firstParam = true; // we don't add the primary key
+                    if (firstRow)
+                        sbInsert.Append($" {dbCol} ");
+
+                    sbInsertValues.Append($" default ");
 
                     continue;
                 }

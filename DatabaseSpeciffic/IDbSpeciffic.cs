@@ -22,6 +22,7 @@ public interface IDbSpeciffic
             DbConnectionType.SqlServer => DbProviderFactories.GetFactory(DbFactoryNames.SQL_SERVER),
             DbConnectionType.Oracle => DbProviderFactories.GetFactory(DbFactoryNames.ORACLE),
             DbConnectionType.Postgresql => DbProviderFactories.GetFactory(DbFactoryNames.POSTGRESQL),
+            DbConnectionType.MariaDb => DbProviderFactories.GetFactory(DbFactoryNames.MARIADB),
             _ => throw new NotImplementedException($"Not implemented {dbType}")
         };
 
@@ -68,6 +69,11 @@ public interface IDbSpeciffic
 
     void DisposeClob(DbCommand cmd, SqlParam prm)
     {
+    }
+
+    bool ShouldSetDbTypeBinary()
+    {
+        return true;
     }
 
     object GetValueAsBlob(IZenDbConnection conn, object value)

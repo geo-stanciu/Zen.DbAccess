@@ -107,6 +107,11 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
         }
     }
 
+    public bool ShouldSetDbTypeBinary()
+    {
+        return false;
+    }
+
     public object GetValueAsBlob(IZenDbConnection conn, object value)
     {
         OracleBlob blob = new OracleBlob(conn.Connection as OracleConnection);

@@ -11,5 +11,6 @@ public enum DbConnectionType
     SqlServer = 0,
     Oracle,
     Postgresql,
-    Sqlite
+    Sqlite,
+    MariaDb
 }
