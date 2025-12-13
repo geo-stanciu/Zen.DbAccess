@@ -2,6 +2,8 @@
 using DataAccess.Models;
 using DataAccess.Repositories;
 using Microsoft.AspNetCore.Mvc;
+using SimpleCRUDWithZen.Extensions;
+using SimpleCRUDWithZen.Models;
 
 namespace SimpleCRUDWithZen;
 
@@ -26,6 +28,23 @@ public static class SqlServerEndpoints
 
             return Results.NoContent();
         });
+
+        //group.MapGet("/antiforgery/token", (HttpContext ctx, IAntiforgery af) =>
+        //{
+        //    var tokens = af.GetAndStoreTokens(ctx);
+        //    return Results.Ok(new { token = tokens.RequestToken });
+        //});
+
+        group.MapPost("/multipart/upload", async ([FromForm] UploadMultiPartDataModel model,
+                                                  [FromKeyedServices(dataSource)] IPeopleRepository repo) =>
+        {
+            var fileUpload = await model.ToUploadFileModelAsync();
+
+            //await repo.SaveFileAsync(fileUpload);
+
+            return Results.NoContent();
+        }).Accepts<UploadMultiPartDataModel>("multipart/form-data")
+        .DisableAntiforgery();
 
 
         group.MapGet("/people", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>

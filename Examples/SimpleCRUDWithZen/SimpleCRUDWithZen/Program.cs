@@ -15,6 +15,8 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Zen.DbAccess Examples V1", Version = "v1" });
 });
 
+builder.Services.AddAntiforgery(o => o.HeaderName = "X-CSRF-TOKEN");
+
 builder.SetupPostgresqlDatabaseAccess();
 builder.SetupOracleDatabaseAccess();
 builder.SetupMariaDbDatabaseAccess();
@@ -39,6 +41,8 @@ if (app.Environment.IsDevelopment())
         c.DocExpansion(DocExpansion.None);
     });
 }
+
+app.UseAntiforgery();
 
 app.UseHttpsRedirection();
 
