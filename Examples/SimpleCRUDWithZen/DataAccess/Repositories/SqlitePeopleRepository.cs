@@ -13,12 +13,12 @@ using Zen.DbAccess.Models;
 
 namespace DataAccess.Repositories;
 
-public class SqlitePeopleRepository : PostgresqlPeopleRepository, IPeopleRepository
+public class SqlitePeopleRepository : PeopleBaseRepository
 {
     public SqlitePeopleRepository(
         [FromKeyedServices(DataSourceNames.Sqlite)] IDbConnectionFactory dbConnectionFactory)
-        : base (dbConnectionFactory)
     {
+        _dbConnectionFactory = dbConnectionFactory;
     }
     public override async Task CreateTablesAsync()
     {

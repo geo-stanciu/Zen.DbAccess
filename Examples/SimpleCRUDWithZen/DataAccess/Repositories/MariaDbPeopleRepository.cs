@@ -13,13 +13,14 @@ using Zen.DbAccess.Models;
 
 namespace DataAccess.Repositories;
 
-public class MariaDbPeopleRepository : PostgresqlPeopleRepository, IPeopleRepository
+public class MariaDbPeopleRepository : PeopleBaseRepository
 {
     public MariaDbPeopleRepository(
         [FromKeyedServices(DataSourceNames.MariaDb)] IDbConnectionFactory dbConnectionFactory)
-        : base (dbConnectionFactory)
     {
+        _dbConnectionFactory = dbConnectionFactory;
     }
+
     public override async Task CreateTablesAsync()
     {
         string sql = $"""
@@ -57,6 +58,32 @@ public class MariaDbPeopleRepository : PostgresqlPeopleRepository, IPeopleReposi
                     , sError as error_message
             	    from person 
             	   order by id;
+            END
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
+        sql = $"""
+            CREATE OR REPLACE PROCEDURE {P_GET_ALL_PEOPLE_MULTI_RESULT_SET}()
+            begin
+            	  DECLARE lError int default 0;
+                DECLARE sError varchar(512) default '';
+
+               	select
+            	    id
+            	    , first_name
+            	    , last_name
+            	    , type
+            	    , birth_date
+            	    , image
+            	    , created_at
+            	    , updated_at
+                    , lError as is_error
+                    , sError as error_message
+            	    from person 
+            	   order by id;
+
+                select 1 as is_error, 'this is a test' as error_message;
             END
             """;
 

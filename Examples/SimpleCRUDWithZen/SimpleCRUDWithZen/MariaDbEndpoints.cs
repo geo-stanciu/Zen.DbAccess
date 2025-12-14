@@ -61,6 +61,13 @@ public static class MariaDbEndpoints
             return Results.Ok(people);
         });
 
+        group.MapGet("/people/ByProcedure/multiresult", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>
+        {
+            var (people, errors) = await repo.GetAllByProcedureMultiResultAsync();
+
+            return Results.Ok(new { people, errors });
+        });
+
         group.MapPost("/people", async ([FromBody] CreateOrUpdatePersonModel p, [FromKeyedServices(dataSource)] IPeopleRepository repo) =>
         {
             var person = p.ToPerson();

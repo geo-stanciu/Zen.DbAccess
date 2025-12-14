@@ -13,17 +13,20 @@ using Zen.DbAccess.Models;
 
 namespace DataAccess.Repositories;
 
-public class OraclePeopleRepository : PostgresqlPeopleRepository, IPeopleRepository
+public class OraclePeopleRepository : PeopleBaseRepository
 {
     protected override string TABLE_NAME { get; set; } = "svm.person";
 
     protected override string P_GET_ALL_PEOPLE { get; set; } = "svm.p_get_all_people";
 
+    protected override string P_GET_ALL_PEOPLE_MULTI_RESULT_SET { get; set; } = "svm.p_get_all_people_multi_result_set";
+
     public OraclePeopleRepository(
         [FromKeyedServices(DataSourceNames.Oracle)] IDbConnectionFactory dbConnectionFactory)
-        : base (dbConnectionFactory)
     {
+        _dbConnectionFactory = dbConnectionFactory;
     }
+
     public override async Task CreateTablesAsync()
     {
         if (!(await TableExistsAsync(TABLE_NAME)))
@@ -48,27 +51,63 @@ public class OraclePeopleRepository : PostgresqlPeopleRepository, IPeopleReposit
         if (!(await TableExistsAsync(P_GET_ALL_PEOPLE)))
         {
             string sql = $"""
-                create or replace procedure {P_GET_ALL_PEOPLE} is
+                CREATE OR REPLACE procedure {P_GET_ALL_PEOPLE} is
                   lError   number := 0;
                   sError   varchar2(512) := '';
                   v_cursor sys_refcursor;
                 begin
                 	OPEN v_cursor FOR
                 	select
-                        id
-                        , first_name
-                        , last_name
-                        , type
-                        , birth_date
-                        , image
-                        , created_at
-                        , updated_at
+                    id
+                    , first_name
+                    , last_name
+                    , type
+                    , birth_date
+                    , image
+                    , created_at
+                    , updated_at
                         , lError as is_error
                         , sError as error_message
-                    from svm.person 
-                   order by id;
+                	    from svm.person 
+                   	order by id;
 
                 	dbms_sql.return_result(v_cursor);
+                end;
+                """;
+
+            _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+        }
+
+        if (!(await TableExistsAsync(P_GET_ALL_PEOPLE_MULTI_RESULT_SET)))
+        {
+            string sql = $"""
+                CREATE OR REPLACE procedure {P_GET_ALL_PEOPLE_MULTI_RESULT_SET} is
+                  lError   number := 0;
+                  sError   varchar2(512) := '';
+                  v_cursor sys_refcursor;
+                  v_cursor2 sys_refcursor;
+                begin
+                	OPEN v_cursor FOR
+                	select
+                    id
+                    , first_name
+                    , last_name
+                    , type
+                    , birth_date
+                    , image
+                    , created_at
+                    , updated_at
+                        , lError as is_error
+                        , sError as error_message
+                	    from svm.person 
+                   	order by id;
+
+                	dbms_sql.return_result(v_cursor);
+
+                	OPEN v_cursor2 FOR
+                  select 1 as is_error, 'this is a test' as error_message from dual;
+
+                	dbms_sql.return_result(v_cursor2);
                 end;
                 """;
 
@@ -87,7 +126,7 @@ public class OraclePeopleRepository : PostgresqlPeopleRepository, IPeopleReposit
             _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
 
             sql = $"""
-                drop procedure {P_GET_ALL_PEOPLE}
+                drop procedure {P_GET_ALL_PEOPLE_MULTI_RESULT_SET}
                 """;
 
             _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);

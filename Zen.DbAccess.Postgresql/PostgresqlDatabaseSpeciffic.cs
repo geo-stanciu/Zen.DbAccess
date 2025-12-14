@@ -56,7 +56,7 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
         cmd.CommandType = CommandType.StoredProcedure;
     }
 
-    public void SetupProcedureCall(IZenDbConnection conn, DbCommand cmd, string sql, bool isDataSetReturn, bool isTableReturn, params SqlParam[] parameters)
+    public void SetupProcedureCall(IZenDbConnection conn, DbCommand cmd, string sql, bool isQueryReturn, params SqlParam[] parameters)
     {
         // commented on purpose.
         // Npgsql supports this mainly for portability,
@@ -71,14 +71,9 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
 
         StringBuilder sbSql = new StringBuilder();
 
-        if (isDataSetReturn)
+        if (isQueryReturn)
         {
-            // we expect the p$ to be a function returning a refcursor
-            sbSql.Append($"SELECT ");
-        }
-        else if (isTableReturn)
-        {
-            // we expect the p$ to be a function returning a table
+            // we expect the p$ to be a function returning one or more refcursors / a function returning a table
             sbSql.Append($"SELECT * FROM ");
         }
         else
@@ -110,6 +105,24 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
     public bool ShouldFetchProcedureAsCursorsAsync()
     {
         return true;
+    }
+
+    public async Task<List<string>> QueryCursorNamesAsync(IZenDbConnection conn, DbCommand cmd)
+    {
+        List<string> rez = new List<string>();
+
+        if (conn.Transaction != null && cmd.Transaction == null)
+            cmd.Transaction = conn.Transaction;
+
+        using (var dRead = await cmd.ExecuteReaderAsync())
+        {
+            while (await dRead.ReadAsync())
+            {
+                rez.Add(dRead.GetString(0));
+            }
+        }
+
+        return rez;
     }
 
     public async Task<List<T>> QueryCursorAsync<T>(IZenDbConnection conn, string procedureName, string cursorName)

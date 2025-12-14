@@ -188,7 +188,7 @@ public interface IDbSpeciffic
         CommonSetupFunctionCall(cmd, sql, parameters);
     }
 
-    void SetupProcedureCall(IZenDbConnection conn, DbCommand cmd, string sql, bool isDataSetReturn, bool isTableReturn, params SqlParam[] parameters)
+    void SetupProcedureCall(IZenDbConnection conn, DbCommand cmd, string sql, bool isQueryReturn, params SqlParam[] parameters)
     {
         cmd.CommandType = CommandType.StoredProcedure;
         cmd.CommandText = sql;
@@ -200,6 +200,11 @@ public interface IDbSpeciffic
     }
 
     Task<List<T>> QueryCursorAsync<T>(IZenDbConnection conn, string procedureName, string cursorName)
+    {
+        throw new NotImplementedException($"QueryCursorAsync not available for {conn.DbType}");
+    }
+
+    Task<List<string>> QueryCursorNamesAsync(IZenDbConnection conn, DbCommand cmd)
     {
         throw new NotImplementedException($"QueryCursorAsync not available for {conn.DbType}");
     }

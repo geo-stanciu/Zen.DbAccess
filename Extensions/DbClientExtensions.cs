@@ -176,6 +176,26 @@ public static class DbClientExtensions
         return DBUtils.Query<T>(conn, query, parameters);
     }
 
+    public static async Task<(List<T>, List<T2>, List<T3>, List<T4>, List<T5>)> QueryProcedureAsync<T, T2, T3, T4, T5>(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    {
+        return await DBUtils.QueryProcedureAsync<T, T2, T3, T4, T5>(dbConnectionFactory, query, parameters);
+    }
+
+    public static async Task<(List<T>, List<T2>, List<T3>, List<T4>, List<T5>)> QueryProcedureAsync<T, T2, T3, T4, T5>(this string query, IZenDbConnection conn, params SqlParam[] parameters)
+    {
+        return await DBUtils.QueryProcedureAsync<T, T2, T3, T4, T5>(conn, query, parameters);
+    }
+
+    public static async Task<(List<T>, List<T2>, List<T3>, List<T4>)> QueryProcedureAsync<T, T2, T3, T4>(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
+    {
+        return await DBUtils.QueryProcedureAsync<T, T2, T3, T4>(dbConnectionFactory, query, parameters);
+    }
+
+    public static async Task<(List<T>, List<T2>, List<T3>, List<T4>)> QueryProcedureAsync<T, T2, T3, T4>(this string query, IZenDbConnection conn, params SqlParam[] parameters)
+    {
+        return await DBUtils.QueryProcedureAsync<T, T2, T3, T4>(conn, query, parameters);
+    }
+
     public static async Task<(List<T>, List<T2>, List<T3>)> QueryProcedureAsync<T, T2, T3>(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
     {
         return await DBUtils.QueryProcedureAsync<T, T2, T3>(dbConnectionFactory, query, parameters);
@@ -204,6 +224,16 @@ public static class DbClientExtensions
     public static async Task<List<T>?> QueryProcedureAsync<T>(this string query, IZenDbConnection conn, params SqlParam[] parameters)
     {
         return await DBUtils.QueryProcedureAsync<T>(conn, query, parameters);
+    }
+
+    public static async Task<List<T>?> QueryProcedureAsync<T>(this string query, IDbConnectionFactory dbConnectionFactory, bool isTableProcedure, params SqlParam[] parameters)
+    {
+        return await DBUtils.QueryProcedureAsync<T>(dbConnectionFactory, query, isTableProcedure, parameters);
+    }
+
+    public static async Task<List<T>?> QueryProcedureAsync<T>(this string query, IZenDbConnection conn, bool isTableProcedure, params SqlParam[] parameters)
+    {
+        return await DBUtils.QueryProcedureAsync<T>(conn, query, isTableProcedure, parameters);
     }
 
     public static async Task<List<T>?> QueryAsync<T>(this string query, IDbConnectionFactory dbConnectionFactory, params SqlParam[] parameters)
@@ -374,6 +404,109 @@ public static class DbClientExtensions
         return default;
     }
 
+    public static Task<(List<T>, List<T2>, List<T3>, List<T4>, List<T5>)> QueryAsync<T, T2, T3, T4, T5>(this DbCommand cmd, IZenDbConnection conn, string? queryCacheName)
+    {
+        return QueryAsync<T, T2, T3, T4, T5>(cmd, conn, tx: null, queryCacheName: queryCacheName);
+    }
+
+    public static async Task<(List<T>, List<T2>, List<T3>, List<T4>, List<T5>)> QueryAsync<T, T2, T3, T4, T5>(this DbCommand cmd, IZenDbConnection conn, DbTransaction? tx, string? queryCacheName)
+    {
+        List<T> rez = new List<T>();
+        List<T2> rez2 = new List<T2>();
+        List<T3> rez3 = new List<T3>();
+        List<T4> rez4 = new List<T4>();
+        List<T5> rez5 = new List<T5>();
+
+        if (tx != null && cmd.Transaction == null)
+            cmd.Transaction = tx;
+
+        using (var dRead = await cmd.ExecuteReaderAsync())
+        {
+            int k = 0;
+
+            do
+            {
+                string cachekey = $"{typeof(T).FullName}_{conn.DbType}_{k}_{Sha256Helper.Sha256(queryCacheName ?? cmd.CommandText)}";
+
+                Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+                bool propertiesAlreadyDetermined = properties != null;
+                bool shoudCacheProperties = !propertiesAlreadyDetermined;
+
+                while (await dRead.ReadAsync())
+                {
+                    if (k == 0)
+                        rez.Add(dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined));
+                    else if (k == 1)
+                        rez2.Add(dRead.Row2Model<T2>(ref properties, ref propertiesAlreadyDetermined));
+                    else if (k == 2)
+                        rez3.Add(dRead.Row2Model<T3>(ref properties, ref propertiesAlreadyDetermined));
+                    else if (k == 3)
+                        rez4.Add(dRead.Row2Model<T4>(ref properties, ref propertiesAlreadyDetermined));
+                    else
+                        rez5.Add(dRead.Row2Model<T5>(ref properties, ref propertiesAlreadyDetermined));
+                }
+
+                k++;
+
+                if (shoudCacheProperties)
+                    _propertiesCache.TryAdd(cachekey, properties);
+            }
+            while (await dRead.NextResultAsync());
+        }
+
+        return (rez, rez2, rez3, rez4, rez5);
+    }
+
+    public static Task<(List<T>, List<T2>, List<T3>, List<T4>)> QueryAsync<T, T2, T3, T4>(this DbCommand cmd, IZenDbConnection conn, string? queryCacheName)
+    {
+        return QueryAsync<T, T2, T3, T4>(cmd, conn, tx: null, queryCacheName: queryCacheName);
+    }
+
+    public static async Task<(List<T>, List<T2>, List<T3>, List<T4>)> QueryAsync<T, T2, T3, T4>(this DbCommand cmd, IZenDbConnection conn, DbTransaction? tx, string? queryCacheName)
+    {
+        List<T> rez = new List<T>();
+        List<T2> rez2 = new List<T2>();
+        List<T3> rez3 = new List<T3>();
+        List<T4> rez4 = new List<T4>();
+
+        if (tx != null && cmd.Transaction == null)
+            cmd.Transaction = tx;
+
+        using (var dRead = await cmd.ExecuteReaderAsync())
+        {
+            int k = 0;
+
+            do
+            {
+                string cachekey = $"{typeof(T).FullName}_{conn.DbType}_{k}_{Sha256Helper.Sha256(queryCacheName ?? cmd.CommandText)}";
+
+                Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+                bool propertiesAlreadyDetermined = properties != null;
+                bool shoudCacheProperties = !propertiesAlreadyDetermined;
+
+                while (await dRead.ReadAsync())
+                {
+                    if (k == 0)
+                        rez.Add(dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined));
+                    else if (k == 1)
+                        rez2.Add(dRead.Row2Model<T2>(ref properties, ref propertiesAlreadyDetermined));
+                    else if (k == 2)
+                        rez3.Add(dRead.Row2Model<T3>(ref properties, ref propertiesAlreadyDetermined));
+                    else
+                        rez4.Add(dRead.Row2Model<T4>(ref properties, ref propertiesAlreadyDetermined));
+                }
+
+                k++;
+
+                if (shoudCacheProperties)
+                    _propertiesCache.TryAdd(cachekey, properties);
+            }
+            while (await dRead.NextResultAsync());
+        }
+
+        return (rez, rez2, rez3, rez4);
+    }
+
     public static Task<(List<T>, List<T2>, List<T3>)> QueryAsync<T, T2, T3>(this DbCommand cmd, IZenDbConnection conn, string? queryCacheName)
     {
         return QueryAsync<T, T2, T3>(cmd, conn, tx: null, queryCacheName: queryCacheName);
@@ -390,10 +523,10 @@ public static class DbClientExtensions
 
         using (var dRead = await cmd.ExecuteReaderAsync())
         {
+            int k = 0;
+
             do
             {
-                int k = 0;
-
                 string cachekey = $"{typeof(T).FullName}_{conn.DbType}_{k}_{Sha256Helper.Sha256(queryCacheName ?? cmd.CommandText)}";
 
                 Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
@@ -436,10 +569,10 @@ public static class DbClientExtensions
 
         using (var dRead = await cmd.ExecuteReaderAsync())
         {
+            int k = 0;
+
             do
             {
-                int k = 0;
-
                 string cachekey = $"{typeof(T).FullName}_{conn.DbType}_{k}_{Sha256Helper.Sha256(queryCacheName ?? cmd.CommandText)}";
 
                 Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
@@ -492,29 +625,6 @@ public static class DbClientExtensions
 
             if (shoudCacheProperties)
                 _propertiesCache.TryAdd(cachekey, properties);
-        }
-
-        return rez;
-    }
-
-    public static async Task<List<string>> QueryStringAsync(this DbCommand cmd)
-    {
-        return await QueryStringAsync(cmd, tx: null);
-    }
-
-    public static async Task<List<string>> QueryStringAsync(this DbCommand cmd, DbTransaction? tx)
-    {
-        List<string> rez = new List<string>();
-
-        if (tx != null && cmd.Transaction == null)
-            cmd.Transaction = tx;
-
-        using (var dRead = await cmd.ExecuteReaderAsync())
-        {
-            while (await dRead.ReadAsync())
-            {
-                rez.Add(dRead.GetString(0));
-            }
         }
 
         return rez;

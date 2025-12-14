@@ -1,4 +1,5 @@
 ﻿using DataAccess.Models;
+using Zen.DbAccess.Models;
 
 namespace DataAccess.Repositories;
 
@@ -9,6 +10,11 @@ public interface IPeopleRepository
     Task DropTablesAsync();
     
     Task<List<Person>> GetAllByProcedureAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    Task<(List<Person>, List<ResponseModel>)> GetAllByProcedureMultiResultAsync()
     {
         throw new NotImplementedException();
     }

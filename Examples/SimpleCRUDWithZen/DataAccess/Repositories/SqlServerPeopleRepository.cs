@@ -13,12 +13,12 @@ using Zen.DbAccess.Models;
 
 namespace DataAccess.Repositories;
 
-public class SqlServerPeopleRepository : PostgresqlPeopleRepository, IPeopleRepository
+public class SqlServerPeopleRepository : PeopleBaseRepository
 {
     public SqlServerPeopleRepository(
         [FromKeyedServices(DataSourceNames.SqlServer)] IDbConnectionFactory dbConnectionFactory)
-        : base (dbConnectionFactory)
     {
+        _dbConnectionFactory = dbConnectionFactory;
     }
     public override async Task CreateTablesAsync()
     {
@@ -70,6 +70,38 @@ public class SqlServerPeopleRepository : PostgresqlPeopleRepository, IPeopleRepo
 
             _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sProcName", P_GET_ALL_PEOPLE));
         }
+
+        if (!(await ProcedureExistsAsync(P_GET_ALL_PEOPLE_MULTI_RESULT_SET)))
+        {
+            sql = $"""
+                CREATE PROCEDURE {P_GET_ALL_PEOPLE_MULTI_RESULT_SET}
+                AS
+                begin
+                    SET NOCOUNT ON; -- Prevents the count of the number of rows affected from being returned
+
+                    DECLARE @lError int = 0;
+                    DECLARE @sError varchar(512) = '';
+                    
+                    select
+                        id
+                        , first_name
+                        , last_name
+                        , type
+                        , birth_date
+                        , image
+                        , created_at
+                        , updated_at
+                        , @lError as is_error
+                        , @sError as error_message
+                      from person 
+                      order by id;
+
+                    select 1 as is_error, 'this is a test' as error_message;
+                END
+                """;
+
+            _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sProcName", P_GET_ALL_PEOPLE_MULTI_RESULT_SET));
+        }
     }
 
     private async Task<bool> ProcedureExistsAsync(string procName)
@@ -98,10 +130,10 @@ public class SqlServerPeopleRepository : PostgresqlPeopleRepository, IPeopleRepo
         sql = $"""
             IF EXISTS (SELECT * FROM sys.procedures WHERE name = @sProcName)
             BEGIN
-                drop procedure if exists {P_GET_ALL_PEOPLE};
+                drop procedure if exists {P_GET_ALL_PEOPLE_MULTI_RESULT_SET};
             END;
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sProcName", P_GET_ALL_PEOPLE));
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sProcName", P_GET_ALL_PEOPLE_MULTI_RESULT_SET));
     }
 }

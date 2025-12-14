@@ -1,0 +1,111 @@
+﻿using DataAccess.Models;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Zen.DbAccess.Extensions;
+using Zen.DbAccess.Models;
+using Zen.DbAccess.Repositories;
+
+namespace DataAccess.Repositories;
+
+public class PeopleBaseRepository : BaseRepository, IPeopleRepository
+{
+    protected virtual string TABLE_NAME { get; set; } = "person";
+
+    protected virtual string P_GET_ALL_PEOPLE { get; set; } = "p_get_all_people";
+
+    protected virtual string P_GET_ALL_PEOPLE_MULTI_RESULT_SET { get; set; } = "p_get_all_people_multi_result_set";
+
+    public virtual async Task CreateTablesAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public virtual async Task DropTablesAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public async Task<List<Person>> GetAllByProcedureAsync()
+    {
+        string sql = P_GET_ALL_PEOPLE;
+
+        var people = await RunTableProcedureAsync<Person>(sql);
+
+        if (people == null)
+            throw new NullReferenceException(nameof(people));
+
+        return people;
+    }
+
+    public async Task<(List<Person>, List<ResponseModel>)> GetAllByProcedureMultiResultAsync()
+    {
+        string sql = P_GET_ALL_PEOPLE_MULTI_RESULT_SET;
+
+        var (people, errors) = await RunProcedureAsync<Person, ResponseModel>(sql);
+
+        if (people == null)
+            throw new NullReferenceException(nameof(people));
+
+        return (people, errors);
+    }
+
+    public virtual async Task<int> CreateAsync(Person p)
+    {
+        await p.SaveAsync(_dbConnectionFactory!, TABLE_NAME);
+
+        return p.Id;
+    }
+
+    public virtual async Task CreateBatchAsync(List<Person> people)
+    {
+        await people.SaveAllAsync(_dbConnectionFactory!, TABLE_NAME);
+    }
+
+    public virtual async Task BulkInsertAsync(List<Person> people)
+    {
+        await using var conn = await _dbConnectionFactory!.BuildAsync();
+
+        await people.BulkInsertAsync(conn, TABLE_NAME);
+    }
+
+    public virtual async Task UpdateAsync(Person p)
+    {
+        await p.SaveAsync(_dbConnectionFactory!, TABLE_NAME);
+    }
+
+    public virtual async Task DeleteAsync(int id)
+    {
+        var p = new Person { Id = id };
+
+        await p.DeleteAsync(_dbConnectionFactory!, TABLE_NAME);
+    }
+
+    public virtual async Task<List<Person>> GetAllAsync()
+    {
+        string sql = $"""
+            select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {TABLE_NAME} order by id
+            """;
+
+        var people = await sql.QueryAsync<Person>(_dbConnectionFactory!);
+
+        if (people == null)
+            throw new NullReferenceException(nameof(people));
+
+        return people;
+    }
+
+    public virtual async Task<Person> GetByIdAsync(int personId)
+    {
+        string sql = $"""
+            select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {TABLE_NAME} where id = @Id
+            """;
+
+        var p = await sql.QueryRowAsync<Person>(_dbConnectionFactory!, new SqlParam("@Id", personId));
+
+        if (p == null)
+            throw new NullReferenceException(nameof(p));
+
+        return p;
+    }
+}

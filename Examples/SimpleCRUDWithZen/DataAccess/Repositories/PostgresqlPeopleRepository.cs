@@ -14,19 +14,15 @@ using Zen.DbAccess.Repositories;
 
 namespace DataAccess.Repositories;
 
-public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
+public class PostgresqlPeopleRepository : PeopleBaseRepository
 {
-    protected virtual string TABLE_NAME { get; set; } = "person";
-
-    protected virtual string P_GET_ALL_PEOPLE { get; set; } = "p_get_all_people";
-
     public PostgresqlPeopleRepository(
         [FromKeyedServices(DataSourceNames.Postgresql)] IDbConnectionFactory dbConnectionFactory)
     {
         _dbConnectionFactory = dbConnectionFactory;
     }
 
-    public virtual async Task CreateTablesAsync()
+    public override async Task CreateTablesAsync()
     {
         string sql = $"""
             create table if not exists {TABLE_NAME} (
@@ -45,7 +41,49 @@ public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
 
         sql = $"""
-            create or replace function {P_GET_ALL_PEOPLE}()
+            CREATE OR REPLACE FUNCTION {P_GET_ALL_PEOPLE}()
+             RETURNS table(
+                 id int,
+                 first_name varchar(128),
+                 last_name varchar(128),
+                 type int,
+                 birth_date date,
+                 image bytea,
+                 created_at timestamp,
+                 updated_at timestamp,
+                 is_error int,
+                 error_message varchar(512)
+             )
+             LANGUAGE plpgsql
+             SECURITY DEFINER
+            AS $function$
+            DECLARE
+              lError   int := 0;
+              sError   varchar(512) := '';
+            begin
+               	RETURN QUERY
+               	select
+            	    s.id
+            	    , s.first_name
+            	    , s.last_name
+            	    , s.type
+            	    , s.birth_date
+            	    , s.image
+            	    , s.created_at
+            	    , s.updated_at
+                    , lError as is_error
+                    , sError as error_message
+            	    from svm.person s
+            	   order by s.id;
+            END
+            $function$
+            ;
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
+        sql = $"""
+            CREATE OR REPLACE FUNCTION {P_GET_ALL_PEOPLE_MULTI_RESULT_SET}
              RETURNS SETOF refcursor
              LANGUAGE plpgsql
              SECURITY DEFINER
@@ -54,6 +92,7 @@ public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
               lError   int := 0;
               sError   varchar(512) := '';
               v_cursor refcursor;
+              v_cursor2 refcursor;
             begin
                	OPEN v_cursor FOR
                	select
@@ -67,10 +106,15 @@ public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
             	    , updated_at
                     , lError as is_error
                     , sError as error_message
-            	    from person 
+            	    from svm.person 
             	   order by id;
 
                	RETURN NEXT v_cursor;
+
+                OPEN v_cursor2 FOR
+               	select 1 as is_error, 'this is a test' as error_message;
+
+               	RETURN NEXT v_cursor2;
             END
             $function$
             ;
@@ -79,19 +123,7 @@ public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
     }
 
-    public async Task<List<Person>> GetAllByProcedureAsync()
-    {
-        string sql = P_GET_ALL_PEOPLE;
-
-        var people = await RunProcedureAsync<Person>(sql);
-
-        if (people == null)
-            throw new NullReferenceException(nameof(people));
-
-        return people;
-    }
-
-    public virtual async Task DropTablesAsync()
+    public override async Task DropTablesAsync()
     {
         string sql = $"""
             drop table if exists {TABLE_NAME}
@@ -100,68 +132,9 @@ public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
 
         sql = $"""
-            drop procedure if exists {P_GET_ALL_PEOPLE};
+            drop procedure if exists {P_GET_ALL_PEOPLE_MULTI_RESULT_SET};
             """;
 
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
-    }
-
-    public virtual async Task<int> CreateAsync(Person p)
-    {
-        await p.SaveAsync(_dbConnectionFactory!, TABLE_NAME);
-
-        return p.Id;
-    }
-
-    public virtual async Task CreateBatchAsync(List<Person> people)
-    {
-        await people.SaveAllAsync(_dbConnectionFactory!, TABLE_NAME);
-    }
-
-    public virtual async Task BulkInsertAsync(List<Person> people)
-    {
-        await using var conn = await _dbConnectionFactory!.BuildAsync();
-
-        await people.BulkInsertAsync(conn, TABLE_NAME);
-    }
-
-    public virtual async Task UpdateAsync(Person p)
-    {
-        await p.SaveAsync(_dbConnectionFactory!, TABLE_NAME);
-    }
-
-    public virtual async Task DeleteAsync(int id)
-    {
-        var p = new Person { Id = id };
-
-        await p.DeleteAsync(_dbConnectionFactory!, TABLE_NAME);
-    }
-
-    public virtual async Task<List<Person>> GetAllAsync()
-    {
-        string sql = $"""
-            select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {TABLE_NAME} order by id
-            """;
-
-        var people = await sql.QueryAsync<Person>(_dbConnectionFactory!);
-
-        if (people == null)
-            throw new NullReferenceException(nameof(people));
-
-        return people;
-    }
-
-    public virtual async Task<Person> GetByIdAsync(int personId)
-    {
-        string sql = $"""
-            select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {TABLE_NAME} where id = @Id
-            """;
-
-        var p = await sql.QueryRowAsync<Person>(_dbConnectionFactory!, new SqlParam("@Id", personId));
-
-        if (p == null)
-            throw new NullReferenceException(nameof(p));
-
-        return p;
     }
 }

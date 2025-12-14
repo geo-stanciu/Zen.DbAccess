@@ -50,7 +50,7 @@ public static class DBUtils
             if (conn.Transaction != null && cmd.Transaction == null)
                 cmd.Transaction = conn.Transaction;
 
-            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: false, isTableReturn: false, parameters);
+            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: false, parameters);
 
             AddParameters(conn, cmd, parameters);
 
@@ -82,7 +82,7 @@ public static class DBUtils
         if (conn.Transaction != null && cmd.Transaction == null)
             cmd.Transaction = conn.Transaction;
 
-        conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
+        conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
         AddParameters(conn, cmd, parameters);
 
@@ -128,7 +128,7 @@ public static class DBUtils
         if (conn.Transaction != null && cmd.Transaction == null)
             cmd.Transaction = conn.Transaction;
 
-        conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: true, isTableReturn: false, parameters);
+        conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
         AddParameters(conn, cmd, parameters);
 
@@ -341,10 +341,130 @@ public static class DBUtils
         return QueryAsync<T>(conn, sql, queryCacheName: null, parameters).Result;
     }
 
+    public static async Task<(List<T>, List<T2>, List<T3>, List<T4>, List<T5>)> QueryProcedureAsync<T, T2, T3, T4, T5>(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    {
+        await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
+        return await QueryProcedureAsync<T, T2, T3, T4, T5>(conn, sql, parameters);
+    }
+
+    public static async Task<(List<T>, List<T2>, List<T3>, List<T4>)> QueryProcedureAsync<T, T2, T3, T4>(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    {
+        await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
+        return await QueryProcedureAsync<T, T2, T3, T4>(conn, sql, parameters);
+    }
+
     public static async Task<(List<T>, List<T2>, List<T3>)> QueryProcedureAsync<T, T2, T3>(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
         return await QueryProcedureAsync<T, T2, T3>(conn, sql, parameters);
+    }
+
+    public static async Task<(List<T>, List<T2>, List<T3>, List<T4>, List<T5>)> QueryProcedureAsync<T, T2, T3, T4, T5>(IZenDbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        List<string>? cursors = null;
+
+        List<T>? result = null;
+        List<T2>? result2 = null;
+        List<T3>? result3 = null;
+        List<T4>? result4 = null;
+        List<T5>? result5 = null;
+
+        bool isCursorFetch = conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
+
+        using (DbCommand cmd = conn.Connection.CreateCommand())
+        {
+            if (conn.Transaction != null && cmd.Transaction == null)
+                cmd.Transaction = conn.Transaction;
+
+            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
+
+            AddParameters(conn, cmd, parameters);
+
+            if (isCursorFetch)
+                cursors = await conn.DatabaseSpeciffic.QueryCursorNamesAsync(conn, cmd);
+            else
+                (result, result2, result3, result4) = await cmd.QueryAsync<T, T2, T3, T4>(conn, queryCacheName: cmd.CommandText);
+
+            DisposeLobParameters(conn, cmd, parameters);
+        }
+
+        if (isCursorFetch)
+        {
+            if (cursors == null || cursors.Count < 3)
+                throw new Exception("Not enough open cursors");
+
+            for (int i = 0; i < 5; i++)
+            {
+                if (i == 0)
+                    result = await conn.DatabaseSpeciffic.QueryCursorAsync<T>(conn, procedureName: $"{sql}{i}", cursors[i]);
+                else if (i == 1)
+                    result2 = await conn.DatabaseSpeciffic.QueryCursorAsync<T2>(conn, procedureName: $"{sql}{i}", cursors[i]);
+                else if (i == 2)
+                    result3 = await conn.DatabaseSpeciffic.QueryCursorAsync<T3>(conn, procedureName: $"{sql}{i}", cursors[i]);
+                else if (i == 3)
+                    result4 = await conn.DatabaseSpeciffic.QueryCursorAsync<T4>(conn, procedureName: $"{sql}{i}", cursors[i]);
+                else if (i == 4)
+                    result5 = await conn.DatabaseSpeciffic.QueryCursorAsync<T5>(conn, procedureName: $"{sql}{i}", cursors[i]);
+            }
+        }
+
+        return (result ?? new List<T>()
+                , result2 ?? new List<T2>()
+                , result3 ?? new List<T3>()
+                , result4 ?? new List<T4>()
+                , result5 ?? new List<T5>());
+    }
+
+    public static async Task<(List<T>, List<T2>, List<T3>, List<T4>)> QueryProcedureAsync<T, T2, T3, T4>(IZenDbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        List<string>? cursors = null;
+
+        List<T>? result = null;
+        List<T2>? result2 = null;
+        List<T3>? result3 = null;
+        List<T4>? result4 = null;
+
+        bool isCursorFetch = conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
+
+        using (DbCommand cmd = conn.Connection.CreateCommand())
+        {
+            if (conn.Transaction != null && cmd.Transaction == null)
+                cmd.Transaction = conn.Transaction;
+
+            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
+
+            AddParameters(conn, cmd, parameters);
+
+            if (isCursorFetch)
+                cursors = await conn.DatabaseSpeciffic.QueryCursorNamesAsync(conn, cmd);
+            else
+                (result, result2, result3, result4) = await cmd.QueryAsync<T, T2, T3, T4>(conn, queryCacheName: cmd.CommandText);
+
+            DisposeLobParameters(conn, cmd, parameters);
+        }
+
+        if (isCursorFetch)
+        {
+            if (cursors == null || cursors.Count < 3)
+                throw new Exception("Not enough open cursors");
+
+            for (int i = 0; i < 4; i++)
+            {
+                if (i == 0)
+                    result = await conn.DatabaseSpeciffic.QueryCursorAsync<T>(conn, procedureName: $"{sql}{i}", cursors[i]);
+                else if (i == 1)
+                    result2 = await conn.DatabaseSpeciffic.QueryCursorAsync<T2>(conn, procedureName: $"{sql}{i}", cursors[i]);
+                else if (i == 2)
+                    result3 = await conn.DatabaseSpeciffic.QueryCursorAsync<T3>(conn, procedureName: $"{sql}{i}", cursors[i]);
+                else if (i == 3)
+                    result4 = await conn.DatabaseSpeciffic.QueryCursorAsync<T4>(conn, procedureName: $"{sql}{i}", cursors[i]);
+            }
+        }
+
+        return (result ?? new List<T>()
+                , result2 ?? new List<T2>()
+                , result3 ?? new List<T3>()
+                , result4 ?? new List<T4>());
     }
 
     public static async Task<(List<T>, List<T2>, List<T3>)> QueryProcedureAsync<T, T2, T3>(IZenDbConnection conn, string sql, params SqlParam[] parameters)
@@ -362,12 +482,12 @@ public static class DBUtils
             if (conn.Transaction != null && cmd.Transaction == null)
                 cmd.Transaction = conn.Transaction;
 
-            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
+            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
             AddParameters(conn, cmd, parameters);
 
             if (isCursorFetch)
-                cursors = await cmd.QueryStringAsync();
+                cursors = await conn.DatabaseSpeciffic.QueryCursorNamesAsync(conn, cmd);
             else
                 (result, result2, result3) = await cmd.QueryAsync<T, T2, T3>(conn, queryCacheName: cmd.CommandText);
 
@@ -386,7 +506,7 @@ public static class DBUtils
                 else if (i == 1)
                     result2 = await conn.DatabaseSpeciffic.QueryCursorAsync<T2>(conn, procedureName: $"{sql}{i}", cursors[i]);
                 else if (i == 2)
-                    result2 = await conn.DatabaseSpeciffic.QueryCursorAsync<T2>(conn, procedureName: $"{sql}{i}", cursors[i]);
+                    result3 = await conn.DatabaseSpeciffic.QueryCursorAsync<T3>(conn, procedureName: $"{sql}{i}", cursors[i]);
             }
         }
 
@@ -412,12 +532,12 @@ public static class DBUtils
             if (conn.Transaction != null && cmd.Transaction == null)
                 cmd.Transaction = conn.Transaction;
 
-            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
+            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
             AddParameters(conn, cmd, parameters);
 
             if (isCursorFetch)
-                cursors = await cmd.QueryStringAsync();
+                cursors = await conn.DatabaseSpeciffic.QueryCursorNamesAsync(conn, cmd);
             else
                 (result, result2) = await cmd.QueryAsync<T, T2>(conn, queryCacheName: cmd.CommandText);
 
@@ -441,29 +561,63 @@ public static class DBUtils
         return (result ?? new List<T>(), result2 ?? new List<T2>());
     }
 
+    public static async Task<List<T>> QueryTableProcedureAsync<T>(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
+    {
+        await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
+
+        bool dbHasCursorFetch = conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
+
+        if (!dbHasCursorFetch)
+            return await QueryProcedureAsync<T>(conn, sql, parameters);
+        else
+            return await QueryProcedureAsync<T>(conn, sql, isTableProcedure: true, parameters);
+    }
+
+    public static async Task<List<T>> QueryTableProcedureAsync<T>(IZenDbConnection conn, string sql, params SqlParam[] parameters)
+    {
+        bool dbHasCursorFetch = conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
+
+        if (!dbHasCursorFetch)
+            return await QueryProcedureAsync<T>(conn, sql, parameters);
+        else
+            return await QueryProcedureAsync<T>(conn, sql, isTableProcedure: true, parameters);
+    }
+
     public static async Task<List<T>> QueryProcedureAsync<T>(IDbConnectionFactory dbConnectionFactory, string sql, params SqlParam[] parameters)
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
-        return await QueryProcedureAsync<T>(conn, sql, parameters);
+        return await QueryProcedureAsync<T>(conn, sql, isTableProcedure: false, parameters);
+    }
+
+    public static async Task<List<T>> QueryProcedureAsync<T>(IDbConnectionFactory dbConnectionFactory, string sql, bool isTableProcedure, params SqlParam[] parameters)
+    {
+        await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
+        return await QueryProcedureAsync<T>(conn, sql, isTableProcedure, parameters);
     }
 
     public static async Task<List<T>> QueryProcedureAsync<T>(IZenDbConnection conn, string sql, params SqlParam[] parameters)
     {
+        return await QueryProcedureAsync<T>(conn, sql, isTableProcedure: false, parameters);
+    }
+
+    public static async Task<List<T>> QueryProcedureAsync<T>(IZenDbConnection conn, string sql, bool isTableProcedure, params SqlParam[] parameters)
+    {
         List<string>? cursors = null;
         List<T>? result = null;
-        bool isCursorFetch = conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
+
+        bool isCursorFetch = !isTableProcedure && conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
 
         using (DbCommand cmd = conn.Connection.CreateCommand())
         {
             if (conn.Transaction != null && cmd.Transaction == null)
                 cmd.Transaction = conn.Transaction;
 
-            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isDataSetReturn: false, isTableReturn: true, parameters);
+            conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
             AddParameters(conn, cmd, parameters);
 
             if (isCursorFetch)
-                cursors = await cmd.QueryStringAsync();
+                cursors = await conn.DatabaseSpeciffic.QueryCursorNamesAsync(conn, cmd);
             else
                 result = await cmd.QueryAsync<T>(conn, queryCacheName: cmd.CommandText);
 
