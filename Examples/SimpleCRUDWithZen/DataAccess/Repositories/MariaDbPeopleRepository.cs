@@ -37,12 +37,27 @@ public class MariaDbPeopleRepository : PostgresqlPeopleRepository, IPeopleReposi
             """;
 
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
-    }
 
-    public override async Task DropTablesAsync()
-    {
-        string sql = $"""
-            drop table if exists {TABLE_NAME}
+        sql = $"""
+            CREATE OR REPLACE PROCEDURE {P_GET_ALL_PEOPLE}()
+            begin
+            	  DECLARE lError int default 0;
+                DECLARE sError varchar(512) default '';
+
+               	select
+            	    id
+            	    , first_name
+            	    , last_name
+            	    , type
+            	    , birth_date
+            	    , image
+            	    , created_at
+            	    , updated_at
+                    , lError as is_error
+                    , sError as error_message
+            	    from person 
+            	   order by id;
+            END
             """;
 
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);

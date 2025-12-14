@@ -17,6 +17,8 @@ public class OraclePeopleRepository : PostgresqlPeopleRepository, IPeopleReposit
 {
     protected override string TABLE_NAME { get; set; } = "svm.person";
 
+    protected override string P_GET_ALL_PEOPLE { get; set; } = "svm.p_get_all_people";
+
     public OraclePeopleRepository(
         [FromKeyedServices(DataSourceNames.Oracle)] IDbConnectionFactory dbConnectionFactory)
         : base (dbConnectionFactory)
@@ -43,24 +45,26 @@ public class OraclePeopleRepository : PostgresqlPeopleRepository, IPeopleReposit
             _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
         }
 
-        if (!(await TableExistsAsync("svm.p_get_all_people")))
+        if (!(await TableExistsAsync(P_GET_ALL_PEOPLE)))
         {
             string sql = $"""
-                create or replace procedure svm.p_get_all_people is
+                create or replace procedure {P_GET_ALL_PEOPLE} is
                   lError   number := 0;
                   sError   varchar2(512) := '';
                   v_cursor sys_refcursor;
                 begin
                 	OPEN v_cursor FOR
                 	select
-                    id
-                    , first_name
-                    , last_name
-                    , type
-                    , birth_date
-                    , image
-                    , created_at
-                    , updated_at
+                        id
+                        , first_name
+                        , last_name
+                        , type
+                        , birth_date
+                        , image
+                        , created_at
+                        , updated_at
+                        , lError as is_error
+                        , sError as error_message
                     from svm.person 
                    order by id;
 
@@ -78,6 +82,12 @@ public class OraclePeopleRepository : PostgresqlPeopleRepository, IPeopleReposit
         {
             string sql = $"""
                 drop table {TABLE_NAME}
+                """;
+
+            _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
+            sql = $"""
+                drop procedure {P_GET_ALL_PEOPLE}
                 """;
 
             _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);

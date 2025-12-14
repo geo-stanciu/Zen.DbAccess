@@ -18,6 +18,8 @@ public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
 {
     protected virtual string TABLE_NAME { get; set; } = "person";
 
+    protected virtual string P_GET_ALL_PEOPLE { get; set; } = "p_get_all_people";
+
     public PostgresqlPeopleRepository(
         [FromKeyedServices(DataSourceNames.Postgresql)] IDbConnectionFactory dbConnectionFactory)
     {
@@ -43,7 +45,7 @@ public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
 
         sql = $"""
-            create or replace function svm.p_get_all_people()
+            create or replace function {P_GET_ALL_PEOPLE}()
              RETURNS SETOF refcursor
              LANGUAGE plpgsql
              SECURITY DEFINER
@@ -63,7 +65,9 @@ public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
             	    , image
             	    , created_at
             	    , updated_at
-            	    from svm.person 
+                    , lError as is_error
+                    , sError as error_message
+            	    from person 
             	   order by id;
 
                	RETURN NEXT v_cursor;
@@ -77,7 +81,7 @@ public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
 
     public async Task<List<Person>> GetAllByProcedureAsync()
     {
-        string sql = "svm.p_get_all_people";
+        string sql = P_GET_ALL_PEOPLE;
 
         var people = await RunProcedureAsync<Person>(sql);
 
@@ -91,6 +95,12 @@ public class PostgresqlPeopleRepository : BaseRepository, IPeopleRepository
     {
         string sql = $"""
             drop table if exists {TABLE_NAME}
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
+        sql = $"""
+            drop procedure if exists {P_GET_ALL_PEOPLE};
             """;
 
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);

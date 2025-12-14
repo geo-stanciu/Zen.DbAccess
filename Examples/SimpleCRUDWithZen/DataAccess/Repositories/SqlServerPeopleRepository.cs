@@ -40,6 +40,48 @@ public class SqlServerPeopleRepository : PostgresqlPeopleRepository, IPeopleRepo
             """;
 
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sTableName", TABLE_NAME));
+
+        if (!(await ProcedureExistsAsync(P_GET_ALL_PEOPLE)))
+        {
+            sql = $"""
+                CREATE PROCEDURE {P_GET_ALL_PEOPLE}
+                AS
+                begin
+                    SET NOCOUNT ON; -- Prevents the count of the number of rows affected from being returned
+
+                    DECLARE @lError int = 0;
+                    DECLARE @sError varchar(512) = '';
+                    
+                    select
+                        id
+                        , first_name
+                        , last_name
+                        , type
+                        , birth_date
+                        , image
+                        , created_at
+                        , updated_at
+                        , @lError as is_error
+                        , @sError as error_message
+                      from person 
+                      order by id;
+                END
+                """;
+
+            _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sProcName", P_GET_ALL_PEOPLE));
+        }
+    }
+
+    private async Task<bool> ProcedureExistsAsync(string procName)
+    {
+        string sql = "SELECT 1 as procedure_exists FROM sys.procedures WHERE name = @sProcName ";
+
+        var exists = await sql.QueryRowAsync<SqlServerProcedureExistsModel>(
+            _dbConnectionFactory!,
+            new SqlParam("@sProcName", procName)
+        ) ?? new SqlServerProcedureExistsModel();
+
+        return exists.ProcedureExists;
     }
 
     public override async Task DropTablesAsync()
@@ -52,5 +94,14 @@ public class SqlServerPeopleRepository : PostgresqlPeopleRepository, IPeopleRepo
             """;
 
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sTableName", TABLE_NAME));
+
+        sql = $"""
+            IF EXISTS (SELECT * FROM sys.procedures WHERE name = @sProcName)
+            BEGIN
+                drop procedure if exists {P_GET_ALL_PEOPLE};
+            END;
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sProcName", P_GET_ALL_PEOPLE));
     }
 }
