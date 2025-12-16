@@ -13,6 +13,7 @@ using Zen.DbAccess.Models;
 using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Utils;
 using System.Diagnostics.Tracing;
+using System.Text;
 
 namespace Zen.DbAccess.Factories;
 
@@ -108,17 +109,23 @@ public class DbConnectionFactory : IDbConnectionFactory
         {
             await conn.OpenAsync();
 
+            var sbSql = new StringBuilder();
+
+            sbSql.Append("alter session set NLS_DATE_FORMAT='DD/MM/YYYY HH24:MI:SS' NLS_NUMERIC_CHARACTERS='.,' ");
+
             if (_commitNoWait!.Value)
             {
-                string sql = "alter session set commit_logging=batch commit_wait=nowait";
-                await sql.ExecuteNonQueryAsync(connection);
+                sbSql.Append(" commit_logging=batch commit_wait=nowait ");
             }
 
             if (!string.IsNullOrEmpty(_timeZone))
             {
-                string sql = $"alter session set time_zone = '{_timeZone.Replace("'", "''").Replace("&", "")}' ";
-                await sql.ExecuteNonQueryAsync(connection);
+                sbSql.AppendLine($" time_zone='{_timeZone.Replace("'", "''").Replace("&", "")}' ");
             }
+
+            string sql = sbSql.ToString();
+
+            await sql.ExecuteNonQueryAsync(connection);
         }
         else if (_dbType == DbConnectionType.Postgresql)
         {
@@ -146,7 +153,7 @@ public class DbConnectionFactory : IDbConnectionFactory
         {
             await conn.OpenAsync();
 
-            string sql = "PRAGMA journal_mode=WAL ";
+            string sql = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout = 5000; PRAGMA foreign_keys = ON; PRAGMA synchronous = NORMAL; ";
             await sql.ExecuteNonQueryAsync(connection);
         }
 
