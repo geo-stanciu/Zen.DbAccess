@@ -69,14 +69,12 @@ public static class CacheHelper
 
     private static void ClearOldestUsedEntriesIfTooMany()
     {
-        const int entriesToRemove = 10_000;
-
         if (_cacheLastUsed.Count <= Constants.DbAccessConstants.MaxQueryPropertiesCache)
             return;
 
         var keysToRemove = _cacheLastUsed
             .OrderBy(kvp => kvp.Value)
-            .Take(entriesToRemove)
+            .Take(Constants.DbAccessConstants.MaxQueryPropertiesCacheCleanupCount)
             .Select(kvp => kvp.Key)
             .ToList();
 
