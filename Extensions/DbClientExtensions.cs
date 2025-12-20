@@ -19,8 +19,6 @@ namespace Zen.DbAccess.Extensions;
 
 public static class DbClientExtensions
 {
-    private static ConcurrentDictionary<string, Dictionary<string, PropertyInfo>?> _propertiesCache = new();
-
     public static List<SqlParam> ExecuteProcedure(this string query, IZenDbConnection conn, params SqlParam[] parameters)
     {
         return DBUtils.ExecuteProcedure(conn, query, parameters);
@@ -312,7 +310,7 @@ public static class DbClientExtensions
         {
             string cachekey = $"{typeof(T).FullName}_{cmd.Connection?.GetType()}_{Sha256Helper.Sha256(cmd.CommandText)}";
 
-            Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+            Dictionary<string, PropertyInfo>? properties = CacheHelper.TryGetValue<Dictionary<string, PropertyInfo>>(cachekey, out var cachedProperties) ? cachedProperties : null;
             bool propertiesAlreadyDetermined = properties != null;
             bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
@@ -322,7 +320,7 @@ public static class DbClientExtensions
                 var rez = dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined);
 
                 if (shoudCacheProperties)
-                    _propertiesCache.TryAdd(cachekey, properties);
+                    CacheHelper.TryAdd(cachekey, properties);
 
                 return rez;
             }
@@ -350,7 +348,7 @@ public static class DbClientExtensions
         {
             string cachekey = $"{typeof(T).FullName}_{cmd.Connection?.GetType()}_{Sha256Helper.Sha256(cmd.CommandText)}";
 
-            Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+            Dictionary<string, PropertyInfo>? properties = CacheHelper.TryGetValue<Dictionary<string, PropertyInfo>>(cachekey, out var cachedProperties) ? cachedProperties : null;
             bool propertiesAlreadyDetermined = properties != null;
             bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
@@ -360,7 +358,7 @@ public static class DbClientExtensions
             }
 
             if (shoudCacheProperties)
-                _propertiesCache.TryAdd(cachekey, properties);
+                CacheHelper.TryAdd(cachekey, properties);
         }
 
         return rez;
@@ -382,7 +380,7 @@ public static class DbClientExtensions
         {
             string cachekey = $"{typeof(T).FullName}_{cmd.Connection?.GetType()}_{Sha256Helper.Sha256(cmd.CommandText)}";
 
-            Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+            Dictionary<string, PropertyInfo>? properties = CacheHelper.TryGetValue<Dictionary<string, PropertyInfo>>(cachekey, out var cachedProperties) ? cachedProperties : null;
             bool propertiesAlreadyDetermined = properties != null;
             bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
@@ -392,7 +390,7 @@ public static class DbClientExtensions
                 var rez = dRead.Row2Model<T>(ref properties, ref propertiesAlreadyDetermined);
 
                 if (shoudCacheProperties)
-                    _propertiesCache.TryAdd(cachekey, properties);
+                    CacheHelper.TryAdd(cachekey, properties);
 
                 return rez;
             }
@@ -428,7 +426,7 @@ public static class DbClientExtensions
             {
                 string cachekey = $"{typeof(T).FullName}_{conn.DbType}_{k}_{Sha256Helper.Sha256(queryCacheName ?? cmd.CommandText)}";
 
-                Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+                Dictionary<string, PropertyInfo>? properties = CacheHelper.TryGetValue<Dictionary<string, PropertyInfo>>(cachekey, out var cachedProperties) ? cachedProperties : null;
                 bool propertiesAlreadyDetermined = properties != null;
                 bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
@@ -449,7 +447,7 @@ public static class DbClientExtensions
                 k++;
 
                 if (shoudCacheProperties)
-                    _propertiesCache.TryAdd(cachekey, properties);
+                    CacheHelper.TryAdd(cachekey, properties);
             }
             while (await dRead.NextResultAsync());
         }
@@ -480,7 +478,7 @@ public static class DbClientExtensions
             {
                 string cachekey = $"{typeof(T).FullName}_{conn.DbType}_{k}_{Sha256Helper.Sha256(queryCacheName ?? cmd.CommandText)}";
 
-                Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+                Dictionary<string, PropertyInfo>? properties = CacheHelper.TryGetValue<Dictionary<string, PropertyInfo>>(cachekey, out var cachedProperties) ? cachedProperties : null;
                 bool propertiesAlreadyDetermined = properties != null;
                 bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
@@ -499,7 +497,7 @@ public static class DbClientExtensions
                 k++;
 
                 if (shoudCacheProperties)
-                    _propertiesCache.TryAdd(cachekey, properties);
+                    CacheHelper.TryAdd(cachekey, properties);
             }
             while (await dRead.NextResultAsync());
         }
@@ -529,7 +527,7 @@ public static class DbClientExtensions
             {
                 string cachekey = $"{typeof(T).FullName}_{conn.DbType}_{k}_{Sha256Helper.Sha256(queryCacheName ?? cmd.CommandText)}";
 
-                Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+                Dictionary<string, PropertyInfo>? properties = CacheHelper.TryGetValue<Dictionary<string, PropertyInfo>>(cachekey, out var cachedProperties) ? cachedProperties : null;
                 bool propertiesAlreadyDetermined = properties != null;
                 bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
@@ -546,7 +544,7 @@ public static class DbClientExtensions
                 k++;
 
                 if (shoudCacheProperties)
-                    _propertiesCache.TryAdd(cachekey, properties);
+                    CacheHelper.TryAdd(cachekey, properties);
             }
             while (await dRead.NextResultAsync());
         }
@@ -575,7 +573,7 @@ public static class DbClientExtensions
             {
                 string cachekey = $"{typeof(T).FullName}_{conn.DbType}_{k}_{Sha256Helper.Sha256(queryCacheName ?? cmd.CommandText)}";
 
-                Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+                Dictionary<string, PropertyInfo>? properties = CacheHelper.TryGetValue<Dictionary<string, PropertyInfo>>(cachekey, out var cachedProperties) ? cachedProperties : null;
                 bool propertiesAlreadyDetermined = properties != null;
                 bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
@@ -590,7 +588,7 @@ public static class DbClientExtensions
                 k++;
 
                 if (shoudCacheProperties)
-                    _propertiesCache.TryAdd(cachekey, properties);
+                    CacheHelper.TryAdd(cachekey, properties);
             }
             while (await dRead.NextResultAsync());
         }
@@ -614,7 +612,7 @@ public static class DbClientExtensions
         {
             string cachekey = $"{typeof(T).FullName}_{conn.DbType}_{Sha256Helper.Sha256(queryCacheName ?? cmd.CommandText)}";
 
-            Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+            Dictionary<string, PropertyInfo>? properties = CacheHelper.TryGetValue<Dictionary<string, PropertyInfo>>(cachekey, out var cachedProperties) ? cachedProperties : null;
             bool propertiesAlreadyDetermined = properties != null;
             bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
@@ -624,7 +622,7 @@ public static class DbClientExtensions
             }
 
             if (shoudCacheProperties)
-                _propertiesCache.TryAdd(cachekey, properties);
+                CacheHelper.TryAdd(cachekey, properties);
         }
 
         return rez;

@@ -6,13 +6,12 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.Helpers;
 
 namespace Zen.DbAccess.Extensions;
 
 public static class DataTableExtensions
 {
-    private static ConcurrentDictionary<string, Dictionary<string, PropertyInfo>?> _propertiesCache = new();
-
     public static T FirstRowToModel<T>(this DataTable dt)
     {
         if (dt.Rows.Count == 0)
@@ -20,14 +19,14 @@ public static class DataTableExtensions
 
         string cachekey = $"{typeof(T).FullName}_{dt.Columns.Count}_{(dt.Columns.Count > 0 ? dt.Columns[0].ColumnName : "")}";
 
-        Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+        Dictionary<string, PropertyInfo>? properties = CacheHelper.TryGetValue<Dictionary<string, PropertyInfo>>(cachekey, out var cachedProperties) ? cachedProperties : null;
         bool propertiesAlreadyDetermined = properties != null;
         bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
         var result = dt.Rows[0].ToModel<T>(ref properties, ref propertiesAlreadyDetermined);
 
         if (shoudCacheProperties)
-            _propertiesCache.TryAdd(cachekey, properties);
+            CacheHelper.TryAdd(cachekey, properties);
 
         return result;
     }
@@ -38,7 +37,7 @@ public static class DataTableExtensions
 
         string cachekey = $"{typeof(T).FullName}_{dt.Columns.Count}_{(dt.Columns.Count > 0 ? dt.Columns[0].ColumnName : "")}";
 
-        Dictionary<string, PropertyInfo>? properties = _propertiesCache.TryGetValue(cachekey, out var cachedProperties) ? cachedProperties : null;
+        Dictionary<string, PropertyInfo>? properties = CacheHelper.TryGetValue<Dictionary<string, PropertyInfo>>(cachekey, out var cachedProperties) ? cachedProperties : null;
         bool propertiesAlreadyDetermined = properties != null;
         bool shoudCacheProperties = !propertiesAlreadyDetermined;
 
@@ -49,7 +48,7 @@ public static class DataTableExtensions
         }
 
         if (shoudCacheProperties)
-            _propertiesCache.TryAdd(cachekey, properties);
+            CacheHelper.TryAdd(cachekey, properties);
 
         return data;
     }

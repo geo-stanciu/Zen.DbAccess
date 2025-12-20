@@ -23,8 +23,6 @@ namespace Zen.DbAccess.Extensions;
 
 public static class DbModelExtensions
 {
-    private static ConcurrentDictionary<string, DbPropertiesCacheModel> _propertiesCache = new();
-
     public static bool HasAuditIgnoreAttribute(this DbModel dbModel,  PropertyInfo propertyInfo)
     {
         return Attribute.IsDefined(propertyInfo, typeof(AuditIgnoreAttribute));
@@ -48,7 +46,7 @@ public static class DbModelExtensions
 
         string cachekey = $"{dbModel.GetType().FullName}_{table}_{conn.DbType}";
         
-        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
+        var cachedProps = CacheHelper.GetOrAdd(cachekey, () =>
         {
             var dbColumns = new HashSet<string>();
             var dbColumnMap = new Dictionary<string, PropertyInfo>();
@@ -205,7 +203,7 @@ public static class DbModelExtensions
 
         string cachekey = $"{dbModel.GetType().FullName}_{table}_{conn.DbType}_PropertiesToUpdate";
 
-        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
+        var cachedProps = CacheHelper.GetOrAdd(cachekey, () =>
         {
             List<PropertyInfo> props = dbModel.dbModel_dbColumns
                 .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x)
@@ -237,7 +235,7 @@ public static class DbModelExtensions
 
         string cachekey = $"{dbModel.GetType().FullName}_{table}_{conn.DbType}_{insertPrimaryKeyColumn}_{sequence2UseForPrimaryKey}_PropertiesToInsert";
 
-        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
+        var cachedProps = CacheHelper.GetOrAdd(cachekey, () =>
         {
             List<PropertyInfo> props = dbModel.dbModel_dbColumns
                 .Where(x => dbModel.dbModel_dbColumn_map.ContainsKey(x)
@@ -287,7 +285,7 @@ public static class DbModelExtensions
 
         string cachekey = $"{dbModel.GetType().FullName}_{table}_{conn.DbType}_UpdateQuery";
 
-        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
+        var cachedProps = CacheHelper.GetOrAdd(cachekey, () =>
         {
             StringBuilder sbUpdate = new StringBuilder();
             sbUpdate.Append($"update {table} set ");
@@ -343,7 +341,7 @@ public static class DbModelExtensions
         });
 
         dbModel.dbModel_sql_update.sql_query = cachedProps.SqlUpdate;
-        dbModel.dbModel_sql_update.sql_parameters = cachedProps.SqlUpdateParams;
+        dbModel.dbModel_sql_update.sql_parameters = cachedProps.SqlUpdateParams.Select(x => new SqlParam(x)).ToList();
 
         RefreshParameterValuesForUpdate(dbModel, conn, table);
     }
@@ -391,7 +389,7 @@ public static class DbModelExtensions
 
         string cachekey = $"{dbModel.GetType().FullName}_{conn.DbType}_PrimaryKeyDbColumns";
 
-        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
+        var cachedProps = CacheHelper.GetOrAdd(cachekey, () =>
         {
             var primaryKeyDbColumns = new List<string>();
 
@@ -451,7 +449,7 @@ public static class DbModelExtensions
 
         string cachekey = $"{dbModel.GetType().FullName}_{table}_{conn.DbType}_InsertQuery";
 
-        var cachedProps = _propertiesCache.GetOrAdd(cachekey, key =>
+        var cachedProps = CacheHelper.GetOrAdd(cachekey, () =>
         {
             StringBuilder sbInsertValues = new StringBuilder();
             StringBuilder sbInsert = new StringBuilder();
@@ -514,7 +512,7 @@ public static class DbModelExtensions
         });
 
         dbModel.dbModel_sql_insert.sql_query = cachedProps.SqlInsert;
-        dbModel.dbModel_sql_insert.sql_parameters = cachedProps.SqlInsertParams;
+        dbModel.dbModel_sql_insert.sql_parameters = cachedProps.SqlInsertParams.Select(x => new SqlParam(x)).ToList();
 
         RefreshParameterValuesForInsert(dbModel, conn, insertPrimaryKeyColumn, table);
     }

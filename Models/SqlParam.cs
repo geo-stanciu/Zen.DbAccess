@@ -21,6 +21,16 @@ public class SqlParam
         this.value = value ?? DBNull.Value;
     }
 
+    public SqlParam(SqlParam sqlParam)
+    {
+        this.name = sqlParam.name;
+        this.value = sqlParam.value;
+        this.size = sqlParam.size;
+        this.isBlob = sqlParam.isBlob;
+        this.isClob = sqlParam.isClob;
+        this.paramDirection = sqlParam.paramDirection;
+    }
+
     private ParameterDirection _paramDirection = ParameterDirection.Input;
 
     public ParameterDirection paramDirection
