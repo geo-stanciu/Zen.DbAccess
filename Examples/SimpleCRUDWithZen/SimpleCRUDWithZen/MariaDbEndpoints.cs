@@ -53,6 +53,13 @@ public static class MariaDbEndpoints
             return Results.Ok(files);
         });
 
+        group.MapGet("/uploadsWithSelectQueryGenerated", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>
+        {
+            var files = await repo.GetAllUploadsWithGeneratedColumnsAsync();
+
+            return Results.Ok(files);
+        });
+
 
         group.MapGet("/people", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>
         {

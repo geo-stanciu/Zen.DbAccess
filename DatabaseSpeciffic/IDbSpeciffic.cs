@@ -6,8 +6,10 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.Attributes;
 using Zen.DbAccess.Constants;
 using Zen.DbAccess.Enums;
+using Zen.DbAccess.Helpers;
 using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Models;
 
@@ -37,6 +39,161 @@ public interface IDbSpeciffic
     char EscapeCustomNameEndChar()
     {
         return '"';
+    }
+
+    string GetDbColumnNameForProperty<T>(
+        IZenDbConnection conn,
+        T model,
+        PropertyInfo property,
+        Dictionary<string, List<DbNameAttribute>> customColumnNames,
+        char? startQuoteMark = null,
+        char? endQuoteMark = null
+        ) where T: DbModel
+    {
+        return GetDbColumnNameForProperty<T>(conn.DbType, conn.NamingConvention, property, customColumnNames, startQuoteMark, endQuoteMark);
+    }
+
+    string GetDbColumnNameForProperty<T>(
+        DbConnectionType dbType,
+        DbNamingConvention namingConvention,
+        PropertyInfo property,
+        Dictionary<string, List<DbNameAttribute>> customColumnNames,
+        char? startQuoteMark = null,
+        char? endQuoteMark = null
+        ) where T: DbModel
+    {
+        var dbColumnNameFromAttribute = customColumnNames.TryGetValue(property.Name, out var customNames)
+            ? customNames
+                .OrderBy(x => x.DbTypes != null && x.DbTypes.Contains(dbType) ? 0 : 1)?
+                .FirstOrDefault()?
+                .DbColumn
+            : null;
+
+        if (!string.IsNullOrWhiteSpace(dbColumnNameFromAttribute))
+        {
+            dbColumnNameFromAttribute = $"{(startQuoteMark != null ? startQuoteMark : EscapeCustomNameStartChar())}{dbColumnNameFromAttribute}{(endQuoteMark != null ? endQuoteMark : EscapeCustomNameEndChar())}";
+        }
+
+        string dbColumnName = dbColumnNameFromAttribute
+            ?? namingConvention switch
+            {
+                DbNamingConvention.SnakeCase => GetSnakeCaseColumnName(property.Name),
+                DbNamingConvention.CamelCase => GetCamelCaseColumnName(property.Name, startQuoteMark, endQuoteMark),
+                DbNamingConvention.UseQuoteMarkes => GetUseQuoteMarkesColumnName(property.Name, startQuoteMark, endQuoteMark),
+                _ => throw new NotImplementedException($"{namingConvention}")
+            };
+
+        return dbColumnName;
+    }
+
+    string GetSnakeCaseColumnName(string propName)
+    {
+        string uppercaseChars = string.Concat(propName.Where(c => c >= 'A' && c <= 'Z'));
+
+        if (uppercaseChars.Length == 0)
+        {
+            return propName;
+        }
+
+        StringBuilder sbName = new ();
+
+        int k = 0;
+        int pos = 0;
+
+        while (k < uppercaseChars.Length && pos < propName.Length)
+        {
+            char c = uppercaseChars[k++];
+            int idx = propName.IndexOf(c, pos);
+            
+            sbName.Append(propName.Substring(pos, idx - pos).ToLower());
+
+            if (idx > 0)
+            {
+                sbName.Append("_");
+            }
+
+            sbName.Append(propName.Substring(idx, 1).ToLower());
+
+            pos = idx + 1;
+        }
+
+        if (pos < propName.Length)
+        {
+            sbName.Append(propName.Substring(pos).ToLower());
+        }
+
+        return sbName.ToString();
+    }
+
+    string GetCamelCaseColumnName(string propName, char? startQuoteMark = null, char? endQuoteMark = null)
+    {
+        string[] parts = propName.Split('_', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length == 1)
+            return parts[0];
+
+        StringBuilder sbName = new ();
+
+        for (int i = 0; i < parts.Length; i++)
+        {
+            if (string.IsNullOrEmpty(parts[i]))
+                continue;
+
+            sbName
+                .Append(startQuoteMark != null ? startQuoteMark : EscapeCustomNameStartChar())
+                .Append(parts[i].Substring(0, 1).ToUpper())
+                .Append(parts[i].Substring(1).ToLower())
+                .Append(endQuoteMark != null ? endQuoteMark : EscapeCustomNameEndChar());
+        }
+
+        return sbName.ToString();
+    }
+
+    string GetUseQuoteMarkesColumnName(
+        string propName,
+        char? startQuoteMark,
+        char? endQuoteMark)
+    {
+        return $"{startQuoteMark}{propName}{endQuoteMark}";
+    }
+
+    string GenerateQueryColumns<T>(IZenDbConnection conn, T model) where T: DbModel
+    {
+        return GenerateQueryColumns<T>(conn);
+    }
+    
+    string GenerateQueryColumns<T>(IZenDbConnection conn) where T: DbModel
+    {
+        return GenerateQueryColumns<T>(conn.DbType, conn.NamingConvention);
+    }
+
+    string GenerateQueryColumns<T>(DbConnectionType dbType, DbNamingConvention namingConvention, T model) where T: DbModel
+    {
+        return GenerateQueryColumns<T>(dbType, namingConvention);
+    }
+
+    string GenerateQueryColumns<T>(DbConnectionType dbType, DbNamingConvention namingConvention) where T: DbModel
+    {
+        string cachekey = $"{typeof(T).FullName}_{dbType}";
+        
+        var columnsQuery = CacheHelper.GetOrAdd(cachekey, () =>
+        {
+            var customColumnNames = typeof(T)
+                .GetProperties()
+                .Select(x => new { x.Name, Attributes = x.GetCustomAttributes<DbNameAttribute>()?.ToList() })
+                .Where(x => x.Attributes != null && x.Attributes.Count > 0)
+                .ToDictionary(x => x.Name, y => y.Attributes!);
+
+            List<string> columnNames = typeof(T)
+                .GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(x => !Attribute.IsDefined(x, typeof(DbIgnoreAttribute)))
+                .Select(x => GetDbColumnNameForProperty<T>(dbType, namingConvention, x, customColumnNames))
+                .ToList();
+
+            return string.Join(", ", columnNames);
+        });
+
+        return columnsQuery;
     }
 
     (string, SqlParam) CommonPrepareEmptyParameter(PropertyInfo propertyInfo)

@@ -14,6 +14,7 @@ using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Utils;
 using System.Diagnostics.Tracing;
 using System.Text;
+using Zen.DbAccess.Helpers;
 
 namespace Zen.DbAccess.Factories;
 
@@ -63,6 +64,23 @@ public class DbConnectionFactory : IDbConnectionFactory
         set { _connStr = value; }
     }
 
+    public DbNamingConvention DbNamingConvention 
+    {
+        get => _dbNamingConvention;
+        set => DbNamingConvention = value;
+    }
+    
+    public IDbSpeciffic DatabaseSpeciffic
+    {
+        get => _dbSpeciffic!;
+        set => _dbSpeciffic = value;
+    }
+
+    public string GenerateQueryColumns<T>() where T: DbModel
+    {
+        return _dbSpeciffic!.GenerateQueryColumns<T>(_dbType!.Value, _dbNamingConvention);
+    }
+
     public IDbConnectionFactory Copy(string? newConnectionString = null)
     {
         if (_dbType == null)
@@ -73,7 +91,7 @@ public class DbConnectionFactory : IDbConnectionFactory
         if (connString == null)
             connString = _connStr ?? string.Empty;
 
-        return new DbConnectionFactory(_dbType.Value, connString, _dbSpeciffic, _commitNoWait ?? true, _timeZone ?? string.Empty);
+        return new DbConnectionFactory(_dbType.Value, connString, _dbSpeciffic, _commitNoWait ?? true, _timeZone ?? string.Empty, _dbNamingConvention);
     }
 
     public static void RegisterDatabaseFactory(string factoryName, DbProviderFactory dbProviderFactory)
@@ -84,6 +102,11 @@ public class DbConnectionFactory : IDbConnectionFactory
         }
 
         DbProviderFactories.RegisterFactory(factoryName, dbProviderFactory);
+    }
+
+    public async Task<string> GenerateQueryColumnsAsync<T>() where T: DbModel
+    {
+        return _dbSpeciffic!.GenerateQueryColumns<T>(_dbType!.Value, _dbNamingConvention);
     }
 
     /// <summary>
@@ -103,7 +126,7 @@ public class DbConnectionFactory : IDbConnectionFactory
 
         conn.ConnectionString = _connStr;
 
-        ZenDbConnection connection = new ZenDbConnection(conn, _dbType!.Value, _dbSpeciffic);
+        ZenDbConnection connection = new ZenDbConnection(conn, _dbType!.Value, _dbSpeciffic, _dbNamingConvention);
 
         if (_dbType == DbConnectionType.Oracle)
         {

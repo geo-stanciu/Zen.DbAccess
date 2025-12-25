@@ -37,7 +37,6 @@ public static class DbModelExtensions
         this DbModel dbModel,
         IZenDbConnection conn,
         string table,
-        DbNamingConvention dbNamingConvention,
         char? startQuoteMark = null,
         char? endQuoteMark = null)
     {
@@ -65,28 +64,7 @@ public static class DbModelExtensions
 
             foreach (var property in properties)
             {
-                var dbColumnNameFromAttribute = customColumnNames.TryGetValue(property.Name, out var customNames)
-                    ? customNames
-                        .OrderBy(x => x.DbTypes != null && x.DbTypes.Contains(conn.DbType) ? 0 : 1)?
-                        .FirstOrDefault()?
-                        .DbColumn
-                    : null;
-
-                if (!string.IsNullOrWhiteSpace(dbColumnNameFromAttribute))
-                {
-                    dbColumnNameFromAttribute = $"{(startQuoteMark != null ? startQuoteMark : conn.DatabaseSpeciffic.EscapeCustomNameStartChar())}{dbColumnNameFromAttribute}{(endQuoteMark != null ? endQuoteMark : conn.DatabaseSpeciffic.EscapeCustomNameEndChar())}";
-
-                    Console.WriteLine($"{property.Name}: {dbColumnNameFromAttribute}");
-                }
-
-                string dbColumnName = dbColumnNameFromAttribute
-                    ?? dbNamingConvention switch
-                    {
-                        DbNamingConvention.SnakeCase => GetSnakeCaseColumnName(property.Name),
-                        DbNamingConvention.CamelCase => GetCamelCaseColumnName(property.Name),
-                        DbNamingConvention.UseQuoteMarkes => GetUseQuoteMarkesColumnName(property.Name, startQuoteMark, endQuoteMark),
-                        _ => throw new NotImplementedException($"{dbNamingConvention}")
-                    };
+                var dbColumnName = conn.DatabaseSpeciffic.GetDbColumnNameForProperty(conn, dbModel, property, customColumnNames, startQuoteMark, endQuoteMark);
 
                 dbColumns.Add(dbColumnName);
                 dbColumnMap[dbColumnName] = property;
@@ -106,73 +84,6 @@ public static class DbModelExtensions
         dbModel.dbModel_dbColumns = cachedProps?.DbColumns;
         dbModel.dbModel_dbColumn_map = cachedProps?.DbColumnMap;
         dbModel.dbModel_prop_map = cachedProps?.PropMap;
-    }
-
-    private static string GetSnakeCaseColumnName(string propName)
-    {
-        string uppercaseChars = string.Concat(propName.Where(c => c >= 'A' && c <= 'Z'));
-
-        if (uppercaseChars.Length == 0)
-        {
-            return propName;
-        }
-
-        StringBuilder sbName = new ();
-
-        int k = 0;
-        int pos = 0;
-
-        while (k < uppercaseChars.Length && pos < propName.Length)
-        {
-            char c = uppercaseChars[k++];
-            int idx = propName.IndexOf(c, pos);
-            
-            sbName.Append(propName.Substring(pos, idx - pos).ToLower());
-
-            if (idx > 0)
-            {
-                sbName.Append("_");
-            }
-
-            sbName.Append(propName.Substring(idx, 1).ToLower());
-
-            pos = idx + 1;
-        }
-
-        if (pos < propName.Length)
-        {
-            sbName.Append(propName.Substring(pos).ToLower());
-        }
-
-        return sbName.ToString();
-    }
-
-    private static string GetCamelCaseColumnName(string propName)
-    {
-        string[] parts = propName.Split('_', StringSplitOptions.RemoveEmptyEntries);
-
-        if (parts.Length == 1)
-            return parts[0];
-
-        StringBuilder sbName = new ();
-
-        for (int i = 0; i < parts.Length; i++)
-        {
-            if (i > 0)
-                sbName.Append('_');
-
-            sbName.Append(parts[i]);
-        }
-
-        return sbName.ToString();
-    }
-
-    private static string GetUseQuoteMarkesColumnName(
-        string propName,
-        char? startQuoteMark,
-        char? endQuoteMark)
-    {
-        return $"{startQuoteMark}{propName}{endQuoteMark}";
     }
 
     public static bool HasPrimaryKey(this DbModel dbModel)
@@ -296,7 +207,7 @@ public static class DbModelExtensions
 
     private static void ConstructUpdateQuery(this DbModel dbModel, IZenDbConnection conn, string table)
     {
-        RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
+        RefreshDbColumnsIfEmpty(dbModel, conn, table);
 
         DeterminePrimaryKey(dbModel, conn);
 
@@ -439,7 +350,7 @@ public static class DbModelExtensions
 
     public static void RefreshDbColumnsAndModelProperties(this DbModel dbModel, IZenDbConnection conn, string table)
     {
-        RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
+        RefreshDbColumnsIfEmpty(dbModel, conn, table);
         DeterminePrimaryKey(dbModel, conn);
     }
 
@@ -451,7 +362,7 @@ public static class DbModelExtensions
         bool insertPrimaryKeyColumn,
         string sequence2UseForPrimaryKey = "")
     {
-        RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
+        RefreshDbColumnsIfEmpty(dbModel, conn, table);
 
         DeterminePrimaryKey(dbModel, conn);
 
@@ -612,6 +523,16 @@ public static class DbModelExtensions
         SaveAsync(dbModel, saveType, dbConnectionFactory, table, insertPrimaryKeyColumn, sequence2UseForPrimaryKey).Wait();
     }
 
+    public static async Task<string> GenerateQueryColumnsAsync(this DbModel dbModel, IDbConnectionFactory dbConnectionFactory)
+    {
+        return dbConnectionFactory.DatabaseSpeciffic.GenerateQueryColumns(dbConnectionFactory.DbType, dbConnectionFactory.DbNamingConvention, dbModel);
+    }
+
+    public static async Task<string> GenerateQueryColumnsAsync(this DbModel dbModel, IZenDbConnection conn)
+    {
+        return conn.DatabaseSpeciffic.GenerateQueryColumns(conn.DbType, conn.NamingConvention, dbModel);
+    }
+
     public static async Task SaveAsync(this DbModel dbModel, IDbConnectionFactory dbConnectionFactory, string table, bool insertPrimaryKeyColumn = false, string sequence2UseForPrimaryKey = "")
     {
         await using IZenDbConnection conn = await dbConnectionFactory.BuildAsync();
@@ -655,7 +576,7 @@ public static class DbModelExtensions
             dbModel.dbModel_table = table;
         }
 
-        RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
+        RefreshDbColumnsIfEmpty(dbModel, conn, table);
 
         if (saveType == DbModelSaveType.InsertUpdate && PrimaryKeyFieldsHaveValues(dbModel, conn))
         {
@@ -715,7 +636,7 @@ public static class DbModelExtensions
 
     private static void ConstructDeleteQuery(DbModel dbModel, IZenDbConnection conn, string table)
     {
-        RefreshDbColumnsIfEmpty(dbModel, conn, table, conn.NamingConvention);
+        RefreshDbColumnsIfEmpty(dbModel, conn, table);
         DeterminePrimaryKey(dbModel, conn);
 
         StringBuilder sbSql = new StringBuilder();
