@@ -25,7 +25,7 @@ public class SqlServerPeopleRepository : PeopleBaseRepository
         string sql = $"""
             IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = @sTableName)
             BEGIN
-                create table {TABLE_NAME} (
+                create table {PERSON_TABLE_NAME} (
                     id int identity(1,1) not null,
                     first_name nvarchar(128),
                     last_name nvarchar(128) not null,
@@ -39,9 +39,29 @@ public class SqlServerPeopleRepository : PeopleBaseRepository
                 END;
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sTableName", TABLE_NAME));
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sTableName", PERSON_TABLE_NAME));
 
-        if (!(await ProcedureExistsAsync(P_GET_ALL_PEOPLE)))
+        sql = $"""
+            IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = @sTableName)
+            BEGIN
+                create table {UPLOADS_TABLE_NAME} (
+                    id int identity(1,1) not null,
+                    long_value bigint,
+                    decimal_value decimal(22,8),
+                    text_value nvarchar(512),
+                    date_value datetime2(6),
+                    file_name varchar(256),
+                    "FILE" varbinary(max),
+                    created_at datetime2(6) not null,
+                    updated_at datetime2(6),
+                    constraint uploads_pk primary key (id)
+                );
+                END;
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sTableName", UPLOADS_TABLE_NAME));
+
+        if (!await ProcedureExistsAsync(P_GET_ALL_PEOPLE))
         {
             sql = $"""
                 CREATE PROCEDURE {P_GET_ALL_PEOPLE}
@@ -71,7 +91,7 @@ public class SqlServerPeopleRepository : PeopleBaseRepository
             _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sProcName", P_GET_ALL_PEOPLE));
         }
 
-        if (!(await ProcedureExistsAsync(P_GET_ALL_PEOPLE_MULTI_RESULT_SET)))
+        if (!await ProcedureExistsAsync(P_GET_ALL_PEOPLE_MULTI_RESULT_SET))
         {
             sql = $"""
                 CREATE PROCEDURE {P_GET_ALL_PEOPLE_MULTI_RESULT_SET}
@@ -121,11 +141,11 @@ public class SqlServerPeopleRepository : PeopleBaseRepository
         string sql = $"""
             IF EXISTS (SELECT * FROM sys.tables WHERE name = @sTableName)
             BEGIN
-                drop table if exists {TABLE_NAME};
+                drop table if exists {PERSON_TABLE_NAME};
             END;
             """;
 
-        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sTableName", TABLE_NAME));
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!, new SqlParam("@sTableName", PERSON_TABLE_NAME));
 
         sql = $"""
             IF EXISTS (SELECT * FROM sys.procedures WHERE name = @sProcName)

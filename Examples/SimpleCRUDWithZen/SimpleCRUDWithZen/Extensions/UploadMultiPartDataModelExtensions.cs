@@ -13,6 +13,7 @@ public static class UploadMultiPartDataModelExtensions
             DecimalValue = model.DecimalValue,
             TextValue = model.TextValue,
             DateValue = model.DateValue.HasValue ? model.DateValue.Value.ToUniversalTime() : null,
+            CreatedAt = DateTime.UtcNow,
         };
 
         (fileUpload.FileName, fileUpload.File) = await model.File.ReadFileAsync();

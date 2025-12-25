@@ -25,7 +25,7 @@ public class SqlitePeopleRepository : PeopleBaseRepository
         string sql = $"""
             PRAGMA journal_mode=WAL;
 
-            create table if not exists {TABLE_NAME} (
+            create table if not exists {PERSON_TABLE_NAME} (
                 id integer primary key not null,
                 first_name varchar(128),
                 last_name varchar(128) not null,
@@ -33,6 +33,18 @@ public class SqlitePeopleRepository : PeopleBaseRepository
                 type integer,
                 image blob,
                 created_at timestamp,
+                updated_at timestamp
+            );
+
+            create table if not exists {UPLOADS_TABLE_NAME} (
+                id integer primary key not null,
+                long_value integer,
+                decimal_value real,
+                text_value varchar(512),
+                date_value timestamp,
+                file_name varchar(256),
+                file blob,
+                created_at timestamp not null,
                 updated_at timestamp
             );
             """;
@@ -43,9 +55,16 @@ public class SqlitePeopleRepository : PeopleBaseRepository
     public override async Task DropTablesAsync()
     {
         string sql = $"""
-            drop table if exists {TABLE_NAME}
+            drop table if exists {PERSON_TABLE_NAME}
             """;
 
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
+        sql = $"""
+            drop table if exists {UPLOADS_TABLE_NAME}
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
     }
 }

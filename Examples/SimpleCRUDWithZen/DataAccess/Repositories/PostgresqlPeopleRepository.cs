@@ -25,7 +25,7 @@ public class PostgresqlPeopleRepository : PeopleBaseRepository
     public override async Task CreateTablesAsync()
     {
         string sql = $"""
-            create table if not exists {TABLE_NAME} (
+            create table if not exists {PERSON_TABLE_NAME} (
                 id serial not null,
                 first_name varchar(128),
                 last_name varchar(128) not null,
@@ -35,6 +35,23 @@ public class PostgresqlPeopleRepository : PeopleBaseRepository
                 created_at timestamp,
                 updated_at timestamp,
                 constraint person_pk primary key (id)
+            )
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
+        sql = $"""
+            create table if not exists {UPLOADS_TABLE_NAME} (
+                id serial not null,
+                long_value bigint,
+                decimal_value decimal(22,8),
+                text_value varchar(512),
+                date_value timestamp,
+                file_name varchar(256),
+                file bytea,
+                created_at timestamp not null,
+                updated_at timestamp,
+                constraint uploads_pk primary key (id)
             )
             """;
 
@@ -126,13 +143,25 @@ public class PostgresqlPeopleRepository : PeopleBaseRepository
     public override async Task DropTablesAsync()
     {
         string sql = $"""
-            drop table if exists {TABLE_NAME}
+            drop table if exists {PERSON_TABLE_NAME}
             """;
 
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
 
         sql = $"""
-            drop procedure if exists {P_GET_ALL_PEOPLE_MULTI_RESULT_SET};
+            drop table if exists {UPLOADS_TABLE_NAME}
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
+        sql = $"""
+            drop function if exists {P_GET_ALL_PEOPLE};
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
+        sql = $"""
+            drop function if exists {P_GET_ALL_PEOPLE_MULTI_RESULT_SET};
             """;
 
         _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);

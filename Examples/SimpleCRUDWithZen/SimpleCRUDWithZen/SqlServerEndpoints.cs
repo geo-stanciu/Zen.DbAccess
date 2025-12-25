@@ -40,7 +40,7 @@ public static class SqlServerEndpoints
         {
             var fileUpload = await model.ToUploadFileModelAsync();
 
-            //await repo.SaveFileAsync(fileUpload);
+            await repo.SaveFileAsync(fileUpload);
 
             return Results.NoContent();
         }).Accepts<UploadMultiPartDataModel>("multipart/form-data")

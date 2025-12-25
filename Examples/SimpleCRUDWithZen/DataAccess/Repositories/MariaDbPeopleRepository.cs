@@ -24,7 +24,7 @@ public class MariaDbPeopleRepository : PeopleBaseRepository
     public override async Task CreateTablesAsync()
     {
         string sql = $"""
-            create table if not exists {TABLE_NAME} (
+            create table if not exists {PERSON_TABLE_NAME} (
                 id int auto_increment not null,
                 first_name varchar(128),
                 last_name varchar(128) not null,
@@ -34,6 +34,23 @@ public class MariaDbPeopleRepository : PeopleBaseRepository
                 created_at datetime(6),
                 updated_at datetime(6),
                 constraint person_pk primary key (id)
+            ) character set utf8mb4 collate utf8mb4_unicode_ci
+            """;
+
+        _ = await sql.ExecuteNonQueryAsync(_dbConnectionFactory!);
+
+        sql = $"""
+            create table if not exists {UPLOADS_TABLE_NAME} (
+                id int auto_increment not null,
+                long_value bigint,
+                decimal_value decimal(22,8),
+                text_value varchar(512),
+                date_value datetime(6),
+                file_name varchar(256),
+                file blob,
+                created_at datetime(6) not null,
+                updated_at datetime(6),
+                constraint uploads_pk primary key (id)
             ) character set utf8mb4 collate utf8mb4_unicode_ci
             """;
 

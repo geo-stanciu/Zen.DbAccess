@@ -32,4 +32,6 @@ public interface IPeopleRepository
     Task DeleteAsync(int id);
     
     Task UpdateAsync(Person p);
+    
+    Task SaveFileAsync(UploadFileModel fileUpload);
 }

@@ -10,7 +10,9 @@ namespace DataAccess.Repositories;
 
 public class PeopleBaseRepository : BaseRepository, IPeopleRepository
 {
-    protected virtual string TABLE_NAME { get; set; } = "person";
+    protected virtual string PERSON_TABLE_NAME { get; set; } = "person";
+    
+    protected virtual string UPLOADS_TABLE_NAME { get; set; } = "uploads";
 
     protected virtual string P_GET_ALL_PEOPLE { get; set; } = "p_get_all_people";
 
@@ -52,39 +54,39 @@ public class PeopleBaseRepository : BaseRepository, IPeopleRepository
 
     public virtual async Task<int> CreateAsync(Person p)
     {
-        await p.SaveAsync(_dbConnectionFactory!, TABLE_NAME);
+        await p.SaveAsync(_dbConnectionFactory!, PERSON_TABLE_NAME);
 
         return p.Id;
     }
 
     public virtual async Task CreateBatchAsync(List<Person> people)
     {
-        await people.SaveAllAsync(_dbConnectionFactory!, TABLE_NAME);
+        await people.SaveAllAsync(_dbConnectionFactory!, PERSON_TABLE_NAME);
     }
 
     public virtual async Task BulkInsertAsync(List<Person> people)
     {
         await using var conn = await _dbConnectionFactory!.BuildAsync();
 
-        await people.BulkInsertAsync(conn, TABLE_NAME);
+        await people.BulkInsertAsync(conn, PERSON_TABLE_NAME);
     }
 
     public virtual async Task UpdateAsync(Person p)
     {
-        await p.SaveAsync(_dbConnectionFactory!, TABLE_NAME);
+        await p.SaveAsync(_dbConnectionFactory!, PERSON_TABLE_NAME);
     }
 
     public virtual async Task DeleteAsync(int id)
     {
         var p = new Person { Id = id };
 
-        await p.DeleteAsync(_dbConnectionFactory!, TABLE_NAME);
+        await p.DeleteAsync(_dbConnectionFactory!, PERSON_TABLE_NAME);
     }
 
     public virtual async Task<List<Person>> GetAllAsync()
     {
         string sql = $"""
-            select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {TABLE_NAME} order by id
+            select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {PERSON_TABLE_NAME} order by id
             """;
 
         var people = await sql.QueryAsync<Person>(_dbConnectionFactory!);
@@ -98,7 +100,7 @@ public class PeopleBaseRepository : BaseRepository, IPeopleRepository
     public virtual async Task<Person> GetByIdAsync(int personId)
     {
         string sql = $"""
-            select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {TABLE_NAME} where id = @Id
+            select id, first_name, last_name, type, birth_date, image, created_at, updated_at from {PERSON_TABLE_NAME} where id = @Id
             """;
 
         var p = await sql.QueryRowAsync<Person>(_dbConnectionFactory!, new SqlParam("@Id", personId));
@@ -107,5 +109,10 @@ public class PeopleBaseRepository : BaseRepository, IPeopleRepository
             throw new NullReferenceException(nameof(p));
 
         return p;
+    }
+
+    public virtual async Task SaveFileAsync(UploadFileModel fileUpload)
+    {
+        await fileUpload.SaveAsync(_dbConnectionFactory!, UPLOADS_TABLE_NAME);
     }
 }
