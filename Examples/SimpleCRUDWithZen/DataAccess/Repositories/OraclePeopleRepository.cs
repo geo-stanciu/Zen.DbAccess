@@ -137,6 +137,30 @@ public class OraclePeopleRepository : PeopleBaseRepository
         }
     }
 
+    public override async Task<List<UploadFileModel>> GetAllUploadsAsync()
+    {
+        string sql = $"""
+            select id
+                   , long_value
+                   , decimal_value
+                   , text_value
+                   , date_value
+                   , file_name
+                   , "FILE"
+                   , created_at
+                   , updated_at
+              from {UPLOADS_TABLE_NAME}
+             order by id
+            """;
+
+        var uploads = await sql.QueryAsync<UploadFileModel>(_dbConnectionFactory!);
+
+        if (uploads == null)
+            throw new NullReferenceException(nameof(uploads));
+
+        return uploads;
+    }
+
     public override async Task DropTablesAsync()
     {
         if (await TableExistsAsync(PERSON_TABLE_NAME))

@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.Attributes;
 using Zen.DbAccess.DatabaseSpeciffic;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Factories;
@@ -639,6 +640,12 @@ public static class DbClientExtensions
         if (properties == null)
             properties = new Dictionary<string, PropertyInfo>();
 
+        var customColumnNames = classType
+            .GetProperties()
+            .Select(x => new { x.Name, Attributes = x.GetCustomAttributes<DbNameAttribute>()?.ToList() })
+            .Where(x => x.Attributes != null && x.Attributes.Count > 0)
+            .ToDictionary(x => x.Name, y => y.Attributes!);
+
         for (int i = 0; i < dRead.FieldCount; i++)
         {
             string dbCol = dRead.GetName(i);
@@ -651,7 +658,7 @@ public static class DbClientExtensions
             }
             else
             {
-                p = ColumnNameMapUtils.GetModelPropertyForDbColumn(classType, dbCol);
+                p = ColumnNameMapUtils.GetModelPropertyForDbColumn(classType, dbCol, customColumnNames);
 
                 if (p == null)
                     continue;

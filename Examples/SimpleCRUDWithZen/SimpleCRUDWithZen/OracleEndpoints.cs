@@ -46,6 +46,13 @@ public static class OracleEndpoints
         }).Accepts<UploadMultiPartDataModel>("multipart/form-data")
         .DisableAntiforgery();
 
+        group.MapGet("/uploads", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>
+        {
+            var files = await repo.GetAllUploadsAsync();
+
+            return Results.Ok(files);
+        });
+
         group.MapGet("/people", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>
         {
             var people = await repo.GetAllAsync();

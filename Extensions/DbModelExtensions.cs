@@ -58,15 +58,35 @@ public static class DbModelExtensions
                 .Where(x => !dbModel.HasDbModelPropertyIgnoreAttribute(x))
                 .ToArray();
 
+            var customColumnNames = properties
+                .Select(x => new { x.Name, Attributes = x.GetCustomAttributes<DbNameAttribute>()?.ToList() })
+                .Where(x => x.Attributes != null && x.Attributes.Count > 0)
+                .ToDictionary(x => x.Name, y => y.Attributes!);
+
             foreach (var property in properties)
             {
-                string dbColumnName = dbNamingConvention switch
+                var dbColumnNameFromAttribute = customColumnNames.TryGetValue(property.Name, out var customNames)
+                    ? customNames
+                        .OrderBy(x => x.DbTypes != null && x.DbTypes.Contains(conn.DbType) ? 0 : 1)?
+                        .FirstOrDefault()?
+                        .DbColumn
+                    : null;
+
+                if (!string.IsNullOrWhiteSpace(dbColumnNameFromAttribute))
                 {
-                    DbNamingConvention.SnakeCase => GetSnakeCaseColumnName(property.Name),
-                    DbNamingConvention.CamelCase => GetCamelCaseColumnName(property.Name),
-                    DbNamingConvention.UseQuoteMarkes => GetUseQuoteMarkesColumnName(property.Name, startQuoteMark, endQuoteMark),
-                    _ => throw new NotImplementedException($"{dbNamingConvention}")
-                };
+                    dbColumnNameFromAttribute = $"{(startQuoteMark != null ? startQuoteMark : conn.DatabaseSpeciffic.EscapeCustomNameStartChar())}{dbColumnNameFromAttribute}{(endQuoteMark != null ? endQuoteMark : conn.DatabaseSpeciffic.EscapeCustomNameEndChar())}";
+
+                    Console.WriteLine($"{property.Name}: {dbColumnNameFromAttribute}");
+                }
+
+                string dbColumnName = dbColumnNameFromAttribute
+                    ?? dbNamingConvention switch
+                    {
+                        DbNamingConvention.SnakeCase => GetSnakeCaseColumnName(property.Name),
+                        DbNamingConvention.CamelCase => GetCamelCaseColumnName(property.Name),
+                        DbNamingConvention.UseQuoteMarkes => GetUseQuoteMarkesColumnName(property.Name, startQuoteMark, endQuoteMark),
+                        _ => throw new NotImplementedException($"{dbNamingConvention}")
+                    };
 
                 dbColumns.Add(dbColumnName);
                 dbColumnMap[dbColumnName] = property;

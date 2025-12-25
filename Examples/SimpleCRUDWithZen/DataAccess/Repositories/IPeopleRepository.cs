@@ -34,4 +34,6 @@ public interface IPeopleRepository
     Task UpdateAsync(Person p);
     
     Task SaveFileAsync(UploadFileModel fileUpload);
+
+    Task<List<UploadFileModel>> GetAllUploadsAsync();
 }

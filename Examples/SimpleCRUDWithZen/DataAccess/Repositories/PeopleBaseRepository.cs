@@ -97,6 +97,30 @@ public class PeopleBaseRepository : BaseRepository, IPeopleRepository
         return people;
     }
 
+    public virtual async Task<List<UploadFileModel>> GetAllUploadsAsync()
+    {
+        string sql = $"""
+            select id
+                   , long_value
+                   , decimal_value
+                   , text_value
+                   , date_value
+                   , file_name
+                   , file
+                   , created_at
+                   , updated_at
+              from {UPLOADS_TABLE_NAME}
+             order by id
+            """;
+
+        var uploads = await sql.QueryAsync<UploadFileModel>(_dbConnectionFactory!);
+
+        if (uploads == null)
+            throw new NullReferenceException(nameof(uploads));
+
+        return uploads;
+    }
+
     public virtual async Task<Person> GetByIdAsync(int personId)
     {
         string sql = $"""

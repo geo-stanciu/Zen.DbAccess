@@ -17,6 +17,16 @@ namespace Zen.DbAccess.SqlServer;
 
 public class SqlServerDatabaseSpeciffic : IDbSpeciffic
 {
+    public char EscapeCustomNameStartChar()
+    {
+        return '[';
+    }
+
+    public char EscapeCustomNameEndChar()
+    {
+        return ']';
+    }
+
     public (string, SqlParam) PrepareEmptyParameter(DbModel model, PropertyInfo propertyInfo)
     {
         (string prmName, SqlParam prm) = ((IDbSpeciffic)this).CommonPrepareEmptyParameter(propertyInfo);

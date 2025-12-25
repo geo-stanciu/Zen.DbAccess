@@ -29,6 +29,16 @@ public interface IDbSpeciffic
         return dbProviderFactory;
     }
 
+    char EscapeCustomNameStartChar()
+    {
+        return '"';
+    }
+
+    char EscapeCustomNameEndChar()
+    {
+        return '"';
+    }
+
     (string, SqlParam) CommonPrepareEmptyParameter(PropertyInfo propertyInfo)
     {
         SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}", DBNull.Value);

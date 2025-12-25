@@ -18,6 +18,16 @@ namespace Zen.DbAccess.MariaDb;
 
 public class MariaDbDatabaseSpeciffic : IDbSpeciffic
 {
+    public char EscapeCustomNameStartChar()
+    {
+        return '`';
+    }
+
+    public char EscapeCustomNameEndChar()
+    {
+        return '`';
+    }
+
     public void EnsureTempTable(string table)
     {
         if (!table.StartsWith("temp_", StringComparison.OrdinalIgnoreCase)
