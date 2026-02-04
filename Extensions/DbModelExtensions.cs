@@ -12,6 +12,7 @@ using System.Security.AccessControl;
 using System.Text;
 using System.Threading.Tasks;
 using Zen.DbAccess.Attributes;
+using Zen.DbAccess.Constants;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Factories;
 using Zen.DbAccess.Helpers;
@@ -483,6 +484,7 @@ public static class DbModelExtensions
         DeterminePrimaryKey(dbModel, conn);
 
         using DbCommand cmd = conn.Connection.CreateCommand();
+        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
 
         if (conn.Transaction != null && cmd.Transaction == null)
             cmd.Transaction = conn.Transaction;
