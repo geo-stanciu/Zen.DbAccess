@@ -38,4 +38,6 @@ public interface IPeopleRepository
     Task<List<UploadFileModel>> GetAllUploadsAsync();
 
     Task<List<UploadFileModel>> GetAllUploadsWithGeneratedColumnsAsync();
+
+    Task<Person> TestParamsByNameNotPositionAsync();
 }

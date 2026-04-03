@@ -144,5 +144,10 @@ public static class OracleEndpoints
 
             return Results.NoContent();
         });
+
+        group.MapGet("/people/testparamsbyname", async ([FromKeyedServices(dataSource)] IPeopleRepository repo) =>
+        {
+            return Results.Ok(await repo.TestParamsByNameNotPositionAsync());
+        });
     }
 }

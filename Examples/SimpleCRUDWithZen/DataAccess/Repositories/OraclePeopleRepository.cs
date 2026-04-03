@@ -292,4 +292,19 @@ public class OraclePeopleRepository : PeopleBaseRepository
 
         return false;
     }
+
+    public override async Task<Person> TestParamsByNameNotPositionAsync()
+    {
+        string sql = $"""
+            select @Name as first_name, @Type as type, @LastName as last_name, @Id as id from dual
+            """;
+
+        var p = await sql.QueryRowAsync<Person>(_dbConnectionFactory!,
+            new SqlParam("@Id", 101),
+            new SqlParam("@Type", 1),
+            new SqlParam("@LastName", "Doe"),
+            new SqlParam("@Name", "John"));
+
+        return p;
+    }
 }
