@@ -46,13 +46,8 @@ public static class DBUtils
     {
         List<SqlParam> outParameters = new List<SqlParam>();
 
-        using (DbCommand cmd = conn.Connection.CreateCommand())
+        using (DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn))
         {
-            cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-            if (conn.Transaction != null && cmd.Transaction == null)
-                cmd.Transaction = conn.Transaction;
-
             conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: false, parameters);
 
             AddParameters(conn, cmd, parameters);
@@ -80,11 +75,7 @@ public static class DBUtils
 
     public static async Task<DataTable?> ExecuteProcedure2DataTableAsync(IZenDbConnection conn, string sql, params SqlParam[] parameters)
     {
-        using DbCommand cmd = conn.Connection.CreateCommand();
-        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-        if (conn.Transaction != null && cmd.Transaction == null)
-            cmd.Transaction = conn.Transaction;
+        using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
         conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
@@ -127,11 +118,7 @@ public static class DBUtils
     {
         DataSet? ds = null;
 
-        using DbCommand cmd = conn.Connection.CreateCommand();
-        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-        if (conn.Transaction != null && cmd.Transaction == null)
-            cmd.Transaction = conn.Transaction;
+        using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
         conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
@@ -173,11 +160,7 @@ public static class DBUtils
     {
         List<SqlParam> outParameters = new List<SqlParam>();
 
-        using DbCommand cmd = conn.Connection.CreateCommand();
-        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-        if (conn.Transaction != null && cmd.Transaction == null)
-            cmd.Transaction = conn.Transaction;
+        using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
         conn.DatabaseSpeciffic.SetupFunctionCall(cmd, sql, parameters);
 
@@ -219,11 +202,7 @@ public static class DBUtils
 
     public static async Task<object?> ExecuteScalarAsync(IZenDbConnection conn, string sql, params SqlParam[] parameters)
     {
-        using DbCommand cmd = conn.Connection.CreateCommand();
-        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-        if (conn.Transaction != null && cmd.Transaction == null)
-            cmd.Transaction = conn.Transaction;
+        using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
         cmd.CommandText = sql;
 
@@ -256,11 +235,7 @@ public static class DBUtils
     {
         List<SqlParam> outParameters = new List<SqlParam>();
 
-        using DbCommand cmd = conn.Connection.CreateCommand();
-        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-        if (conn.Transaction != null && cmd.Transaction == null)
-            cmd.Transaction = conn.Transaction;
+        using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
         cmd.CommandText = sql;
 
@@ -379,13 +354,8 @@ public static class DBUtils
 
         bool isCursorFetch = conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
 
-        using (DbCommand cmd = conn.Connection.CreateCommand())
+        using (DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn))
         {
-            cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-            if (conn.Transaction != null && cmd.Transaction == null)
-                cmd.Transaction = conn.Transaction;
-
             conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
             AddParameters(conn, cmd, parameters);
@@ -436,13 +406,8 @@ public static class DBUtils
 
         bool isCursorFetch = conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
 
-        using (DbCommand cmd = conn.Connection.CreateCommand())
+        using (DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn))
         {
-            cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-            if (conn.Transaction != null && cmd.Transaction == null)
-                cmd.Transaction = conn.Transaction;
-
             conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
             AddParameters(conn, cmd, parameters);
@@ -489,13 +454,8 @@ public static class DBUtils
 
         bool isCursorFetch = conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
 
-        using (DbCommand cmd = conn.Connection.CreateCommand())
+        using (DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn))
         {
-            cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-            
-            if (conn.Transaction != null && cmd.Transaction == null)
-                cmd.Transaction = conn.Transaction;
-
             conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
             AddParameters(conn, cmd, parameters);
@@ -541,13 +501,8 @@ public static class DBUtils
 
         bool isCursorFetch = conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
 
-        using (DbCommand cmd = conn.Connection.CreateCommand())
+        using (DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn))
         {
-            cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-            
-            if (conn.Transaction != null && cmd.Transaction == null)
-                cmd.Transaction = conn.Transaction;
-
             conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
             AddParameters(conn, cmd, parameters);
@@ -623,13 +578,8 @@ public static class DBUtils
 
         bool isCursorFetch = !isTableProcedure && conn.DatabaseSpeciffic.ShouldFetchProcedureAsCursorsAsync();
 
-        using (DbCommand cmd = conn.Connection.CreateCommand())
+        using (DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn))
         {
-            cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-            if (conn.Transaction != null && cmd.Transaction == null)
-                cmd.Transaction = conn.Transaction;
-
             conn.DatabaseSpeciffic.SetupProcedureCall(conn, cmd, sql, isQueryReturn: true, parameters);
 
             AddParameters(conn, cmd, parameters);
@@ -670,11 +620,7 @@ public static class DBUtils
 
     public static async Task<List<T>> QueryAsync<T>(IZenDbConnection conn, string sql, string? queryCacheName, params SqlParam[] parameters)
     {
-        using DbCommand cmd = conn.Connection.CreateCommand();
-        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-        if (conn.Transaction != null && cmd.Transaction == null)
-            cmd.Transaction = conn.Transaction;
+        using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
         cmd.CommandText = sql;
 
@@ -697,11 +643,7 @@ public static class DBUtils
 
         await Task.Run(() =>
         {
-            using DbCommand cmd = conn.Connection.CreateCommand();
-            cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-            if (conn.Transaction != null && cmd.Transaction == null)
-                cmd.Transaction = conn.Transaction;
+            using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
             cmd.CommandText = sql;
 
@@ -729,11 +671,7 @@ public static class DBUtils
 
         await Task.Run(() =>
         {
-            using DbCommand cmd = conn.Connection.CreateCommand();
-            cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-            if (conn.Transaction != null && cmd.Transaction == null)
-                cmd.Transaction = conn.Transaction;
+            using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
             cmd.CommandText = sql;
 
@@ -761,11 +699,7 @@ public static class DBUtils
         string sql = $"select * from {table} where 1 = 2";
 
         using DataTable dt = new DataTable();
-        using DbCommand cmd = conn.Connection.CreateCommand();
-        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-        if (conn.Transaction != null && cmd.Transaction == null)
-            cmd.Transaction = conn.Transaction;
+        using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
         cmd.CommandText = sql;
 
@@ -827,11 +761,7 @@ public static class DBUtils
         string sql = $"select * from {table} where 1 = 2";
 
         using DataTable dt = new DataTable();
-        using DbCommand cmd = conn.Connection.CreateCommand();
-        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-        if (conn.Transaction != null && cmd.Transaction == null)
-            cmd.Transaction = conn.Transaction;
+        using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
         cmd.CommandText = sql;
 
@@ -882,11 +812,7 @@ public static class DBUtils
         string sql = $"select * from {table} where 1 = 2";
 
         using DataTable dt = new DataTable();
-        using DbCommand cmd = conn.Connection.CreateCommand();
-        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-        if (conn.Transaction != null && cmd.Transaction == null)
-            cmd.Transaction = cmd.Transaction;
+        using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
         cmd.CommandText = sql;
 

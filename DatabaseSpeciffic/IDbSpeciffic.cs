@@ -261,6 +261,17 @@ public interface IDbSpeciffic
         return value ?? DBNull.Value;
     }
 
+    DbCommand CreateCommand(IZenDbConnection conn)
+    {
+        var cmd = conn.Connection.CreateCommand();
+        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
+
+        if (conn.Transaction != null)
+            cmd.Transaction = conn.Transaction;
+
+        return cmd;
+    }
+
     DbParameter CreateDbParameter(DbCommand cmd, SqlParam prm)
     {
         DbParameter param = cmd.CreateParameter();

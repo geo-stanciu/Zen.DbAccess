@@ -483,11 +483,7 @@ public static class DbModelExtensions
 
         DeterminePrimaryKey(dbModel, conn);
 
-        using DbCommand cmd = conn.Connection.CreateCommand();
-        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
-
-        if (conn.Transaction != null && cmd.Transaction == null)
-            cmd.Transaction = conn.Transaction;
+        using DbCommand cmd = conn.DatabaseSpeciffic.CreateCommand(conn);
 
         cmd.CommandText = sql;
 

@@ -1,18 +1,19 @@
-﻿using System;
-using System.Data.Common;
-using System.Text;
-using Zen.DbAccess.Models;
-using Zen.DbAccess.DatabaseSpeciffic;
+﻿using Oracle.ManagedDataAccess.Client;
 using Oracle.ManagedDataAccess.Types;
-using Oracle.ManagedDataAccess.Client;
-using Zen.DbAccess.Interfaces;
-using System.Data;
-using System.Threading.Tasks;
+using System;
 using System.Collections.Generic;
-using System.Reflection;
-using Zen.DbAccess.Enums;
+using System.Data;
+using System.Data.Common;
 using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
+using Zen.DbAccess.Constants;
+using Zen.DbAccess.DatabaseSpeciffic;
+using Zen.DbAccess.Enums;
 using Zen.DbAccess.Extensions;
+using Zen.DbAccess.Interfaces;
+using Zen.DbAccess.Models;
 using Zen.DbAccess.Oracle.Extensions;
 
 namespace Zen.DbAccess.Oracle;
@@ -140,6 +141,19 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
             throw new NullReferenceException("DataAdapter");
 
         return da;
+    }
+
+    public DbCommand CreateCommand(IZenDbConnection conn)
+    {
+        var cmd = conn.Connection.CreateCommand();
+        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
+
+        ((OracleCommand)cmd).BindByName = true;
+
+        if (conn.Transaction != null)
+            cmd.Transaction = conn.Transaction;
+
+        return cmd;
     }
 
     public DbParameter CreateDbParameter(DbCommand cmd, SqlParam prm)
