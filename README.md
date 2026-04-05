@@ -42,8 +42,6 @@ public class PostgresqlPeopleRepository : IPeopleRepository
 {
     protected readonly IDbConnectionFactory _dbConnectionFactory;
 
-    protected virtual string TABLE_NAME { get; set; } = "person";
-
     public PostgresqlPeopleRepository(
         [FromKeyedServices(DataSourceNames.Postgresql)] IDbConnectionFactory dbConnectionFactory)
     {
