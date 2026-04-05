@@ -4,27 +4,29 @@ using System.Reflection;
 
 namespace Zen.DbAccess.Models;
 
-internal class DbPropertiesCacheModel
+public class DbPropertiesCacheModel
 {
-    internal string? Table { get; set; } = null;
+    public string? Table { get; internal set; } = null;
 
-    internal HashSet<string>? DbColumns { get; set; } = null;
+    public HashSet<string>? DbColumns { get; internal set; } = null;
 
-    internal Dictionary<string, PropertyInfo>? DbColumnMap { get; set; } = null;
+    public Dictionary<string, PropertyInfo>? DbColumnMap { get; internal set; } = null;
 
-    internal Dictionary<string, string>? PropMap { get; set; } = null;
+    public Dictionary<string, string>? PropMap { get; internal set; } = null;
 
-    internal List<string>? PrimaryKeyDbColumns { get; set; } = null;
+    public List<string>? PrimaryKeyDbColumns { get; internal set; } = null;
 
-    internal List<PropertyInfo> PropertiesToInsert { get; set; } = new List<PropertyInfo>();
+    public List<PropertyInfo> PropertiesToInsert { get; internal set; } = new List<PropertyInfo>();
 
-    internal List<PropertyInfo> PropertiesToUpdate { get; set; } = new List<PropertyInfo>();
+    public List<PropertyInfo> PropertiesToUpdate { get; internal set; } = new List<PropertyInfo>();
 
-    internal string SqlInsert { get; set; } = string.Empty;
+    public string SqlInsert { get; internal set; } = string.Empty;
 
-    internal List<SqlParam> SqlInsertParams { get; set; } = new List<SqlParam>();
+    public List<SqlParam> SqlInsertParams { get; internal set; } = new List<SqlParam>();
 
-    internal string SqlUpdate { get; set; } = string.Empty;
+    public string SqlUpdate { get; internal set; } = string.Empty;
 
-    internal List<SqlParam> SqlUpdateParams { get; set; } = new List<SqlParam>();
+    public List<SqlParam> SqlUpdateParams { get; internal set; } = new List<SqlParam>();
+
+    public bool HasBulkInsertEnabled { get; set; } = true;
 }

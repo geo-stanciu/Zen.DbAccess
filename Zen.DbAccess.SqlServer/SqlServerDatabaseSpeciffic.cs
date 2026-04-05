@@ -1,11 +1,14 @@
-﻿using System;
+﻿using Microsoft.Data.SqlClient;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.Constants;
 using Zen.DbAccess.DatabaseSpeciffic;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Extensions;
@@ -73,151 +76,94 @@ public class SqlServerDatabaseSpeciffic : IDbSpeciffic
         return (sql, Array.Empty<SqlParam>());
     }
 
-    public Tuple<string, SqlParam[]> PrepareBulkInsertBatchWithSequence<T>(
-       List<T> list,
-       IZenDbConnection conn,
-       string table,
-       bool insertPrimaryKeyColumn,
-        string sequence2UseForPrimaryKey) where T : DbModel
+    public async Task BulkInsertAsync<T>(
+        List<T> list,
+        IZenDbConnection conn,
+        string table,
+        bool insertPrimaryKeyColumn = false) where T : DbModel
     {
-        int k = -1;
-        bool firstRow = true;
-        StringBuilder sbInsert = new StringBuilder();
-        List<SqlParam> insertParams = new List<SqlParam>();
-        sbInsert.AppendLine($"insert into {table} ( ");
+        T? firstModel = list.FirstOrDefault();
 
-        T firstModel = list.First();
-        firstModel.ResetDbModel();
+        if (firstModel == null)
+            throw new NullReferenceException(nameof(firstModel));
+
         firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, table);
+        var propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, table);
 
-        for (int i = 0; i < list.Count; i++)
+        using SqlBulkCopy bulkCopy = new SqlBulkCopy((SqlConnection)conn.Connection, SqlBulkCopyOptions.Default, (SqlTransaction)conn.Transaction!);
+
+        bulkCopy.DestinationTableName = table;
+
+        bulkCopy.BatchSize = 5000;
+        bulkCopy.BulkCopyTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
+
+        using DataTable dt = new DataTable();
+
+        int k = 0;
+
+        foreach (var property in propertiesToInsert)
         {
-            T model = list[i];
+            string? dbColName = firstModel.GetMappedProperty(property.Name);
 
-            k++;
-            bool firstParam = true;
-            StringBuilder sbInsertValues = new StringBuilder();
+            Type t = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
-            foreach (PropertyInfo propertyInfo in propertiesToInsert)
+            if (t.IsEnum || t.IsSubclassOf(typeof(Enum)))
             {
-                if (firstParam)
+                dt.Columns.Add(dbColName, typeof(int));
+            }
+            else if (t == typeof(bool))
+            {
+                dt.Columns.Add(dbColName, typeof(int));
+            }
+            else
+            {
+                dt.Columns.Add(dbColName, t);
+            }
+
+            bulkCopy.ColumnMappings.Add(k++, dbColName!);
+        }
+
+        foreach (var item in list)
+        {
+            var values = new List<object>(propertiesToInsert.Count);
+
+            foreach (var property in propertiesToInsert)
+            {
+                var val = property.GetValue(item);
+
+                if (val == null)
                 {
-                    firstParam = false;
-                }
-                else
-                {
-                    if (firstRow)
-                        sbInsert.Append(", ");
-
-                    sbInsertValues.Append(", ");
-                }
-
-                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
-
-                if (!insertPrimaryKeyColumn
-                    && !string.IsNullOrEmpty(dbCol)
-                    && firstModel.IsPartOfThePrimaryKey(dbCol))
-                {
-                    if (i == 0)
-                        firstParam = true; // we don't add the primary key
-
+                    values.Add(DBNull.Value);
                     continue;
                 }
 
-                if (firstRow)
-                    sbInsert.Append($" {dbCol} ");
+                Type t = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
-                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
-
-                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
-
-                insertParams.Add(prm);
-            }
-
-            if (firstRow)
-            {
-                firstRow = false;
-                sbInsert
-                    .AppendLine(") values ")
-                    .Append(" (")
-                    .Append(sbInsertValues).AppendLine(")");
-            }
-            else
-            {
-                sbInsert.Append(", (").Append(sbInsertValues).AppendLine(")");
-            }
-        }
-
-        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
-    }
-
-    public Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(
-        List<T> list,
-        IZenDbConnection conn,
-        string table) where T : DbModel
-    {
-        int k = -1;
-        bool firstRow = true;
-        StringBuilder sbInsert = new StringBuilder();
-        List<SqlParam> insertParams = new List<SqlParam>();
-        sbInsert.AppendLine($"insert into {table} ( ");
-
-        T firstModel = list.First();
-        firstModel.ResetDbModel();
-        firstModel.RefreshDbColumnsAndModelProperties(conn, table);
-
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false, table: table);
-
-        for (int i = 0; i < list.Count; i++)
-        {
-            T model = list[i];
-
-            k++;
-            bool firstParam = true;
-            StringBuilder sbInsertValues = new StringBuilder();
-
-            foreach (PropertyInfo propertyInfo in propertiesToInsert)
-            {
-                if (firstParam)
+                if (t.IsEnum || t.IsSubclassOf(typeof(Enum)))
                 {
-                    firstParam = false;
+                    values.Add((int)val);
+                }
+                else if (t == typeof(bool))
+                {
+                    values.Add((bool)val ? 1 : 0);
                 }
                 else
                 {
-                    if (firstRow)
-                        sbInsert.Append(", ");
-
-                    sbInsertValues.Append(", ");
+                    values.Add(val);
                 }
-
-                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
-
-                if (firstRow)
-                    sbInsert.Append($" {dbCol} ");
-
-                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
-
-                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
-
-                insertParams.Add(prm);
             }
 
-            if (firstRow)
-            {
-                firstRow = false;
-                sbInsert
-                    .AppendLine(") values ")
-                    .Append(" (")
-                    .Append(sbInsertValues).AppendLine(")");
-            }
-            else
-            {
-                sbInsert.Append(", (").Append(sbInsertValues).AppendLine(")");
-            }
+            dt.Rows.Add(values.ToArray());
         }
 
-        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
+        await Task.Run(() => bulkCopy.WriteToServer(dt))
+            .ContinueWith(t =>
+            {
+                if (t.IsFaulted && t.Exception != null)
+                {
+                    throw t.Exception;
+                }
+            });
     }
 }

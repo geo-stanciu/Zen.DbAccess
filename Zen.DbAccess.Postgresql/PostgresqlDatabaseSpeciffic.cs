@@ -1,16 +1,24 @@
-﻿using System;
+﻿using Newtonsoft.Json.Linq;
+using Npgsql;
+using NpgsqlTypes;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Data;
 using System.Data.Common;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Zen.DbAccess.Attributes;
+using Zen.DbAccess.Constants;
 using Zen.DbAccess.DatabaseSpeciffic;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Extensions;
+using Zen.DbAccess.Helpers;
 using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Models;
 using Zen.DbAccess.Postgresql.Extensions;
@@ -156,165 +164,291 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
         return (sql, new[] { p_serial_table, p_serial_id });
     }
 
-    public Tuple<string, SqlParam[]> PrepareBulkInsertBatchWithSequence<T>(
-       List<T> list,
-       IZenDbConnection conn,
-       string table,
-       bool insertPrimaryKeyColumn,
-       string sequence2UseForPrimaryKey) where T : DbModel
+    public async Task BulkInsertAsync<T>(
+        List<T> list,
+        IZenDbConnection conn,
+        string table,
+        bool insertPrimaryKeyColumn = false) where T : DbModel
     {
-        int k = -1;
-        bool firstRow = true;
-        StringBuilder sbInsert = new StringBuilder();
-        List<SqlParam> insertParams = new List<SqlParam>();
-        sbInsert.AppendLine($"insert into {table} ( ");
+        T? firstModel = list.FirstOrDefault();
 
-        T firstModel = list.First();
-        firstModel.ResetDbModel();
+        if (firstModel == null)
+            throw new NullReferenceException(nameof(firstModel));
+
         firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, table);
+        var propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, table);
+
+        if (insertPrimaryKeyColumn || list.Count < 5_000)
+        {
+            if (list.Count > 5_000)
+            {
+                int offset = 0;
+
+                while (offset < list.Count)
+                {
+                    var items = list.Skip(offset).Take(5_000).ToList();
+
+                    await UseArrayBindingAsync(items, conn, table, firstModel, propertiesToInsert, insertPrimaryKeyColumn);
+
+                    offset += items.Count;
+                }
+            }
+            else
+            {
+                await UseArrayBindingAsync(list, conn, table, firstModel, propertiesToInsert, insertPrimaryKeyColumn);
+            }
+
+            return;
+        }
+
+        await UseBulkInsertAsync(list, conn, table, firstModel, propertiesToInsert);
+    }
+
+    private async Task UseArrayBindingAsync<T>(List<T> list, IZenDbConnection conn, string table, T firstModel, List<PropertyInfo> propertiesToInsert, bool insertPrimaryKeyColumn) where T : DbModel
+    {
+        object[][] paramsArrays = new object[propertiesToInsert.Count][];
+        NpgsqlParameter[] sqlParams = new NpgsqlParameter[propertiesToInsert.Count];
+
+        int k = 0;
+
+        var sbSql = new StringBuilder();
+        var sbSqlColumns = new StringBuilder();
+        var sbSqlValues = new StringBuilder();
+        var paramNamesByPropName = new Dictionary<string, string>();
+
+        sbSql.Append($"INSERT INTO {table} (");
+
+        bool isFirst = true;
+
+        foreach (var property in propertiesToInsert)
+        {
+            string? dbCol = firstModel.GetMappedProperty(property.Name);
+
+            if (isFirst)
+            {
+                isFirst = false;
+            }
+            else
+            {
+                sbSql.Append(", ");
+                sbSqlColumns.Append(", ");
+                sbSqlValues.Append(", ");
+            }
+
+            sbSql.Append(dbCol);
+            sbSqlColumns.Append(dbCol);
+
+            var prmName = $"@p_{property.Name}";
+
+            paramNamesByPropName[property.Name] = prmName;
+
+            sbSqlValues.Append(prmName);
+
+            if (firstModel.IsJsonDataType(property))
+                sbSqlValues.Append("::jsonb[]");
+
+            paramsArrays[k] = new object[list.Count];
+
+            Type t = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+            var dbType = GetCorrespondingNpgsqlPropertyType<T>(firstModel, property, t);
+            var nParam = new NpgsqlParameter(prmName, NpgsqlTypes.NpgsqlDbType.Array | dbType);
+            nParam.Value = paramsArrays[k];
+
+            if (insertPrimaryKeyColumn && firstModel.IsPartOfThePrimaryKey(dbCol!))
+            {
+                nParam.Direction = ParameterDirection.InputOutput;
+
+                if (dbType == NpgsqlDbType.Varchar || dbType == NpgsqlDbType.Text)
+                    nParam.Size = 32000;
+            }
+
+            sqlParams[k] = nParam;
+
+            k++;
+        }
+
+        sbSql
+            .Append(") SELECT ")
+            .Append(sbSqlColumns)
+            .Append(" FROM UNNEST (")
+            .Append(sbSqlValues)
+            .Append(") AS t(")
+            .Append(sbSqlColumns)
+            .Append(")");
 
         for (int i = 0; i < list.Count; i++)
         {
-            T model = list[i];
-
-            k++;
-            bool firstParam = true;
-            StringBuilder sbInsertValues = new StringBuilder();
-
-            foreach (PropertyInfo propertyInfo in propertiesToInsert)
+            for (k = 0; k < propertiesToInsert.Count; k++)
             {
-                if (firstParam)
+                var val = propertiesToInsert[k].GetValue(list[i]);
+
+                if (val == null)
                 {
-                    firstParam = false;
+                    paramsArrays[k][i] = DBNull.Value;
+                    continue;
+                }
+
+                Type t = Nullable.GetUnderlyingType(propertiesToInsert[k].PropertyType) ?? propertiesToInsert[k].PropertyType;
+
+                if (t.IsEnum || t.IsSubclassOf(typeof(Enum)))
+                {
+                    paramsArrays[k][i] = (int)val;
+                }
+                else if (t == typeof(bool))
+                {
+                    paramsArrays[k][i] = (bool)val ? 1 : 0;
+                }
+                else if (t == typeof(DateTime))
+                {
+                    var date = DateTime.SpecifyKind((DateTime)val, DateTimeKind.Unspecified);
+
+                    paramsArrays[k][i] = date;
                 }
                 else
                 {
-                    if (firstRow)
-                        sbInsert.Append(", ");
-
-                    sbInsertValues.Append(", ");
+                    paramsArrays[k][i] = val;
                 }
+            }
+        }
 
-                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
+        string sql = sbSql.ToString();
 
-                if (!insertPrimaryKeyColumn
-                    && !string.IsNullOrEmpty(dbCol)
-                    && firstModel!.IsPartOfThePrimaryKey(dbCol))
+        await using var cmd = new NpgsqlCommand(sql, (NpgsqlConnection)conn.Connection);
+
+        cmd.Parameters.AddRange(sqlParams);
+
+        _ = await cmd.ExecuteNonQueryAsync();
+
+        for (k = 0; k < cmd.Parameters.Count; k++)
+        {
+            var prm = cmd.Parameters[k];
+
+            if (insertPrimaryKeyColumn)
+            {
+                var propName = firstModel.GetMappedProperty(prm.ParameterName.Substring(2));
+                var dbCol = !string.IsNullOrEmpty(propName) ? firstModel.GetMappedProperty(propName) : null;
+                var isPartOfThePrimaryKey = !string.IsNullOrEmpty(dbCol) ? firstModel.IsPartOfThePrimaryKey(dbCol) : false;
+
+                if (isPartOfThePrimaryKey)
                 {
-                    if (firstRow)
-                        sbInsert.Append($" {dbCol} ");
+                    var prop = propertiesToInsert.FirstOrDefault(x => x.Name == propName)
+                        ?? throw new Exception($"Property {propName} not found in the properties to insert list for {table}");
 
-                    sbInsertValues.Append($" default ");
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        PropertyMapHelper.SetPropertyValue(list[i], prop, paramsArrays[k][i]);
+                    }
+                }
+            }
+        }
+    }
+
+    public async Task UseBulkInsertAsync<T>(
+        List<T> list,
+        IZenDbConnection conn,
+        string table,
+        T firstModel,
+        List<PropertyInfo> propertiesToInsert) where T : DbModel
+    {
+        var sbSql = new StringBuilder();
+
+        bool isFirst = true;
+
+        foreach (var property in propertiesToInsert)
+        {
+            string? dbCol = firstModel.GetMappedProperty(property.Name);
+
+            if (isFirst)
+            {
+                isFirst = false;
+            }
+            else
+            {
+                sbSql.Append(", ");
+            }
+
+            sbSql.Append(dbCol);
+        }
+
+        await using var binaryWriter = await ((NpgsqlConnection)conn.Connection).BeginBinaryImportAsync(
+            $"COPY {table} ({sbSql}) FROM STDIN (FORMAT BINARY)");
+
+        foreach (var item in list)
+        {
+            await binaryWriter.StartRowAsync();
+
+            foreach (var property in propertiesToInsert)
+            {
+                var val = property.GetValue(item);
+
+                if (val == null)
+                {
+                    await binaryWriter.WriteNullAsync();
 
                     continue;
                 }
 
-                if (firstRow)
-                    sbInsert.Append($" {dbCol} ");
+                Type t = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
 
-                string appendToParam;
-                if (firstModel != null && firstModel.IsJsonDataType(propertyInfo))
-                    appendToParam = "::jsonb";
-                else
-                    appendToParam = string.Empty;
+                if (t.IsEnum || t.IsSubclassOf(typeof(Enum)))
+                {
+                    await binaryWriter.WriteAsync((int)val, NpgsqlTypes.NpgsqlDbType.Integer);
 
-                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k}{appendToParam} ");
+                    continue;
+                }
+                else if (t == typeof(bool))
+                {
+                    await binaryWriter.WriteAsync((bool)val ? 1 : 0, NpgsqlTypes.NpgsqlDbType.Integer);
 
-                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
+                    continue;
+                }
+                else if (t == typeof(DateTime))
+                {
+                    var date = DateTime.SpecifyKind((DateTime)val, DateTimeKind.Unspecified);
 
-                insertParams.Add(prm);
-            }
+                    await binaryWriter.WriteAsync(date, NpgsqlTypes.NpgsqlDbType.Timestamp);
 
-            if (firstRow)
-            {
-                firstRow = false;
-                sbInsert
-                    .AppendLine(") values ")
-                    .Append(" (")
-                    .Append(sbInsertValues).AppendLine(")");
-            }
-            else
-            {
-                sbInsert.Append(", (").Append(sbInsertValues).AppendLine(")");
+                    continue;
+                }
+
+                await binaryWriter.WriteAsync(val, GetCorrespondingNpgsqlPropertyType(item, property, t));
             }
         }
 
-        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
+        await binaryWriter.CompleteAsync();
     }
 
-    public Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(
-        List<T> list,
-        IZenDbConnection conn,
-        string table) where T : DbModel
+    private NpgsqlTypes.NpgsqlDbType GetCorrespondingNpgsqlPropertyType<T>(T model, PropertyInfo property, Type propertyType) where T : DbModel
     {
-        int k = -1;
-        bool firstRow = true;
-        StringBuilder sbInsert = new StringBuilder();
-        List<SqlParam> insertParams = new List<SqlParam>();
-        sbInsert.AppendLine($"insert into {table} ( ");
-
-        T firstModel = list.First();
-        firstModel.ResetDbModel();
-        firstModel.RefreshDbColumnsAndModelProperties(conn, table);
-
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false, table: table);
-
-        for (int i = 0; i < list.Count; i++)
+        if (propertyType.IsEnum || propertyType.IsSubclassOf(typeof(Enum)))
         {
-            T model = list[i];
-
-            k++;
-            bool firstParam = true;
-            StringBuilder sbInsertValues = new StringBuilder();
-
-            foreach (PropertyInfo propertyInfo in propertiesToInsert)
-            {
-                if (firstParam)
-                {
-                    firstParam = false;
-                }
-                else
-                {
-                    if (firstRow)
-                        sbInsert.Append(", ");
-
-                    sbInsertValues.Append(", ");
-                }
-
-                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
-
-                if (firstRow)
-                    sbInsert.Append($" {dbCol} ");
-
-                string appendToParam;
-                if (firstModel != null && firstModel.IsJsonDataType(propertyInfo))
-                    appendToParam = "::jsonb";
-                else
-                    appendToParam = string.Empty;
-
-                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k}{appendToParam} ");
-
-                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
-
-                insertParams.Add(prm);
-            }
-
-            if (firstRow)
-            {
-                firstRow = false;
-                sbInsert
-                    .AppendLine(") values ")
-                    .Append(" (")
-                    .Append(sbInsertValues).AppendLine(")");
-            }
-            else
-            {
-                sbInsert.Append(", (").Append(sbInsertValues).AppendLine(")");
-            }
+            return NpgsqlDbType.Integer;
+        }
+        else if (propertyType == typeof(bool))
+        {
+            return NpgsqlDbType.Integer;
         }
 
-        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
+        if (model.IsJsonDataType(property))
+            return NpgsqlTypes.NpgsqlDbType.Jsonb;
+
+        return propertyType switch
+        {
+            Type t when t == typeof(byte) => NpgsqlTypes.NpgsqlDbType.Integer,
+            Type t when t == typeof(short) => NpgsqlTypes.NpgsqlDbType.Smallint,
+            Type t when t == typeof(int) => NpgsqlTypes.NpgsqlDbType.Integer,
+            Type t when t == typeof(long) => NpgsqlTypes.NpgsqlDbType.Bigint,
+            Type t when t == typeof(float) => NpgsqlTypes.NpgsqlDbType.Real,
+            Type t when t == typeof(double) => NpgsqlTypes.NpgsqlDbType.Double,
+            Type t when t == typeof(decimal) => NpgsqlTypes.NpgsqlDbType.Numeric,
+            Type t when t == typeof(DateOnly) => NpgsqlTypes.NpgsqlDbType.Date,
+            Type t when t == typeof(TimeOnly) => NpgsqlTypes.NpgsqlDbType.Time,
+            Type t when t == typeof(DateTime) => NpgsqlTypes.NpgsqlDbType.Timestamp,
+            Type t when t == typeof(DateTimeOffset) => NpgsqlTypes.NpgsqlDbType.TimestampTz,
+            Type t when t == typeof(byte[]) => NpgsqlTypes.NpgsqlDbType.Bytea,
+            Type t when t == typeof(string) => NpgsqlTypes.NpgsqlDbType.Text,
+            _ => throw new NotImplementedException($"Type {propertyType} is not supported for bulk insert.")
+        };
     }
 }

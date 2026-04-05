@@ -7,11 +7,13 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zen.DbAccess.Constants;
 using Zen.DbAccess.DatabaseSpeciffic;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Extensions;
 using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Models;
+using Zen.DbAccess.Sqlite.Constants;
 
 namespace Zen.DbAccess.Sqlite;
 
@@ -88,153 +90,111 @@ public class SqliteDatabaseSpeciffic : IDbSpeciffic
         return (sql, Array.Empty<SqlParam>());
     }
 
-    public Tuple<string, SqlParam[]> PrepareBulkInsertBatchWithSequence<T>(
+    public async Task BulkInsertAsync<T>(
         List<T> list,
         IZenDbConnection conn,
         string table,
-        bool insertPrimaryKeyColumn,
-        string sequence2UseForPrimaryKey) where T : DbModel
+        bool insertPrimaryKeyColumn = false) where T : DbModel
     {
-        int k = -1;
-        bool firstRow = true;
-        StringBuilder sbInsert = new StringBuilder();
-        List<SqlParam> insertParams = new List<SqlParam>();
-        sbInsert.AppendLine($"insert into {table} ( ");
+        T? firstModel = list.FirstOrDefault();
 
-        T firstModel = list.First();
-        firstModel.ResetDbModel();
+        if (firstModel == null)
+            throw new NullReferenceException(nameof(firstModel));
+
         firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, table);
+        var propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, table);
 
-        for (int i = 0; i < list.Count; i++)
+        var sqlParamNames = new Dictionary<string, string>();
+
+        var sbSql = new StringBuilder();
+
+        sbSql.Append($"INSERT INTO {table} (");
+
+        bool isFirst = true;
+
+        foreach (var property in propertiesToInsert)
         {
-            T model = list[i];
+            string? dbCol = firstModel.GetMappedProperty(property.Name);
 
-            k++;
-            bool firstParam = true;
-            StringBuilder sbInsertValues = new StringBuilder();
-
-            foreach (PropertyInfo propertyInfo in propertiesToInsert)
+            if (isFirst)
             {
-                if (firstParam)
-                {
-                    firstParam = false;
-                }
-                else
-                {
-                    if (firstRow)
-                        sbInsert.Append(", ");
-
-                    sbInsertValues.Append(", ");
-                }
-
-                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
-
-                if (!insertPrimaryKeyColumn
-                    && !string.IsNullOrEmpty(dbCol)
-                    && firstModel.IsPartOfThePrimaryKey(dbCol))
-                {
-                    if (firstRow)
-                        sbInsert.Append($" {propertyInfo.Name} ");
-
-                    sbInsertValues.Append($" null ");
-
-                    continue;
-                }
-
-                if (firstRow)
-                    sbInsert.Append($" {dbCol} ");
-
-                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
-
-                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
-
-                insertParams.Add(prm);
-            }
-
-            if (firstRow)
-            {
-                firstRow = false;
-                sbInsert
-                    .AppendLine(") values ")
-                    .Append(" (")
-                    .Append(sbInsertValues).AppendLine(")");
+                isFirst = false;
             }
             else
             {
-                sbInsert.Append(", (").Append(sbInsertValues).AppendLine(")");
+                sbSql.Append(", ");
             }
+
+            sbSql.Append(dbCol);
+
+            var prmName = $"@p_{property.Name}";
+
+            sqlParamNames[property.Name] = prmName;
         }
 
-        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
-    }
+        sbSql.Append(") VALUES ");
 
-    public Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(
-        List<T> list,
-        IZenDbConnection conn,
-        string table) where T : DbModel
-    {
-        int k = -1;
-        bool firstRow = true;
-        StringBuilder sbInsert = new StringBuilder();
-        List<SqlParam> insertParams = new List<SqlParam>();
-        sbInsert.AppendLine($"insert into {table} ( ");
+        int offset = 0;
+        int dbMaxBatchSize = (int)Math.Floor((decimal)SqliteConstants.MaxParametersPerQuery / propertiesToInsert.Count);
 
-        T firstModel = list.First();
-        firstModel.ResetDbModel();
-        firstModel.RefreshDbColumnsAndModelProperties(conn, table);
-
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false, table);
-
-        for (int i = 0; i < list.Count; i++)
+        if (dbMaxBatchSize == 0)
         {
-            T model = list[i];
-
-            k++;
-            bool firstParam = true;
-            StringBuilder sbInsertValues = new StringBuilder();
-
-            foreach (PropertyInfo propertyInfo in propertiesToInsert)
-            {
-                if (firstParam)
-                {
-                    firstParam = false;
-                }
-                else
-                {
-                    if (firstRow)
-                        sbInsert.Append(", ");
-
-                    sbInsertValues.Append(", ");
-                }
-
-                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
-
-                if (firstRow)
-                    sbInsert.Append($" {dbCol} ");
-
-                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
-
-                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
-
-                insertParams.Add(prm);
-            }
-
-            if (firstRow)
-            {
-                firstRow = false;
-                sbInsert
-                    .AppendLine(") values ")
-                    .Append(" (")
-                    .Append(sbInsertValues).AppendLine(")");
-            }
-            else
-            {
-                sbInsert.Append(", (").Append(sbInsertValues).AppendLine(")");
-            }
+            throw new InvalidOperationException("The number of properties to insert exceeds the maximum allowed parameters per query.");
         }
 
-        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
+        int batchSize = Math.Min(1024, dbMaxBatchSize);
+
+        while (offset < list.Count)
+        {
+            var sbValues = new StringBuilder();
+
+            var items = list.Skip(offset).Take(batchSize).ToList();
+            offset += items.Count;
+
+            var sqlParams = new SqlParam[items.Count * propertiesToInsert.Count];
+
+            int k = 0;
+
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sbValues.Append(", ");
+                }
+
+                sbValues.Append("(");
+
+                var item = items[i];
+
+                isFirst = true;
+
+                foreach (var property in propertiesToInsert)
+                {
+                    string prmName = $"{sqlParamNames[property.Name]}_{i}";
+
+                    if (isFirst)
+                    {
+                        isFirst = false;
+                    }
+                    else
+                    {
+                        sbValues.Append(", ");
+                    }
+
+                    sbValues.Append(prmName);
+
+                    var val = property.GetValue(item);
+
+                    sqlParams[k++] = new SqlParam(prmName, val);
+                }
+
+                sbValues.Append(")");
+            }
+
+            string sql = $"{sbSql} {sbValues}";
+
+            _ = await sql.ExecuteNonQueryAsync(conn, sqlParams);
+        }
     }
 }

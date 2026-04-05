@@ -289,11 +289,6 @@ public interface IDbSpeciffic
         return da;
     }
 
-    bool UsePrimaryKeyPropertyForInsert()
-    {
-        return false;
-    }
-
     async Task InsertAsync(DbModel model, DbCommand cmd, bool insertPrimaryKeyColumn, DbModelSaveType saveType)
     {
         if (!insertPrimaryKeyColumn && saveType != DbModelSaveType.BulkInsertWithoutPrimaryKeyValueReturn)
@@ -400,18 +395,6 @@ public interface IDbSpeciffic
 
     (string, IEnumerable<SqlParam>) GetInsertedIdQuery(string table, DbModel model, string firstPropertyName);
 
-    Tuple<string, SqlParam[]> PrepareBulkInsertBatchWithSequence<T>(
-       List<T> list,
-       IZenDbConnection conn,
-       string table,
-       bool insertPrimaryKeyColumn,
-       string sequence2UseForPrimaryKey) where T : DbModel;
-
-    Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(
-        List<T> list,
-        IZenDbConnection conn,
-        string table) where T : DbModel;
-
     object? GetValueAsDateOnly(IZenDbConnection conn, DateOnly dtoValue)
     {
         return dtoValue;
@@ -425,5 +408,10 @@ public interface IDbSpeciffic
     object GetValueForPreparedParameter(DbModel dbModel, PropertyInfo propertyInfo)
     {
         return propertyInfo.GetValue(dbModel) ?? DBNull.Value;
+    }
+
+    Task BulkInsertAsync<T>(List<T> list, IZenDbConnection conn, string table, bool insertPrimaryKeyColumn) where T : DbModel
+    {
+        return Task.CompletedTask;
     }
 }

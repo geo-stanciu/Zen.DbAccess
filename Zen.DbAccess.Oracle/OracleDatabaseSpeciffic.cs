@@ -1,4 +1,5 @@
-﻿using Oracle.ManagedDataAccess.Client;
+﻿using Microsoft.Extensions.Options;
+using Oracle.ManagedDataAccess.Client;
 using Oracle.ManagedDataAccess.Types;
 using System;
 using System.Collections.Generic;
@@ -6,12 +7,14 @@ using System.Data;
 using System.Data.Common;
 using System.Linq;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Text;
 using System.Threading.Tasks;
 using Zen.DbAccess.Constants;
 using Zen.DbAccess.DatabaseSpeciffic;
 using Zen.DbAccess.Enums;
 using Zen.DbAccess.Extensions;
+using Zen.DbAccess.Helpers;
 using Zen.DbAccess.Interfaces;
 using Zen.DbAccess.Models;
 using Zen.DbAccess.Oracle.Extensions;
@@ -167,11 +170,6 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
         return param;
     }
 
-    public bool UsePrimaryKeyPropertyForInsert()
-    {
-        return true;
-    }
-
     public async Task InsertAsync(DbModel model, DbCommand cmd, bool insertPrimaryKeyColumn, DbModelSaveType saveType)
     {
         await cmd.ExecuteNonQueryAsync();
@@ -249,157 +247,6 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
         return (sql, new[] { prm });
     }
 
-    public Tuple<string, SqlParam[]> PrepareBulkInsertBatchWithSequence<T>(
-        List<T> list,
-        IZenDbConnection conn,
-        string table,
-        bool insertPrimaryKeyColumn,
-        string sequence2UseForPrimaryKey) where T : DbModel
-    {
-        int k = -1;
-        bool firstParam = true;
-        StringBuilder sbInsert = new StringBuilder();
-        List<SqlParam> insertParams = new List<SqlParam>();
-        sbInsert.AppendLine("BEGIN");
-
-        T firstModel = list.First();
-        firstModel.ResetDbModel();
-        firstModel.RefreshDbColumnsAndModelProperties(conn, table);
-
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, sequence2UseForPrimaryKey);
-        List<string>? primaryKeyColumns = firstModel.GetPrimaryKeyColumns();
-
-        for (int i = 0; i < list.Count; i++)
-        {
-            T model = list[i];
-
-            k++;
-            firstParam = true;
-
-            sbInsert.Append($"INSERT INTO {table} (");
-            StringBuilder sbInsertValues = new StringBuilder();
-
-            foreach (PropertyInfo propertyInfo in propertiesToInsert)
-            {
-                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
-
-                if (!insertPrimaryKeyColumn
-                    && string.IsNullOrEmpty(sequence2UseForPrimaryKey)
-                    && !string.IsNullOrEmpty(dbCol)
-                    && primaryKeyColumns != null
-                    && primaryKeyColumns.Any(x => x == dbCol))
-                {
-                    continue;
-                }
-
-                if (firstParam)
-                    firstParam = false;
-                else
-                {
-                    sbInsert.Append(", ");
-                    sbInsertValues.Append(", ");
-                }
-
-                if (!insertPrimaryKeyColumn
-                    && !string.IsNullOrEmpty(sequence2UseForPrimaryKey)
-                    && primaryKeyColumns != null
-                    && primaryKeyColumns.Any(x => x == dbCol))
-                {
-                    sbInsert.Append($" {dbCol} ");
-                    sbInsertValues.Append($"{sequence2UseForPrimaryKey}.nextval");
-
-                    continue;
-                }
-
-                sbInsert.Append($" {dbCol} ");
-                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
-
-                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
-
-                if (firstModel != null)
-                {
-                    if (firstModel.IsClobDataType(propertyInfo))
-                        prm.isClob = true;
-                    else if (firstModel.IsBlobDataType(propertyInfo))
-                        prm.isBlob = true;
-                }
-
-                insertParams.Add(prm);
-            }
-
-            sbInsert
-                .Append(") VALUES (")
-                .Append(sbInsertValues)
-                .AppendLine(");");
-        }
-
-        sbInsert.AppendLine("END;");
-
-        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
-    }
-
-    public Tuple<string, SqlParam[]> PrepareBulkInsertBatch<T>(
-        List<T> list,
-        IZenDbConnection conn,
-        string table) where T : DbModel
-    {
-        int k = -1;
-        StringBuilder sbInsert = new StringBuilder();
-        List<SqlParam> insertParams = new List<SqlParam>();
-        sbInsert.AppendLine($"INSERT ALL");
-
-        T firstModel = list.First();
-        firstModel.ResetDbModel();
-        firstModel.RefreshDbColumnsAndModelProperties(conn, table);
-
-        List<PropertyInfo> propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn: false, table: table);
-
-        for (int i = 0; i < list.Count; i++)
-        {
-            T model = list[i];
-
-            k++;
-            bool firstParam = true;
-            StringBuilder sbInsertValues = new StringBuilder();
-
-            sbInsert.Append($"INTO {table} (");
-
-            foreach (PropertyInfo propertyInfo in propertiesToInsert)
-            {
-                if (firstParam)
-                    firstParam = false;
-                else
-                {
-                    sbInsert.Append(", ");
-                    sbInsertValues.Append(", ");
-                }
-
-                string? dbCol = firstModel!.GetMappedProperty(propertyInfo.Name);
-
-                sbInsert.Append($" {dbCol} ");
-                sbInsertValues.Append($" @p_{propertyInfo.Name}_{k} ");
-
-                SqlParam prm = new SqlParam($"@p_{propertyInfo.Name}_{k}", propertyInfo.GetValue(model));
-
-                if (firstModel != null)
-                {
-                    if (firstModel.IsClobDataType(propertyInfo))
-                        prm.isClob = true;
-                    else if (firstModel.IsBlobDataType(propertyInfo))
-                        prm.isBlob = true;
-                }
-                
-                insertParams.Add(prm);
-            }
-
-            sbInsert.Append(") VALUES (").Append(sbInsertValues).AppendLine(")");
-        }
-
-        sbInsert.AppendLine("SELECT 1 FROM dual");
-
-        return new Tuple<string, SqlParam[]>(sbInsert.ToString(), insertParams.ToArray());
-    }
-
     public object? GetValueAsDateOnly(IZenDbConnection conn, DateOnly dtoValue)
     {
         return dtoValue.ToDateTime(TimeOnly.MinValue);
@@ -408,5 +255,357 @@ public class OracleDatabaseSpeciffic : IDbSpeciffic
     public object? GetValueAsTimeOnly(IZenDbConnection conn, TimeOnly toValue)
     {
         return DateTime.MinValue.Date.Add(toValue.ToTimeSpan());
+    }
+
+    public async Task BulkInsertAsync<T>(
+        List<T> list,
+        IZenDbConnection conn,
+        string table,
+        bool insertPrimaryKeyColumn = false) where T : DbModel
+    {
+        T? firstModel = list.FirstOrDefault();
+
+        if (firstModel == null)
+            throw new NullReferenceException(nameof(firstModel));
+
+        firstModel.RefreshDbColumnsAndModelProperties(conn, table);
+
+        var propertiesToInsert = firstModel.GetPropertiesToInsert(conn, insertPrimaryKeyColumn, table);
+
+        if (insertPrimaryKeyColumn || list.Count < 10_000)
+        {
+            if (list.Count > 10_000)
+            {
+                int offset = 0;
+
+                while (offset < list.Count)
+                {
+                    var items = list.Skip(offset).Take(10_000).ToList();
+
+                    await UseArrayBindingAsync(items, conn, table, firstModel, propertiesToInsert, insertPrimaryKeyColumn);
+
+                    offset += items.Count;
+                }
+            }
+            else
+            {
+                await UseArrayBindingAsync(list, conn, table, firstModel, propertiesToInsert, insertPrimaryKeyColumn);
+            }
+
+            return;
+        }
+
+        await UseBulkInsertAsync(list, conn, table, firstModel, propertiesToInsert);
+    }
+
+    private async Task UseArrayBindingAsync<T>(List<T> list, IZenDbConnection conn, string table, T firstModel, List<PropertyInfo> propertiesToInsert, bool insertPrimaryKeyColumn) where T : DbModel
+    {
+        object[][] paramsArrays = new object[propertiesToInsert.Count][];
+        OracleParameter[] sqlParams = new OracleParameter[propertiesToInsert.Count];
+
+        int k = 0;
+
+        var sbSql = new StringBuilder();
+        var sbSqlValues = new StringBuilder();
+
+        sbSql.Append($"INSERT INTO {table} (");
+
+        bool isFirst = true;
+
+        foreach (var property in propertiesToInsert)
+        {
+            string? dbCol = firstModel.GetMappedProperty(property.Name);
+
+            if (isFirst)
+            {
+                isFirst = false;
+            }
+            else
+            {
+                sbSql.Append(", ");
+                sbSqlValues.Append(", ");
+            }
+
+            sbSql.Append(dbCol);
+
+            var prmName = $"p_{property.Name}";
+
+            sbSqlValues.Append(":").Append(prmName);
+
+            paramsArrays[k] = new object[list.Count];
+
+            var dbType = GetCorrespondingOraclePropertyType<T>(firstModel, property);
+            var oParam = new OracleParameter(prmName, dbType);
+            oParam.Value = paramsArrays[k];
+
+            if (insertPrimaryKeyColumn && firstModel.IsPartOfThePrimaryKey(dbCol!))
+            {
+                oParam.Direction = ParameterDirection.InputOutput;
+                
+                if (dbType == OracleDbType.Varchar2 || dbType == OracleDbType.NVarchar2)
+                    oParam.Size = 4000;
+            }
+
+            sqlParams[k] = oParam;
+
+            k++;
+        }
+
+        sbSql.Append(") VALUES (").Append(sbSqlValues).Append(")");
+        
+        for (int i = 0; i < list.Count; i++)
+        {
+            for (k = 0; k < propertiesToInsert.Count; k++)
+            {
+                var val = propertiesToInsert[k].GetValue(list[i]);
+
+                if (val == null)
+                {
+                    paramsArrays[k][i] = DBNull.Value;
+                    continue;
+                }
+
+                Type t = Nullable.GetUnderlyingType(propertiesToInsert[k].PropertyType) ?? propertiesToInsert[k].PropertyType;
+
+                if (t.IsEnum || t.IsSubclassOf(typeof(Enum)))
+                {
+                    paramsArrays[k][i] = (int)val;
+                }
+                else if (t == typeof(bool))
+                {
+                    paramsArrays[k][i] = (bool)val ? 1 : 0;
+                }
+                else if (t == typeof(DateOnly))
+                {
+                    paramsArrays[k][i] = ((DateOnly)val).ToDateTime(TimeOnly.MinValue);
+                }
+                else if (t == typeof(TimeOnly))
+                {
+                    paramsArrays[k][i] = DateTime.MinValue.Date.Add(((TimeOnly)val).ToTimeSpan());
+                }
+                else if (t == typeof(byte[]))
+                {
+                    paramsArrays[k][i] = GetValueAsBlob(conn, val);
+                }
+                else if (list[i].IsClobDataType(propertiesToInsert[k]))
+                {
+                    paramsArrays[k][i] = GetValueAsClob(conn, val);
+                }
+                else
+                {
+                    paramsArrays[k][i] = val;
+                }
+            }
+        }
+
+        using var cmd = new OracleCommand(sbSql.ToString(), (OracleConnection)conn.Connection);
+        cmd.CommandTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
+
+        cmd.BindByName = true;
+
+        if (conn.Transaction != null)
+            cmd.Transaction = (OracleTransaction)conn.Transaction;
+
+        cmd.ArrayBindCount = list.Count;
+
+        cmd.Parameters.AddRange(sqlParams);
+
+        _ = await cmd.ExecuteNonQueryAsync();
+
+        for (k = 0; k < cmd.Parameters.Count; k++)
+        {
+            var prm = cmd.Parameters[k];
+
+            if (insertPrimaryKeyColumn)
+            {
+                var propName = firstModel.GetMappedProperty(prm.ParameterName.Substring(2));
+                var dbCol = !string.IsNullOrEmpty(propName) ? firstModel.GetMappedProperty(propName) : null;
+                var isPartOfThePrimaryKey = !string.IsNullOrEmpty(dbCol) ? firstModel.IsPartOfThePrimaryKey(dbCol) : false;
+
+                if (isPartOfThePrimaryKey)
+                {
+                    var prop = propertiesToInsert.FirstOrDefault(x => x.Name == propName)
+                        ?? throw new Exception($"Property {propName} not found in the properties to insert list for {table}");
+
+                    for (int i = 0; i < list.Count; i++)
+                    {
+                        PropertyMapHelper.SetPropertyValue(list[i], prop, paramsArrays[k][i]);
+                    }
+                }
+            }
+
+            if (prm.OracleDbType == OracleDbType.Clob)
+            {
+                if (prm.Value != null)
+                {
+                    var clobs = prm.Value as object[];
+
+                    for (int i = 0; i < clobs!.Length; i++)
+                    {
+                        if (clobs[i] != null && clobs[i] is OracleClob)
+                            ((OracleClob)clobs[i]).Dispose();
+                    }
+                }
+            }
+            else if (prm.OracleDbType == OracleDbType.Blob)
+            {
+                if (prm.Value != null)
+                {
+                    var blobs = prm.Value as object[];
+
+                    for (int i = 0; i < blobs!.Length; i++)
+                    {
+                        if (blobs[i] != null && blobs[i] is OracleBlob)
+                            ((OracleBlob)blobs[i]).Dispose();
+                    }
+                }
+            }
+
+            prm.Dispose();
+        }
+    }
+
+    private OracleDbType GetCorrespondingOraclePropertyType<T>(T model, PropertyInfo property) where T : DbModel
+    {
+        Type propertyType = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+
+        if (propertyType.IsEnum || propertyType.IsSubclassOf(typeof(Enum)))
+        {
+            return OracleDbType.Int32;
+        }
+        else if (propertyType == typeof(bool))
+        {
+            return OracleDbType.Int32;
+        }
+
+        if (model.IsClobDataType(property))
+            return OracleDbType.Clob;
+
+        return propertyType switch
+        {
+            Type t when t == typeof(byte) => OracleDbType.Int32,
+            Type t when t == typeof(short) => OracleDbType.Int16,
+            Type t when t == typeof(int) => OracleDbType.Int32,
+            Type t when t == typeof(long) => OracleDbType.Int64,
+            Type t when t == typeof(float) => OracleDbType.Double,
+            Type t when t == typeof(double) => OracleDbType.Double,
+            Type t when t == typeof(decimal) => OracleDbType.Decimal,
+            Type t when t == typeof(DateOnly) => OracleDbType.Date,
+            Type t when t == typeof(TimeOnly) => OracleDbType.Date,
+            Type t when t == typeof(DateTime) => OracleDbType.TimeStamp,
+            Type t when t == typeof(DateTimeOffset) => OracleDbType.TimeStampTZ,
+            Type t when t == typeof(byte[]) => OracleDbType.Blob,
+            Type t when t == typeof(string) => OracleDbType.Varchar2,
+            _ => throw new NotImplementedException($"Type {propertyType} is not supported for bulk insert.")
+        };
+    }
+
+    private async Task UseBulkInsertAsync<T>(List<T> list, IZenDbConnection conn, string table, T firstModel, List<PropertyInfo> propertiesToInsert) where T : DbModel
+    {
+        using OracleBulkCopy bulkCopy = new OracleBulkCopy((OracleConnection)conn.Connection);
+
+        int idx = table.IndexOf(".");
+
+        if (idx >= 0)
+        {
+            string schemaName = table.Substring(0, idx);
+            string simplifiedTableName = table.Substring(idx + 1);
+
+            bulkCopy.DestinationSchemaName = schemaName;
+            bulkCopy.DestinationTableName = simplifiedTableName;
+        }
+        else
+        {
+            bulkCopy.DestinationTableName = table;
+        }
+
+        bulkCopy.BatchSize = 5000;
+        bulkCopy.BulkCopyTimeout = DbAccessConstants.DefaultCommandTimeoutSeconds;
+
+        using DataTable dt = new DataTable();
+
+        int k = 0;
+
+        foreach (var property in propertiesToInsert)
+        {
+            string? dbColName = firstModel.GetMappedProperty(property.Name);
+
+            Type t = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+
+            if (t.IsEnum || t.IsSubclassOf(typeof(Enum)))
+            {
+                dt.Columns.Add(dbColName, typeof(int));
+            }
+            else if (t == typeof(bool))
+            {
+                dt.Columns.Add(dbColName, typeof(int));
+            }
+            else if (t == typeof(DateOnly))
+            {
+                dt.Columns.Add(dbColName, typeof(DateTime));
+            }
+            else if (t == typeof(TimeOnly))
+            {
+                dt.Columns.Add(dbColName, typeof(DateTime));
+            }
+            else
+            {
+                dt.Columns.Add(dbColName, t);
+            }
+
+            bulkCopy.ColumnMappings.Add(new OracleBulkCopyColumnMapping(k++, dbColName!));
+        }
+
+        foreach (var item in list)
+        {
+            var values = new object[propertiesToInsert.Count];
+
+            k = 0;
+
+            foreach (var property in propertiesToInsert)
+            {
+                var val = property.GetValue(item);
+
+                if (val == null)
+                {
+                    values[k++] = DBNull.Value;
+                    continue;
+                }
+
+                Type t = Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+
+                if (t.IsEnum || t.IsSubclassOf(typeof(Enum)))
+                {
+                    values[k++] = (int)val;
+                }
+                else if (t == typeof(bool))
+                {
+                    values[k++] = (bool)val ? 1 : 0;
+                }
+                else if (t == typeof(DateOnly))
+                {
+                    values[k++] = ((DateOnly)val).ToDateTime(TimeOnly.MinValue);
+                }
+                else if (t == typeof(TimeOnly))
+                {
+                    values[k++] = DateTime.MinValue.Date.Add(((TimeOnly)val).ToTimeSpan());
+                }
+                else
+                {
+                    values[k++] = val;
+                }
+            }
+
+            dt.Rows.Add(values.ToArray());
+        }
+
+        await Task.Run(() => bulkCopy.WriteToServer(dt))
+            .ContinueWith(t =>
+            {
+                if (t.IsFaulted && t.Exception != null)
+                {
+                    throw t.Exception;
+                }
+            });
     }
 }

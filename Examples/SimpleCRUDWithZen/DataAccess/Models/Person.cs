@@ -1,4 +1,5 @@
 ﻿using DataAccess.Enum;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,4 +21,29 @@ public class Person : ResponseModel
     public byte[]? Image { get; set; }
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
+
+    [JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    private string? _line_as_json;
+
+    [JsonIgnore]
+    [System.Text.Json.Serialization.JsonIgnore]
+    [JsonDbType]
+    public string? line_as_json
+    {
+        get
+        {
+            if (_line_as_json == null)
+            {
+                _line_as_json = this.ToJson();
+            }
+
+            return _line_as_json;
+        }
+
+        set
+        {
+            _line_as_json = value;
+        }
+    }
 }

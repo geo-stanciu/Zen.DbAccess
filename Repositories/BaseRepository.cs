@@ -31,7 +31,6 @@ public abstract class BaseRepository
             table: table,
             insertPrimaryKeyColumn: false,
             bulkInsert: false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute: procedure2Execute,
             CreateTempTableCallBack: null,
             models: new List<DbModel> { model })
@@ -50,7 +49,6 @@ public abstract class BaseRepository
             table: table,
             insertPrimaryKeyColumn: false,
             bulkInsert: false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute: procedure2Execute,
             isTableProcedure: isTableProcedure,
             CreateTempTableCallBack: null,
@@ -175,7 +173,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             CreateTempTableCallBack: null,
             parameters);
@@ -198,7 +195,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             CreateTempTableCallBack: null,
             parameters);
@@ -217,7 +213,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             CreateTempTableCallBack: null,
             parameters);
@@ -236,7 +231,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             CreateTempTableCallBack: null,
             parameters);
@@ -256,7 +250,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             isTableProcedure: isTableProcedure,
             CreateTempTableCallBack: null,
@@ -276,7 +269,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             isTableProcedure: false,
             CreateTempTableCallBack: null,
@@ -302,7 +294,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             CreateTempTableCallBack,
             parameters)
@@ -326,7 +317,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             CreateTempTableCallBack,
             parameters)
@@ -346,7 +336,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             CreateTempTableCallBack,
             parameters)
@@ -366,7 +355,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             CreateTempTableCallBack,
             parameters)
@@ -387,7 +375,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             isTableProcedure: isTableProcedure,
             CreateTempTableCallBack,
@@ -408,7 +395,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             false,
-            sequence2UseForPrimaryKey: "",
             procedure2Execute,
             isTableProcedure: false,
             CreateTempTableCallBack,
@@ -421,7 +407,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         params SqlParam[] parameters) where T : ResponseModel
                                       where T2 : ResponseModel
@@ -435,7 +420,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             bulkInsert,
-            sequence2UseForPrimaryKey,
             procedure2Execute,
             CreateTempTableCallBack: null,
             parameters);
@@ -446,7 +430,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         params SqlParam[] parameters) where T : ResponseModel
                                       where T2 : ResponseModel
@@ -459,7 +442,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             bulkInsert,
-            sequence2UseForPrimaryKey,
             procedure2Execute,
             CreateTempTableCallBack: null,
             parameters);
@@ -470,7 +452,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where T3 : ResponseModel where TDBModel : DbModel
     {
@@ -479,7 +460,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             bulkInsert,
-            sequence2UseForPrimaryKey,
             procedure2Execute,
             CreateTempTableCallBack: null,
             parameters);
@@ -490,7 +470,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where TDBModel : DbModel
     {
@@ -499,7 +478,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             bulkInsert,
-            sequence2UseForPrimaryKey,
             procedure2Execute,
             CreateTempTableCallBack: null,
             parameters);
@@ -510,7 +488,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         bool isTableProcedure,
         params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
@@ -520,7 +497,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             bulkInsert,
-            sequence2UseForPrimaryKey,
             procedure2Execute,
             isTableProcedure: isTableProcedure,
             CreateTempTableCallBack: null,
@@ -532,7 +508,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
     {
@@ -541,7 +516,6 @@ public abstract class BaseRepository
             models,
             insertPrimaryKeyColumn,
             bulkInsert,
-            sequence2UseForPrimaryKey,
             procedure2Execute,
             isTableProcedure: false,
             CreateTempTableCallBack: null,
@@ -553,7 +527,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         Func<IZenDbConnection, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel
@@ -589,8 +562,7 @@ public abstract class BaseRepository
                         conn,
                         table,
                         runAllInTheSameTransaction: false,
-                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false,
-                        sequence2UseForPrimaryKey ?? ""
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
                     );
                 }
                 else
@@ -622,7 +594,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         Func<IZenDbConnection, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel
@@ -657,8 +628,7 @@ public abstract class BaseRepository
                         conn,
                         table,
                         runAllInTheSameTransaction: false,
-                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false,
-                        sequence2UseForPrimaryKey ?? ""
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
                     );
                 }
                 else
@@ -690,7 +660,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         Func<IZenDbConnection, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where T3 : ResponseModel where TDBModel : DbModel
@@ -721,8 +690,7 @@ public abstract class BaseRepository
                         conn,
                         table,
                         runAllInTheSameTransaction: false,
-                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false,
-                        sequence2UseForPrimaryKey ?? ""
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
                     );
                 }
                 else
@@ -754,7 +722,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         Func<IZenDbConnection, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel where T2 : ResponseModel where TDBModel : DbModel
@@ -785,8 +752,7 @@ public abstract class BaseRepository
                         conn,
                         table,
                         runAllInTheSameTransaction: false,
-                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false,
-                        sequence2UseForPrimaryKey ?? ""
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
                     );
                 }
                 else
@@ -818,7 +784,6 @@ public abstract class BaseRepository
         List<TDBModel>? models,
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         bool isTableProcedure,
         Func<IZenDbConnection, Task>? CreateTempTableCallBack,
@@ -850,8 +815,7 @@ public abstract class BaseRepository
                         conn,
                         table,
                         runAllInTheSameTransaction: false,
-                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false,
-                        sequence2UseForPrimaryKey ?? ""
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
                     );
                 }
                 else
@@ -883,7 +847,6 @@ public abstract class BaseRepository
         List<TDBModel>? models, 
         bool? insertPrimaryKeyColumn,
         bool? bulkInsert,
-        string? sequence2UseForPrimaryKey,
         string procedure2Execute,
         Func<IZenDbConnection, Task>? CreateTempTableCallBack,
         params SqlParam[] parameters) where T : ResponseModel where TDBModel : DbModel
@@ -914,8 +877,7 @@ public abstract class BaseRepository
                         conn,
                         table, 
                         runAllInTheSameTransaction: false, 
-                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false, 
-                        sequence2UseForPrimaryKey ?? ""
+                        insertPrimaryKeyColumn: insertPrimaryKeyColumn ?? false
                     );
                 }
                 else

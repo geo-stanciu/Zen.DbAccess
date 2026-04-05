@@ -5,9 +5,9 @@ using System.Text;
 
 namespace Zen.DbAccess.Helpers;
 
-internal static class PropertyMapHelper
+public static class PropertyMapHelper
 {
-    internal static void SetPropertyValue<T>(T? rez, PropertyInfo? p, object? val)
+    public static void SetPropertyValue<T>(T? rez, PropertyInfo? p, object? val)
     {
         if (rez == null || p == null || val == null || val == DBNull.Value)
             return;
