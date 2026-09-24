@@ -41,6 +41,77 @@ public class DbConnectionFactory : IDbConnectionFactory
         _timeZone = timeZone;
         _dbSpeciffic = dbSpeciffic;
         _dbNamingConvention = dbNamingConvention;
+
+        CreateDatabaseSpecifficIfNull();
+    }
+
+    private void CreateDatabaseSpecifficIfNull()
+    {
+        if (_dbSpeciffic != null)
+        {
+            return;
+        }
+
+        switch (_dbType)
+        {
+            case DbConnectionType.SqlServer:
+                {
+                    Type? type = Type.GetType("Zen.DbAccess.SqlServer.SqlServerDatabaseSpeciffic, Zen.DbAccess.SqlServer");
+
+                    if (type != null && Activator.CreateInstance(type) is IDbSpeciffic dbSpecifficInstance)
+                    {
+                        _dbSpeciffic = dbSpecifficInstance;
+                        break;
+                    }
+                }
+                break;
+            case DbConnectionType.Postgresql:
+                {
+                    Type? type = Type.GetType("Zen.DbAccess.Postgresql.PostgresqlDatabaseSpeciffic, Zen.DbAccess.Postgresql");
+
+                    if (type != null && Activator.CreateInstance(type) is IDbSpeciffic dbSpecifficInstance)
+                    {
+                        _dbSpeciffic = dbSpecifficInstance;
+                        break;
+                    }
+                }
+                break;
+            case DbConnectionType.Oracle:
+                {
+                    Type? type = Type.GetType("Zen.DbAccess.Oracle.OracleDatabaseSpeciffic, Zen.DbAccess.Oracle");
+
+                    if (type != null && Activator.CreateInstance(type) is IDbSpeciffic dbSpecifficInstance)
+                    {
+                        _dbSpeciffic = dbSpecifficInstance;
+                        break;
+                    }
+                }
+                break;
+            case DbConnectionType.MariaDb:
+                {
+                    Type? type = Type.GetType("Zen.DbAccess.MariaDb.MariaDbDatabaseSpeciffic, Zen.DbAccess.MariaDb");
+
+                    if (type != null && Activator.CreateInstance(type) is IDbSpeciffic dbSpecifficInstance)
+                    {
+                        _dbSpeciffic = dbSpecifficInstance;
+                        break;
+                    }
+                }
+                break;
+            case DbConnectionType.Sqlite:
+                {
+                    Type? type = Type.GetType("Zen.DbAccess.Sqlite.SqliteDatabaseSpeciffic, Zen.DbAccess.Sqlite");
+
+                    if (type != null && Activator.CreateInstance(type) is IDbSpeciffic dbSpecifficInstance)
+                    {
+                        _dbSpeciffic = dbSpecifficInstance;
+                        break;
+                    }
+                }
+                break;
+            default:
+                throw new NotImplementedException($"Database type {_dbType} is not supported");
+        }
     }
 
     public DbConnectionType DbType
