@@ -173,7 +173,7 @@ public class PostgresqlDatabaseSpeciffic : IDbSpeciffic
         T? firstModel = list.FirstOrDefault();
 
         if (firstModel == null)
-            throw new NullReferenceException(nameof(firstModel));
+            return;
 
         firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 

@@ -110,7 +110,7 @@ public static class ListExtensions
             T? firstModel = list.FirstOrDefault();
 
             if (firstModel == null)
-                throw new NullReferenceException(nameof(firstModel));
+                return;
 
             firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
@@ -140,9 +140,11 @@ public static class ListExtensions
 
             throw;
         }
-
-        if (!isInTransaction && conn.Transaction != null)
-            await conn.CommitAsync();
+        finally
+        {
+            if (!isInTransaction && conn.Transaction != null)
+                await conn.CommitAsync();
+        }
     }
 
     public static async Task DeleteAllAsync<T>(
@@ -171,7 +173,7 @@ public static class ListExtensions
             T? firstModel = list.FirstOrDefault();
 
             if (firstModel == null)
-                throw new NullReferenceException(nameof(firstModel));
+                return;
 
             firstModel.RefreshDbColumnsAndModelProperties(conn, table);
 
@@ -210,9 +212,11 @@ public static class ListExtensions
 
             throw;
         }
-
-        if (!isInTransaction && conn.Transaction != null)
-            await conn.CommitAsync();
+        finally
+        {
+            if (!isInTransaction && conn.Transaction != null)
+                await conn.CommitAsync();
+        }
     }
 
     private static (List<PropertyInfo>, bool) PreparePrimaryKeyProps4Delete<T>(T firstModel) where T : DbModel
